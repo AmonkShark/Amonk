@@ -121,6 +121,14 @@ svg.sp{display:block;width:84px;height:22px}
 .info h3{margin:0 0 6px;font:600 15px var(--f-ui);color:var(--teks)}
 .info ul{margin:0;padding-left:18px} .info li{margin:3px 0} .info b{color:var(--teks);font-weight:500}
 .info p{margin:0 0 6px}
+/* TAB AKUN BINANCE (2026-09-22) — hanya membaca, lewat Cloudflare Worker. */
+.ak-set{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;background:var(--bg1);border:1px solid var(--garis);border-radius:8px;padding:12px;margin-bottom:12px}
+.ak-set label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--label)}
+.ak-set input{font:13px var(--f-num);color:var(--teks);background:var(--bg2);border:1px solid var(--garis);border-radius:4px;padding:7px 9px;min-width:0}
+.ak-set .tb{display:flex;gap:6px}
+@media (max-width:640px){.ak-set{grid-template-columns:1fr}}
+.ak-pesan{font-size:13px;color:var(--label);margin:0 0 10px}
+.ak-pesan.galat{color:var(--merah)}
 /* TAMPILAN HP (2026-09-22): kartu per koin dengan kolom penting saja. */
 #hpList{display:flex;flex-direction:column;gap:6px}
 .kartu{background:var(--bg1);border:1px solid var(--garis);border-radius:8px;padding:10px 12px;cursor:pointer}
@@ -151,6 +159,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
   <nav class="tab" role="tablist" aria-label="Halaman">
     <button role="tab" id="tbTerminal" data-hal="Terminal" aria-selected="true">Terminal</button>
     <button role="tab" id="tbJurnal" data-hal="Jurnal" aria-selected="false">Jurnal</button>
+    <button role="tab" id="tbAkun" data-hal="Akun" aria-selected="false">Akun</button>
     <button role="tab" id="tbInfo" data-hal="Info" aria-selected="false">Info</button>
   </nav>
 
@@ -228,11 +237,25 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
     <p class="jr-ket" id="jrWaktu" style="margin-top:10px"></p>
   </div>
 
+  <div class="hal" id="halAkun" hidden>
+    <form class="ak-set" id="akForm" autocomplete="off">
+      <label for="akUrl">Alamat perantara (Cloudflare Worker)<input id="akUrl" type="url" placeholder="https://amonk-binance.NAMAMU.workers.dev" inputmode="url"></label>
+      <label for="akSandi">Sandi aplikasi<input id="akSandi" type="password" placeholder="sandi yang kamu isi di Cloudflare"></label>
+      <div class="tb"><button class="btn" type="submit">Sambungkan</button><button class="btn" type="button" id="akLupa">Lupakan</button></div>
+    </form>
+    <p class="ak-pesan" id="akPesan">Belum tersambung. Alamat &amp; sandi disimpan hanya di perangkat ini. Aplikasi hanya MEMBACA saldo — tidak bisa memasang order atau menarik dana.</p>
+    <div class="jr-ring" id="akRing"></div>
+    <div class="jr-list" id="akList"></div>
+    <h3 id="akOrderJudul" style="font:600 14px var(--f-ui);margin:16px 0 8px" hidden>Order terbuka</h3>
+    <div class="jr-list" id="akOrder"></div>
+  </div>
+
   <div class="hal info" id="halInfo" hidden>
     <section><h3>Yang ada di aplikasi ini</h3><ul>
       <li><b>Terminal</b> — 109 koin watchlist hijau, harga hidup, pola 4H terakhir tiap koin dengan Entry/SL/TP1/TP2 dan PnL simulasi 1000 USDT. Dihitung sendiri di HP ini, tidak butuh Claude.</li>
       <li><b>Jurnal</b> — catatan forward-test <b>POLA 4H</b> dan <b>AI 4H</b>: tiap sinyal dianggap entry 1000 USDT. Dikirim dari laptop tiap 4 jam; trade yang masih jalan dinilai dengan harga hidup.</li>
-      <li>Hanya dua sinyal: POLA 4H dan AI 4H. Timeframe 4H, spot, long saja. Tanpa akun Binance — aplikasi hanya membaca data pasar publik, tidak bisa memasang order.</li>
+      <li>Hanya dua sinyal: POLA 4H dan AI 4H. Timeframe 4H, spot, long saja.</li>
+      <li><b>Akun</b> — saldo spot Binance, harga beli rata-rata, PnL koin, dan order terbuka, lewat perantara Cloudflare Worker milikmu. HANYA MEMBACA: perantara menolak kunci API yang bisa trading atau tarik dana, dan aplikasi tidak punya tombol order.</li>
     </ul></section>
     <section><h3>Aturan trade pola di Terminal</h3><ul>
       <li><b>Entry</b> = harga tutup lilin 4H saat pola valid (garis tembus). <b>SL</b> = garis batal pola. <b>TP2</b> = tinggi pola diproyeksikan dari titik tembus. <b>TP1</b> = entry + 0,75 × jarak SL (atau tengah jalan ke TP2).</li>
@@ -1020,8 +1043,9 @@ setSaring(["semua", "pola"].includes(st.saring) ? st.saring : "semua");
 let JR = null, jrPilih = baca("jrPilih", "POLA 4H"), halAktif = baca("hal", "Terminal");
 function pindahHal(h) {
   halAktif = h; simpan("hal", h);
-  for (const x of ["Terminal", "Jurnal", "Info"]) { $("hal" + x).hidden = x !== h; $("tb" + x).setAttribute("aria-selected", x === h ? "true" : "false"); }
+  for (const x of ["Terminal", "Jurnal", "Akun", "Info"]) { $("hal" + x).hidden = x !== h; $("tb" + x).setAttribute("aria-selected", x === h ? "true" : "false"); }
   if (h === "Jurnal") { if (!JR) muatJurnal(); else gambarJurnal(); }
+  if (h === "Akun" && window.muatAkun) window.muatAkun();
   if (h === "Terminal") { gambar(); if (window.paskanOtomatis) window.paskanOtomatis(); }
 }
 document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click", () => pindahHal(b.dataset.hal)));
@@ -1084,7 +1108,93 @@ document.querySelectorAll(".jr-pilih button").forEach(b => {
 });
 setInterval(() => { if (halAktif === "Jurnal" && JR) gambarJurnal(); }, 5000);
 setInterval(() => { if (JR) muatJurnal(); }, 30 * 60e3);   // ambil ulang jurnal tiap 30 menit
-pindahHal(["Terminal", "Jurnal", "Info"].includes(halAktif) ? halAktif : "Terminal");
+// ================= AKUN BINANCE (hanya membaca) =================
+// Data datang dari Cloudflare Worker milik user (terminal/worker_binance.js). Worker
+// menolak kunci API yang bisa trading/tarik dana. Sandi dikirim di header, bukan URL.
+const STABIL = new Set(["USDT", "USDC", "FDUSD", "BUSD", "TUSD", "DAI"]);
+let AK = null, akTrade = {}, akMuat = false;
+const akCfg = () => ({ url: (baca("akUrl", "") || "").replace(/\/+$/, ""), sandi: baca("akSandi", "") });
+$("akUrl").value = akCfg().url; $("akSandi").value = akCfg().sandi;
+$("akForm").addEventListener("submit", e => { e.preventDefault();
+  simpan("akUrl", $("akUrl").value.trim()); simpan("akSandi", $("akSandi").value); AK = null; akTrade = {}; window.muatAkun(true); });
+$("akLupa").addEventListener("click", () => { simpan("akUrl", ""); simpan("akSandi", ""); $("akUrl").value = ""; $("akSandi").value = "";
+  AK = null; akTrade = {}; $("akRing").innerHTML = $("akList").innerHTML = $("akOrder").innerHTML = ""; $("akOrderJudul").hidden = true;
+  pesanAk("Alamat & sandi dihapus dari perangkat ini."); });
+function pesanAk(t, galat) { const el = $("akPesan"); el.textContent = t; el.classList.toggle("galat", !!galat); }
+async function panggil(jalur) {
+  const c = akCfg();
+  const r = await fetch(c.url + jalur, { headers: { "X-Sandi": c.sandi }, cache: "no-store" });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.galat || ("HTTP " + r.status));
+  return j;
+}
+const hargaPasar = {};
+async function hargaAset(a) {
+  if (STABIL.has(a)) return 1;
+  if (data[a] && data[a].harga) return data[a].harga;
+  if (hargaPasar[a] && Date.now() - hargaPasar[a].t < 60e3) return hargaPasar[a].p;
+  try { const j = await getJ(`/api/v3/ticker/price?symbol=${a}USDT`); if (j && j.price) { hargaPasar[a] = { p: +j.price, t: Date.now() }; return +j.price; } } catch (e) {}
+  return null;
+}
+// Harga beli rata-rata posisi SEKARANG dari riwayat trade (biaya rata-rata;
+// penjualan mengurangi biaya secara proporsional).
+function rataBeli(aset, trade) {
+  let q = 0, biaya = 0;
+  for (const t of trade.slice().sort((a, b) => a.waktu - b.waktu)) {
+    if (t.beli) { q += t.jumlah - (t.asetKomisi === aset ? t.komisi : 0); biaya += t.nilai + (STABIL.has(t.asetKomisi) ? t.komisi : 0); }
+    else if (q > 0) { const k = Math.min(1, t.jumlah / q); biaya -= biaya * k; q -= Math.min(q, t.jumlah); }
+  }
+  return q > 0 ? { rata: biaya / q, qTercatat: q } : null;
+}
+window.muatAkun = async function (paksa) {
+  const c = akCfg();
+  if (!c.url || !c.sandi) { pesanAk("Isi alamat perantara & sandi lalu tekan Sambungkan."); return; }
+  if (akMuat) return; akMuat = true;
+  try {
+    if (!AK || paksa || Date.now() - AK.waktu > 60e3) { pesanAk("Mengambil saldo dari Binance…"); AK = await panggil("/akun"); }
+    const baris = [];
+    for (const b of AK.saldo) {
+      const jml = b.bebas + b.terkunci, px = await hargaAset(b.aset);
+      baris.push({ ...b, jml, px, nilai: px == null ? null : jml * px });
+    }
+    // riwayat trade hanya untuk aset bernilai > 5 USDT (maks 15 koin), disimpan 10 menit
+    for (const b of baris.filter(x => !STABIL.has(x.aset) && (x.nilai || 0) > 5).sort((a, b) => b.nilai - a.nilai).slice(0, 15)) {
+      const k = b.aset;
+      if (!akTrade[k] || Date.now() - akTrade[k].t > 600e3) {
+        try { const j = await panggil("/trade?simbol=" + k + "USDT"); akTrade[k] = { t: Date.now(), r: rataBeli(k, j.trade) }; }
+        catch (e) { akTrade[k] = { t: Date.now(), r: null }; }
+      }
+      const r = akTrade[k].r;
+      if (r && b.px) { b.rata = r.rata; b.pnl = (b.px - r.rata) * Math.min(b.jml, r.qTercatat); b.pct = (b.px / r.rata - 1) * 100; b.sebagian = r.qTercatat < b.jml * 0.98; }
+    }
+    gambarAkun(baris);
+    pesanAk(`Tersambung · diperbarui ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} · hanya membaca${AK.izinBaca ? "" : " (izin baca tidak terdeteksi)"}`);
+  } catch (e) {
+    pesanAk("Gagal: " + e.message + (/Failed to fetch/i.test(e.message) ? " — periksa alamat perantara." : ""), true);
+  } finally { akMuat = false; }
+};
+function gambarAkun(baris) {
+  const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
+  const total = baris.reduce((a, b) => a + (b.nilai || 0), 0);
+  const stabil = baris.filter(b => STABIL.has(b.aset)).reduce((a, b) => a + (b.nilai || 0), 0);
+  const pnl = baris.reduce((a, b) => a + (b.pnl || 0), 0);
+  $("akRing").innerHTML = `<div class="jr-kotak"><h3>Saldo spot <small>${baris.length} aset</small></h3>` +
+    `<div class="jr-angka"><div><span>Total USDT</span><b>${total.toFixed(2)}</b></div><div><span>Stablecoin</span><b>${stabil.toFixed(2)}</b></div>` +
+    `<div><span>PnL koin</span><b class="${kl(pnl)}">${f2(pnl)}</b></div></div>` +
+    `<p class="jr-ket">PnL koin = harga kini vs harga beli rata-rata dari 500 trade terakhir tiap koin (belum terealisasi). Koin hasil deposit/transfer tidak punya harga beli.</p></div>`;
+  $("akList").innerHTML = baris.sort((a, b) => (b.nilai || 0) - (a.nilai || 0)).map(b =>
+    `<div class="jr-tr"><div style="min-width:0"><div class="nm">${b.aset}</div><div class="sub">${b.jml.toLocaleString("en-US", { maximumFractionDigits: 8 })}${b.terkunci ? ` · ${b.terkunci} terkunci di order` : ""}</div></div>` +
+    `<div class="lv">${b.px == null ? "harga —" : "Kini " + fHarga(b.px)}${b.rata ? `<br>Beli ${fHarga(b.rata)}${b.sebagian ? " (sebagian)" : ""}` : ""}</div>` +
+    `<div class="ha"><b>${b.nilai == null ? "—" : b.nilai.toFixed(2)}</b><span class="${kl(b.pnl)}" style="font-size:12px">${b.pnl == null ? "" : f2(b.pnl) + " (" + f2(b.pct) + "%)"}</span></div></div>`).join("") ||
+    `<div class="kosong">Tidak ada saldo.</div>`;
+  $("akOrderJudul").hidden = !AK.order.length;
+  $("akOrder").innerHTML = AK.order.map(o => `<div class="jr-tr"><div><div class="nm">${o.simbol.replace(/USDT$/, "")}</div><div class="sub">${o.sisi === "BUY" ? "BELI" : "JUAL"} · ${o.jenis}</div></div>` +
+    `<div class="lv">Harga ${fHarga(o.harga)}${o.stop ? "<br>Stop " + fHarga(o.stop) : ""}</div><div class="ha"><b>${o.jumlah}</b><span class="redup" style="font-size:12px">terisi ${o.terisi}</span></div></div>`).join("");
+}
+setInterval(() => { if (halAktif === "Akun" && akCfg().url) window.muatAkun(); }, 60e3);
+
+pindahHal(["Terminal", "Jurnal", "Akun", "Info"].includes(halAktif) ? halAktif : "Terminal");
+
 
 
 jam(); setInterval(jam, 1000);
