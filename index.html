@@ -94,6 +94,22 @@ svg.sp{display:block;width:84px;height:22px}
 .catatan p{margin:0;max-width:62ch}
 .catatan b{color:var(--teks);font-weight:500}
 .kosong{padding:28px;text-align:center;color:var(--label);font-family:var(--f-ui)}
+/* TAMPILAN HP (2026-09-22): kartu per koin dengan kolom penting saja. */
+#hpList{display:flex;flex-direction:column;gap:6px}
+.kartu{background:var(--bg1);border:1px solid var(--garis);border-radius:8px;padding:10px 12px;cursor:pointer}
+.kartu .atas{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px}
+.kartu .nm{font:600 16px var(--f-ui)}
+.kartu .sub{font-size:12px;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kartu .kanan2{text-align:right;font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.kartu .pnlB{font-size:16px;font-weight:500}
+.kartu .kecil{font-size:11.5px;color:var(--label)}
+.kartu .rinci{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 14px;margin-top:9px;padding-top:9px;border-top:1px solid var(--garis);font-size:13px}
+.kartu .rinci span{color:var(--label)} .kartu .rinci b{font:500 13px var(--f-num);float:right;color:var(--teks)}
+.kartu .rinci a{grid-column:1/-1;color:var(--biru);text-decoration:none;font-size:13px;margin-top:2px}
+.kartu .chip{min-width:0}
+body.hp .tabel,body.hp .ukuran,body.hp #paskan{display:none}
+body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
+#urutHP{font:13px var(--f-ui);color:var(--teks);background:var(--bg2);border:1px solid var(--garis);border-radius:4px;padding:6px 8px}
 @media (max-width:560px){ .status{margin-left:0;width:100%} .kanan{margin-left:0} #cari{width:100%} .alat>*{flex:1 1 auto} }
 </style>
 </head>
@@ -123,11 +139,20 @@ svg.sp{display:block;width:84px;height:22px}
     <div class="kanan">
       <label class="ukuran" for="fs">Huruf <input id="fs" type="range" min="10" max="16" step="0.5" value="13"></label>
       <label class="ukuran" for="rapat">Jarak <input id="rapat" type="range" min="2" max="12" step="1" value="10"></label>
+      <select id="urutHP" aria-label="Urutkan">
+        <option value="pnl">Urut: PnL terbesar</option>
+        <option value="pnlNaik">Urut: PnL terkecil</option>
+        <option value="polaUmur">Urut: pola terbaru</option>
+        <option value="koin">Urut: nama koin</option>
+        <option value="ch">Urut: 24j terbesar</option>
+      </select>
+      <button class="btn" id="mode" title="Ganti tampilan HP / lengkap">Tampilan lengkap</button>
       <button class="btn" id="paskan" title="Bagi lebar layar ke semua kolom supaya tidak perlu geser ke kanan">Paskan layar</button>
       <button class="btn" id="muat">Muat ulang 4H</button>
     </div>
   </div>
 
+  <div id="hpList"></div>
   <div class="tabel">
     <table id="tbl">
       <colgroup id="cg"></colgroup>
@@ -686,6 +711,7 @@ function gambar() {
     return (typeof x === "string" ? x.localeCompare(y) : x - y) * A;
   });
 
+  if (modeHP) { gambarHP(rs); ringkas(semua); kilat = {}; return; }
   const tb = $("tb");
   if (!rs.length) { tb.innerHTML = `<tr><td colspan="13" class="kosong">Tidak ada koin di zona ini sekarang.</td></tr>`; }
   else tb.innerHTML = rs.map(r => {
@@ -711,6 +737,46 @@ function gambar() {
   ringkas(semua);
 }
 
+// ---- TAMPILAN HP: satu kartu per koin — Koin + pola, Status, PnL, harga.
+// Ketuk kartu untuk rincian (Entry, SL, TP1, TP2, umur, 24j, RSI, likuid, link chart).
+let modeHP = false;
+const bukaHP = new Set();
+const URUT_HP = { pnl: ["pnl", -1], pnlNaik: ["pnl", 1], polaUmur: ["polaUmur", 1], koin: ["koin", 1], ch: ["ch", -1] };
+function chipPola(P) {
+  return P.st === "jalan" ? (P.kenaTp1 ? `<span class="chip jalan">Jalan 50%</span>` : `<span class="chip jalan">Jalan</span>`)
+    : P.st === "TP2" ? `<span class="chip tp">TP1+TP2</span>` : P.st === "BE" ? `<span class="chip tp">TP1+BE</span>` : `<span class="chip sl">Kena SL</span>`;
+}
+function gambarHP(rs) {
+  const [K, A] = URUT_HP[$("urutHP").value] || URUT_HP.pnl;
+  rs = rs.slice().sort((a, b) => {
+    const x = a[K], y = b[K];
+    if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1;
+    return (typeof x === "string" ? x.localeCompare(y) : x - y) * A;
+  });
+  const el = $("hpList");
+  if (!rs.length) { el.innerHTML = `<div class="kosong">Tidak ada koin di sini sekarang.</div>`; return; }
+  el.innerHTML = rs.map(r => {
+    const P = r.p, kls = x => x == null ? "" : x >= 0 ? "naik" : "turun";
+    const url = `https://www.tradingview.com/chart/?symbol=BINANCE:${r.koin}USDT&interval=240`;
+    const pnl = r.pnl == null ? "—" : (r.pnl >= 0 ? "+" : "") + r.pnl.toFixed(2);
+    const pc = x => x == null || !P ? "" : ` <span class="redup">${fPct((x / P.entry - 1) * 100, 1)}</span>`;
+    const rinci = !bukaHP.has(r.koin) ? "" : `<div class="rinci">` +
+      (P ? `<span>Entry <b>${fHarga(P.entry)}</b></span>` +
+           `<span>SL <b>${P.kenaTp1 ? fHarga(P.entry) + " (BE)" : fHarga(P.sl)}</b></span>` +
+           `<span>TP1 <b>${fHarga(P.tp1)}${P.kenaTp1 ? " ✓" : ""}</b></span>` +
+           `<span>TP2 <b>${fHarga(P.tp2)}</b></span>` +
+           `<span>Umur <b>${P.umur} bar</b></span>` : "") +
+      `<span>24j <b class="${kls(r.ch)}">${fPct(r.ch)}</b></span>` +
+      `<span>RSI 4H <b>${r.rsi == null ? "—" : r.rsi.toFixed(0)}</b></span>` +
+      `<span>Likuid <b>${fUsd(r.q)}</b></span>` +
+      `<a href="${url}" target="_blank" rel="noopener">Buka chart 4H di TradingView →</a></div>`;
+    return `<div class="kartu" data-k="${r.koin}">` +
+      `<div class="atas"><div style="min-width:0"><div class="nm">${r.koin}</div><div class="sub">${P ? P.nama : "tidak ada pola 4H"}</div></div>` +
+      `<div>${P ? chipPola(P) : ""}</div>` +
+      `<div class="kanan2"><div class="pnlB ${kls(r.pnl)}">${pnl}</div><div class="kecil">${fHarga(r.harga)}</div></div></div>` +
+      rinci + `</div>`;
+  }).join("");
+}
 function selPola(r) {
   const P = r.p;
   if (!P) return `<td class="kiri grup redup">—</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>`;
@@ -850,6 +916,22 @@ fsEl.addEventListener("input", () => { pasangHuruf(); simpan("fs", +fsEl.value);
 rpEl.addEventListener("input", () => { pasangHuruf(); simpan("rapat", +rpEl.value); });
 // isi yang terpotong tetap bisa dibaca lewat tooltip
 tbl.addEventListener("mouseover", e => { const td = e.target.closest("td"); if (td && td.scrollWidth > td.clientWidth) td.title = td.innerText; });
+
+// mode tampilan: bawaan HP kalau layar sempit; pilihan manual disimpan
+function pasangMode(hp) {
+  modeHP = hp; document.body.classList.toggle("hp", hp);
+  $("mode").textContent = hp ? "Tampilan lengkap" : "Tampilan HP";
+  gambar(); if (!hp && window.paskanOtomatis) window.paskanOtomatis();
+}
+$("mode").addEventListener("click", () => { simpan("modeHP", !modeHP); pasangMode(!modeHP); });
+try { $("urutHP").value = baca("urutHP", "pnl"); } catch (e) {}
+$("urutHP").addEventListener("change", () => { simpan("urutHP", $("urutHP").value); gambar(); });
+$("hpList").addEventListener("click", e => {
+  if (e.target.closest("a")) return;
+  const k = e.target.closest(".kartu"); if (!k) return;
+  const n = k.dataset.k; bukaHP.has(n) ? bukaHP.delete(n) : bukaHP.add(n); gambar();
+});
+{ const simpanan = baca("modeHP", null); pasangMode(simpanan === null ? window.innerWidth <= 760 : !!simpanan); }
 
 setSaring(["semua", "pola"].includes(st.saring) ? st.saring : "semua");
 jam(); setInterval(jam, 1000);
