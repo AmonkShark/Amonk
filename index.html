@@ -121,9 +121,18 @@ svg.sp{display:block;width:84px;height:22px}
 .info h3{margin:0 0 6px;font:600 15px var(--f-ui);color:var(--teks)}
 .info ul{margin:0;padding-left:18px} .info li{margin:3px 0} .info b{color:var(--teks);font-weight:500}
 .info p{margin:0 0 6px}
-.rw-tabel{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;margin-bottom:12px}
-.rw-tabel div{background:var(--bg1);border:1px solid var(--garis);border-radius:6px;padding:7px 10px;font-size:12.5px;display:flex;justify-content:space-between;gap:8px}
-.rw-tabel b{font:500 12.5px var(--f-num)}
+.rw-tabel{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;margin-bottom:12px}
+.rw-pola{background:var(--bg1);border:1px solid var(--garis);border-radius:8px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:5px;text-align:left;font:inherit;color:inherit}
+.rw-pola[aria-pressed="true"]{border-color:var(--biru);box-shadow:0 0 0 1px var(--biru) inset}
+.rw-pola .j{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.rw-pola .j b{font:600 14.5px var(--f-ui)} .rw-pola .j span{font:500 15px var(--f-num)}
+.rw-pola .d{font:12px var(--f-num);color:var(--label);display:flex;flex-wrap:wrap;gap:2px 12px}
+.rw-pola .d em{font-style:normal;color:var(--teks)}
+.rw-pola .bar{display:flex;height:5px;border-radius:3px;overflow:hidden;background:var(--bg2)}
+.rw-pola .bar i{display:block;height:100%}
+.rw-pola .kecil2{font-size:11px;color:var(--kuning)}
+.rw-judul{font:600 14px var(--f-ui);margin:4px 0 8px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.rw-judul small{font-weight:400;color:var(--label);font-size:12px}
 /* TAB AKUN BINANCE (2026-09-22) — hanya membaca, lewat Cloudflare Worker. */
 .ak-set{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;background:var(--bg1);border:1px solid var(--garis);border-radius:8px;padding:12px;margin-bottom:12px}
 .ak-set label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--label)}
@@ -232,6 +241,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
 
   <div class="hal" id="halRiwayat" hidden>
     <div class="jr-ring" id="rwRing"><div class="kosong">Riwayat muncul sesudah lilin 4H termuat…</div></div>
+    <div class="rw-judul">Hasil per pola <small>ketuk pola untuk melihat trade-nya · urut dari total USDT terbesar</small></div>
     <div class="rw-tabel" id="rwPola"></div>
     <div class="jr-pilih seg" role="group" aria-label="Saring riwayat">
       <button data-r="semua" aria-pressed="true">Semua</button>
@@ -1231,7 +1241,7 @@ setInterval(() => { if (halAktif === "Akun" && akCfg().url) window.muatAkun(); }
 // Semua pola valid 109 koin (~100 hari) dihitung ulang tiap lilin 4H. Supaya trade yang
 // sudah keluar dari jendela 600 lilin tidak hilang, riwayat disimpan juga di perangkat
 // ini (localStorage). Yang masih di jendela selalu memakai hasil hitungan terbaru.
-let rwPilih = baca("rwPilih", "semua");
+let rwPilih = baca("rwPilih", "semua"), rwPola = null;
 const RW_MAKS = 3000;
 let RW = baca("riwayat", {}) || {};   // salinan di memori; tetap jalan walau penyimpanan diblokir
 function kumpulRiwayat() {
@@ -1278,14 +1288,33 @@ window.gambarRiwayat = function () {
     `<div><span>USDT tutup</span><b class="${kl(tot)}">${f2(tot)}</b></div></div>` +
     `<div class="jr-angka"><div><span>Jalan</span><b>${jalan.length}</b></div><div><span>Rata/trade</span><b class="${kl(tot)}">${tutup.length ? f2(tot / tutup.length) : "—"}</b></div>` +
     `<div><span>USDT jalan</span><b class="${kl(totJ)}">${f2(totJ)}</b></div></div>` + kurva + `</div>`;
-  // per pola
+  // ---- PER POLA (2026-09-22, "riwayat per pola agar tau mana yang lebih menghasilkan")
   const per = {};
-  for (const t of tutup) { const x = per[t.nama] = per[t.nama] || { n: 0, m: 0, u: 0 }; x.n++; x.m += t.pnl > 0; x.u += t.pnl; }
-  $("rwPola").innerHTML = Object.entries(per).sort((a, b) => b[1].u - a[1].u).map(([nm, x]) =>
-    `<div><span>${nm} <span class="redup">${x.n}× · ${Math.round(x.m / x.n * 100)}%</span></span><b class="${kl(x.u)}">${f2(x.u)}</b></div>`).join("");
+  const dapat = nm => per[nm] = per[nm] || { n: 0, m: 0, u: 0, tp2: 0, be: 0, sl: 0, jalan: 0, uJalan: 0, win: 0, loss: 0 };
+  for (const t of tutup) {
+    const x = dapat(t.nama); x.n++; x.u += t.pnl;
+    if (t.pnl > 0) { x.m++; x.win += t.pnl; } else x.loss += t.pnl;
+    if (t.st === "TP2") x.tp2++; else if (t.st === "BE") x.be++; else x.sl++;
+  }
+  for (const t of jalan) { const x = dapat(t.nama); x.jalan++; x.uJalan += t.pnl || 0; }
+  $("rwPola").innerHTML = Object.entries(per).sort((a, b) => b[1].u - a[1].u).map(([nm, x]) => {
+    const wr = x.n ? Math.round(x.m / x.n * 100) : 0, rata = x.n ? x.u / x.n : null;
+    const avgW = x.m ? x.win / x.m : null, avgL = x.n - x.m ? x.loss / (x.n - x.m) : null;
+    const w = v => x.n ? (v / x.n * 100).toFixed(1) + "%" : "0";
+    return `<button type="button" class="rw-pola" data-p="${nm}" aria-pressed="${rwPola === nm}">` +
+      `<div class="j"><b>${nm}</b><span class="${kl(x.u)}">${x.n ? f2(x.u) : "—"}</span></div>` +
+      `<div class="bar" title="TP1+TP2 / TP1+BE / SL"><i style="width:${w(x.tp2)};background:var(--hijau)"></i><i style="width:${w(x.be)};background:rgba(38,166,154,.45)"></i><i style="width:${w(x.sl)};background:var(--merah)"></i></div>` +
+      `<div class="d"><span><em>${x.n}</em> tutup</span><span>WR <em>${wr}%</em></span><span>rata <em class="${kl(rata)}">${f2(rata)}</em></span></div>` +
+      `<div class="d"><span>TP1+TP2 <em>${x.tp2}</em></span><span>TP1+BE <em>${x.be}</em></span><span>SL <em>${x.sl}</em></span>${x.jalan ? `<span>jalan <em>${x.jalan}</em></span>` : ""}</div>` +
+      `<div class="d"><span>rata untung <em class="naik">${f2(avgW)}</em></span><span>rata rugi <em class="turun">${f2(avgL)}</em></span></div>` +
+      (x.n < 30 ? `<div class="kecil2">sampel kecil (&lt;30 trade) — belum bisa disimpulkan</div>` : "") + `</button>`;
+  }).join("");
+  document.querySelectorAll("#rwPola .rw-pola").forEach(b => b.addEventListener("click", () => {
+    rwPola = rwPola === b.dataset.p ? null : b.dataset.p; window.gambarRiwayat(); }));
   let rows = semua.slice();
-  if (rwPilih === "jalan") rows = jalan; else if (rwPilih === "tutup") rows = tutup;
-  else if (rwPilih === "untung") rows = tutup.filter(t => t.pnl > 0); else if (rwPilih === "rugi") rows = tutup.filter(t => t.pnl <= 0);
+  if (rwPola) rows = rows.filter(t => t.nama === rwPola);
+  if (rwPilih === "jalan") rows = rows.filter(t => t.st === "jalan" && !t.luar); else if (rwPilih === "tutup") rows = rows.filter(t => t.st !== "jalan");
+  else if (rwPilih === "untung") rows = rows.filter(t => t.st !== "jalan" && t.pnl > 0); else if (rwPilih === "rugi") rows = rows.filter(t => t.st !== "jalan" && t.pnl <= 0);
   rows.sort((a, b) => b.masukT - a.masukT);
   const tampil = rows.slice(0, 300);
   $("rwList").innerHTML = tampil.map(t => {
