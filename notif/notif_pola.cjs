@@ -83,7 +83,7 @@ function pesan(k, e, L, d, vol, uji) {
   const tutupT = d.t[e.i] + 4 * 3600e3;
   // Gaya "kartu sinyal" (contoh gambar user 2026-09-22): judul, baris kotak, satu baris per data dengan emoji.
   return (uji ? "🧪 <b>PESAN UJI</b> — contoh, bukan pola baru\n\n" : "") +
-    `<b>AMONK · Pola 4H</b>\n` +
+    `<b>AMONK SINYAL</b>\n` +
     `◻️◻️◻️◻️◻️\n` +
     `📊 EXCHANGE: BINANCE\n` +
     `💰 Coin: <b>${esc(k)}/USDT</b>\n` +
