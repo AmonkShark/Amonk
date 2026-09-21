@@ -1112,13 +1112,13 @@ setInterval(() => { if (JR) muatJurnal(); }, 30 * 60e3);   // ambil ulang jurnal
 // Data datang dari Cloudflare Worker milik user (terminal/worker_binance.js). Worker
 // menolak kunci API yang bisa trading/tarik dana. Sandi dikirim di header, bukan URL.
 const STABIL = new Set(["USDT", "USDC", "FDUSD", "BUSD", "TUSD", "DAI"]);
-let AK = null, akTrade = {}, akMuat = false;
+let AK = null, akTrade = {}, akMuat = false, akGen = 0;   // akGen: buang hasil pemuatan lama
 const akCfg = () => ({ url: (baca("akUrl", "") || "").replace(/\/+$/, ""), sandi: baca("akSandi", "") });
 $("akUrl").value = akCfg().url; $("akSandi").value = akCfg().sandi;
 $("akForm").addEventListener("submit", e => { e.preventDefault();
-  simpan("akUrl", $("akUrl").value.trim()); simpan("akSandi", $("akSandi").value); AK = null; akTrade = {}; window.muatAkun(true); });
+  simpan("akUrl", $("akUrl").value.trim()); simpan("akSandi", $("akSandi").value); AK = null; akTrade = {}; akGen++; akMuat = false; window.muatAkun(true); });
 $("akLupa").addEventListener("click", () => { simpan("akUrl", ""); simpan("akSandi", ""); $("akUrl").value = ""; $("akSandi").value = "";
-  AK = null; akTrade = {}; $("akRing").innerHTML = $("akList").innerHTML = $("akOrder").innerHTML = ""; $("akOrderJudul").hidden = true;
+  AK = null; akTrade = {}; akGen++; $("akRing").innerHTML = $("akList").innerHTML = $("akOrder").innerHTML = ""; $("akOrderJudul").hidden = true;
   pesanAk("Alamat & sandi dihapus dari perangkat ini."); });
 function pesanAk(t, galat) { const el = $("akPesan"); el.textContent = t; el.classList.toggle("galat", !!galat); }
 async function panggil(jalur) {
@@ -1150,10 +1150,14 @@ window.muatAkun = async function (paksa) {
   const c = akCfg();
   if (!c.url || !c.sandi) { pesanAk("Isi alamat perantara & sandi lalu tekan Sambungkan."); return; }
   if (akMuat) return; akMuat = true;
+  const gen = akGen;
   try {
-    if (!AK || paksa || Date.now() - AK.waktu > 60e3) { pesanAk("Mengambil saldo dari Binance…"); AK = await panggil("/akun"); }
+    let akun = AK;
+    if (!akun || paksa || Date.now() - akun.waktu > 60e3) { pesanAk("Mengambil saldo dari Binance…"); akun = await panggil("/akun"); }
+    if (gen !== akGen) return;          // pengaturan berubah di tengah jalan -> hasil ini basi
+    AK = akun;
     const baris = [];
-    for (const b of AK.saldo) {
+    for (const b of akun.saldo) {
       const jml = b.bebas + b.terkunci, px = await hargaAset(b.aset);
       baris.push({ ...b, jml, px, nilai: px == null ? null : jml * px });
     }
@@ -1167,13 +1171,15 @@ window.muatAkun = async function (paksa) {
       const r = akTrade[k].r;
       if (r && b.px) { b.rata = r.rata; b.pnl = (b.px - r.rata) * Math.min(b.jml, r.qTercatat); b.pct = (b.px / r.rata - 1) * 100; b.sebagian = r.qTercatat < b.jml * 0.98; }
     }
-    gambarAkun(baris);
-    pesanAk(`Tersambung · diperbarui ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} · hanya membaca${AK.izinBaca ? "" : " (izin baca tidak terdeteksi)"}`);
+    if (gen !== akGen) return;
+    gambarAkun(baris, akun);
+    pesanAk(`Tersambung · diperbarui ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} · hanya membaca${akun.izinBaca ? "" : " (izin baca tidak terdeteksi)"}`);
   } catch (e) {
+    if (gen !== akGen) return;
     pesanAk("Gagal: " + e.message + (/Failed to fetch/i.test(e.message) ? " — periksa alamat perantara." : ""), true);
-  } finally { akMuat = false; }
+  } finally { if (gen === akGen) akMuat = false; }
 };
-function gambarAkun(baris) {
+function gambarAkun(baris, akun) {
   const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
   const total = baris.reduce((a, b) => a + (b.nilai || 0), 0);
   const stabil = baris.filter(b => STABIL.has(b.aset)).reduce((a, b) => a + (b.nilai || 0), 0);
@@ -1187,8 +1193,9 @@ function gambarAkun(baris) {
     `<div class="lv">${b.px == null ? "harga —" : "Kini " + fHarga(b.px)}${b.rata ? `<br>Beli ${fHarga(b.rata)}${b.sebagian ? " (sebagian)" : ""}` : ""}</div>` +
     `<div class="ha"><b>${b.nilai == null ? "—" : b.nilai.toFixed(2)}</b><span class="${kl(b.pnl)}" style="font-size:12px">${b.pnl == null ? "" : f2(b.pnl) + " (" + f2(b.pct) + "%)"}</span></div></div>`).join("") ||
     `<div class="kosong">Tidak ada saldo.</div>`;
-  $("akOrderJudul").hidden = !AK.order.length;
-  $("akOrder").innerHTML = AK.order.map(o => `<div class="jr-tr"><div><div class="nm">${o.simbol.replace(/USDT$/, "")}</div><div class="sub">${o.sisi === "BUY" ? "BELI" : "JUAL"} · ${o.jenis}</div></div>` +
+  const order = (akun && akun.order) || [];
+  $("akOrderJudul").hidden = !order.length;
+  $("akOrder").innerHTML = order.map(o => `<div class="jr-tr"><div><div class="nm">${o.simbol.replace(/USDT$/, "")}</div><div class="sub">${o.sisi === "BUY" ? "BELI" : "JUAL"} · ${o.jenis}</div></div>` +
     `<div class="lv">Harga ${fHarga(o.harga)}${o.stop ? "<br>Stop " + fHarga(o.stop) : ""}</div><div class="ha"><b>${o.jumlah}</b><span class="redup" style="font-size:12px">terisi ${o.terisi}</span></div></div>`).join("");
 }
 setInterval(() => { if (halAktif === "Akun" && akCfg().url) window.muatAkun(); }, 60e3);
