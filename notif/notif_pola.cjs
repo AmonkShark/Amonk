@@ -27,6 +27,7 @@ const MODAL = 1000, BIAYA = 0.002, MAKS = 120;
 const JENDELA_BAR = +(process.env.JENDELA_BAR || 2);    // pola valid di N lilin 4H tutup terakhir (2 = aman kalau jadwal GitHub telat)
 const TOKEN = process.env.TELEGRAM_TOKEN || "", CHAT = process.env.TELEGRAM_CHAT || "";
 const DRY = process.env.DRY === "1" || !TOKEN;
+const UJI = process.env.UJI === "true";   // tombol "pesan uji" di workflow: kirim 1 pola valid terbaru, status tidak disentuh
 const F_STATUS = path.join(__dirname, "terkirim.json");
 const HOSTS = ["https://data-api.binance.vision", "https://api.binance.com", "https://api-gcp.binance.com"];
 
@@ -93,7 +94,7 @@ async function kirim(teks, chat) {
 
   let status = {}; try { status = JSON.parse(fs.readFileSync(F_STATUS, "utf8")); } catch (e) {}
   const sekarang = Date.now();
-  let baru = 0, dicek = 0;
+  let baru = 0, dicek = 0, calonUji = null;
   for (const k of KOIN) {
     const j = await getJ(`/api/v3/klines?symbol=${k}USDT&interval=4h&limit=600`);
     if (!Array.isArray(j) || j.length < 250) continue;
@@ -104,6 +105,7 @@ async function kirim(teks, chat) {
     let ev = []; try { ev = peristiwa(d, atrArr(d.h, d.l, d.c)) || []; } catch (e) { continue; }
     ev = ev.filter(e => !SEMBUNYI.has(e.kode));
     const n = d.c.length;
+    if (UJI) { const e = ev[ev.length - 1]; if (e && (!calonUji || d.t[e.i] > calonUji.t)) calonUji = { t: d.t[e.i], k, d, e, ev }; continue; }
     for (const e of ev.filter(e => e.i >= n - JENDELA_BAR)) {
       const kunci = `${k}|${e.nama}|${d.t[e.i]}`;
       if (status[kunci]) continue;
@@ -126,6 +128,30 @@ async function kirim(teks, chat) {
         `<a href="https://www.tradingview.com/chart/?symbol=BINANCE:${esc(k)}USDT&interval=240">Chart 4H</a> · <a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`;
       if (await kirim(teks)) { status[kunci] = sekarang; baru++; }
     }
+  }
+  if (UJI) {
+    if (!calonUji) { console.log("UJI: tidak ada pola valid di jendela data"); return; }
+    const { k, d, e, ev } = calonUji, L = level(d, e), n = d.c.length;
+    const waktu = new Date(d.t[e.i] + 4 * 3600e3).toISOString().slice(5, 16).replace("-", "/").replace("T", " ");
+    const ok = await kirim(`🧪 <b>PESAN UJI</b> — beginilah bentuk notifikasi pola baru.
+
+` +
+      `🔔 <b>POLA 4H — ${esc(k)}</b>
+${esc(e.nama)} · valid lilin tutup ${waktu} UTC (${n - 1 - e.i} lilin lalu)
+
+` +
+      `Entry  <b>${fx(L.entry)}</b>
+SL     ${fx(L.sl)}  (${pc(L.sl, L.entry)})
+TP1   ${fx(L.tp1)}  (${pc(L.tp1, L.entry)}) → ambil 50%, SL sisa ke entry
+TP2   ${fx(L.tp2)}  (${pc(L.tp2, L.entry)})
+
+` +
+      `<i>Pola ini BUKAN baru — hanya contoh. Notifikasi asli datang otomatis tiap ada pola 4H baru.</i>
+
+` +
+      `<a href="https://www.tradingview.com/chart/?symbol=BINANCE:${esc(k)}USDT&interval=240">Chart 4H</a> · <a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`);
+    console.log(`UJI: pesan ${ok ? "terkirim" : "GAGAL"} (${dicek} koin dicek)`);
+    return;
   }
   // bersihkan status lebih dari 30 hari
   for (const [kk, t] of Object.entries(status)) if (sekarang - t > 30 * 864e5) delete status[kk];
