@@ -131,6 +131,11 @@ svg.sp{display:block;width:84px;height:22px}
 .rw-pola .bar{display:flex;height:5px;border-radius:3px;overflow:hidden;background:var(--bg2)}
 .rw-pola .bar i{display:block;height:100%}
 .rw-pola .kecil2{font-size:11px;color:var(--kuning)}
+.rw-maju{font-size:11.5px;color:var(--label);display:flex;flex-direction:column;gap:3px}
+.rw-maju .pb{display:grid;grid-template-columns:62px 1fr auto;gap:6px;align-items:center}
+.rw-maju .pb div{height:4px;border-radius:2px;background:var(--bg2);overflow:hidden}
+.rw-maju .pb div i{display:block;height:100%;background:var(--biru)}
+.rw-vonis{font-size:11.5px;font-weight:600}
 .rw-judul{font:600 14px var(--f-ui);margin:4px 0 8px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .rw-judul small{font-weight:400;color:var(--label);font-size:12px}
 /* TAB AKUN BINANCE (2026-09-22) — hanya membaca, lewat Cloudflare Worker. */
@@ -241,6 +246,10 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
 
   <div class="hal" id="halRiwayat" hidden>
     <div class="jr-ring" id="rwRing"><div class="kosong">Riwayat muncul sesudah lilin 4H termuat…</div></div>
+    <div class="jr-pilih seg" role="group" aria-label="Periode riwayat" id="rwPeriode">
+      <button data-m="maju" aria-pressed="false">Maju sejak 22-09-2026</button>
+      <button data-m="semua" aria-pressed="true">Semua (dihitung ulang ~100 hari)</button>
+    </div>
     <div class="rw-judul">Hasil per pola <small>ketuk pola untuk melihat trade-nya · urut dari total USDT terbesar</small></div>
     <div class="rw-tabel" id="rwPola"></div>
     <div class="jr-pilih seg" role="group" aria-label="Saring riwayat">
@@ -1241,7 +1250,11 @@ setInterval(() => { if (halAktif === "Akun" && akCfg().url) window.muatAkun(); }
 // Semua pola valid 109 koin (~100 hari) dihitung ulang tiap lilin 4H. Supaya trade yang
 // sudah keluar dari jendela 600 lilin tidak hilang, riwayat disimpan juga di perangkat
 // ini (localStorage). Yang masih di jendela selalu memakai hasil hitungan terbaru.
-let rwPilih = baca("rwPilih", "semua"), rwPola = null;
+let rwPilih = baca("rwPilih", "semua"), rwPola = null, rwMode = baca("rwMode", "semua");
+// PEMANTAUAN MAJU: hanya pola yang VALID mulai tanggal ini. Tanggalnya dipaku supaya
+// sama di semua perangkat (dihitung dari waktu lilin, bukan dari kapan aplikasi dibuka).
+const RW_MULAI = Date.UTC(2026, 8, 22, 0, 0);   // 22-09-2026 00:00 UTC
+const AMBANG_N = 30, AMBANG_BULAN = 6;
 const RW_MAKS = 3000;
 let RW = baca("riwayat", {}) || {};   // salinan di memori; tetap jalan walau penyimpanan diblokir
 function kumpulRiwayat() {
@@ -1273,15 +1286,36 @@ function chipRw(t) {
   if (t.st === "jalan") return t.luar ? `<span class="chip nd">tak terlacak</span>` : (t.kenaTp1 ? `<span class="chip jalan">Jalan 50%</span>` : `<span class="chip jalan">Jalan</span>`);
   return t.st === "TP2" ? `<span class="chip tp">TP1+TP2</span>` : t.st === "BE" ? `<span class="chip tp">TP1+BE</span>` : `<span class="chip sl">Kena SL</span>`;
 }
+// Progres pola menuju ambang proyek: >= 30 trade tutup DAN >= 6 bulan sejak trade pertama.
+// Vonis hanya sesudah dua-duanya terpenuhi; sebelum itu angka apa pun belum berarti.
+function majuHtml(nm, x) {
+  const ts = Object.values(RW).filter(t => t.nama === nm && t.masukT >= RW_MULAI && t.st !== "jalan");
+  const bln = ts.length ? (Date.now() - Math.min(...ts.map(t => t.masukT))) / (30.44 * 864e5) : 0;
+  const pn = Math.min(1, x.n / AMBANG_N), pb = Math.min(1, bln / AMBANG_BULAN);
+  const cukup = x.n >= AMBANG_N && bln >= AMBANG_BULAN;
+  const vonis = !cukup ? `<span class="rw-vonis" style="color:var(--label)">Belum cukup data</span>`
+    : x.u / x.n > 0 ? `<span class="rw-vonis naik">Cukup data · rata positif ${(x.u / x.n).toFixed(2)} USDT/trade</span>`
+    : `<span class="rw-vonis turun">Cukup data · rata negatif ${(x.u / x.n).toFixed(2)} USDT/trade</span>`;
+  return `<div class="rw-maju"><div class="pb"><span>trade</span><div><i style="width:${pn * 100}%"></i></div><span>${x.n}/${AMBANG_N}</span></div>` +
+    `<div class="pb"><span>waktu</span><div><i style="width:${pb * 100}%"></i></div><span>${bln.toFixed(1)}/${AMBANG_BULAN} bln</span></div>${vonis}</div>`;
+}
+document.querySelectorAll("#rwPeriode button").forEach(b => b.addEventListener("click", () => {
+  rwMode = b.dataset.m; simpan("rwMode", rwMode); rwPola = null; window.gambarRiwayat(); }));
 window.gambarRiwayat = function () {
-  const semua = Object.values(RW);
-  if (!semua.length) return;
+  const semuaRw = Object.values(RW);
+  if (!semuaRw.length) return;
+  const semua = rwMode === "maju" ? semuaRw.filter(t => t.masukT >= RW_MULAI) : semuaRw;
+  document.querySelectorAll("#rwPeriode button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === rwMode ? "true" : "false"));
   const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
   const tutup = semua.filter(t => t.st !== "jalan"), jalan = semua.filter(t => t.st === "jalan" && !t.luar);
   tutup.forEach(t => t.pnl = pnlTrade(t)); jalan.forEach(t => t.pnl = pnlTrade(t));
   const tot = tutup.reduce((a, t) => a + t.pnl, 0), menang = tutup.filter(t => t.pnl > 0).length;
   const totJ = jalan.reduce((a, t) => a + (t.pnl || 0), 0);
-  const mulai = new Date(Math.min(...semua.map(t => t.masukT))).toISOString().slice(0, 10);
+  const mulai = rwMode === "maju" ? "2026-09-22 (maju)" : semua.length ? new Date(Math.min(...semua.map(t => t.masukT))).toISOString().slice(0, 10) : "—";
+  if (!semua.length) {
+    $("rwRing").innerHTML = `<div class="jr-kotak"><h3>Pemantauan maju <small>sejak 22-09-2026</small></h3><p class="jr-ket">Belum ada pola 4H yang valid sejak 22-09-2026. Trade akan muncul di sini begitu pola baru lahir, dan dicatat terus sampai tiap pola punya ≥ 30 trade dalam ≥ 6 bulan.</p></div>`;
+    $("rwPola").innerHTML = ""; $("rwList").innerHTML = ""; return;
+  }
   const kurva = kurvaJ(tutup.map(t => ({ usdt: t.pnl, keluar: new Date(t.keluarT || t.masukT).toISOString(), masuk: "" })));
   $("rwRing").innerHTML = `<div class="jr-kotak"><h3>Riwayat trade pola 4H <small>sejak ${mulai}</small></h3>` +
     `<div class="jr-angka"><div><span>Tutup</span><b>${tutup.length}</b></div><div><span>WR</span><b>${tutup.length ? Math.round(menang / tutup.length * 100) : 0}%</b></div>` +
@@ -1307,7 +1341,7 @@ window.gambarRiwayat = function () {
       `<div class="d"><span><em>${x.n}</em> tutup</span><span>WR <em>${wr}%</em></span><span>rata <em class="${kl(rata)}">${f2(rata)}</em></span></div>` +
       `<div class="d"><span>TP1+TP2 <em>${x.tp2}</em></span><span>TP1+BE <em>${x.be}</em></span><span>SL <em>${x.sl}</em></span>${x.jalan ? `<span>jalan <em>${x.jalan}</em></span>` : ""}</div>` +
       `<div class="d"><span>rata untung <em class="naik">${f2(avgW)}</em></span><span>rata rugi <em class="turun">${f2(avgL)}</em></span></div>` +
-      (x.n < 30 ? `<div class="kecil2">sampel kecil (&lt;30 trade) — belum bisa disimpulkan</div>` : "") + `</button>`;
+      (rwMode === "maju" ? majuHtml(nm, x) : (x.n < 30 ? `<div class="kecil2">sampel kecil (&lt;30 trade) — belum bisa disimpulkan</div>` : "")) + `</button>`;
   }).join("");
   document.querySelectorAll("#rwPola .rw-pola").forEach(b => b.addEventListener("click", () => {
     rwPola = rwPola === b.dataset.p ? null : b.dataset.p; window.gambarRiwayat(); }));
