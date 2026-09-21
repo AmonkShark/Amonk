@@ -97,13 +97,20 @@ function pesan(k, e, L, d, vol, uji) {
     `<a href="https://www.tradingview.com/chart/?symbol=BINANCE:${esc(k)}USDT&interval=240">Chart 4H</a> · <a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`;
 }
 
+// TELEGRAM_CHAT boleh berisi BEBERAPA tujuan dipisah koma (2026-09-22, user ingin channel publik):
+// mis. "123456789,@amonk_sinyal" -> pesan pribadi + channel. Channel: bot wajib jadi ADMIN channel.
+const TUJUAN = CHAT.split(",").map(x => x.trim()).filter(Boolean);
 async function kirim(teks, chat) {
   if (DRY) { console.log("---- (uji kering) ----\n" + teks.replace(/<[^>]+>/g, "") + "\n"); return true; }
-  const r = await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: chat || CHAT, text: teks, parse_mode: "HTML", disable_web_page_preview: true }) });
-  if (!r.ok) console.log("Telegram menolak: HTTP " + r.status);
-  return r.ok;
+  let ok = false;
+  for (const tj of chat ? [chat] : TUJUAN) {
+    const r = await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: tj, text: teks, parse_mode: "HTML", disable_web_page_preview: true }) });
+    if (r.ok) ok = true;
+    else console.log(`Telegram menolak tujuan ke-${TUJUAN.indexOf(tj) + 1}: HTTP ${r.status}` + (r.status === 400 || r.status === 403 ? " (bot belum admin channel / nama channel salah?)" : ""));
+  }
+  return ok;
 }
 
 (async () => {
