@@ -145,6 +145,9 @@ svg.sp{display:block;width:84px;height:22px}
 .ak-set .tb{display:flex;gap:6px}
 @media (max-width:640px){.ak-set{grid-template-columns:1fr}}
 .ak-pesan{font-size:13px;color:var(--label);margin:0 0 10px}
+.ak-pola{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font:12px var(--f-num);color:var(--label);border-top:1px dashed var(--garis);padding-top:7px;margin-top:2px}
+.ak-pola b{color:var(--teks);font-family:var(--f-ui);font-weight:600}
+.ak-pola .chip{min-width:0;font-size:11px;padding:1px 6px}
 .ak-pesan.galat{color:var(--merah)}
 /* TAMPILAN HP (2026-09-22): kartu per koin dengan kolom penting saja. */
 #hpList{display:flex;flex-direction:column;gap:6px}
@@ -753,6 +756,7 @@ async function muatSemua() {
   POLA.waktu = Date.now();
   gambar(); if (window.paskanOtomatis) window.paskanOtomatis();
   if (window.simpanRiwayat) window.simpanRiwayat();
+  if (halAktif === "Akun" && AK && window.muatAkun) window.muatAkun();
   const jam = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
   const gagal = KOIN.filter(k => data[k].gagal).length;
   $("sMuat").textContent = `dimuat ${jam}` + (gagal ? ` · ${gagal} tanpa data spot` : "");
@@ -1239,6 +1243,21 @@ window.muatAkun = async function (paksa) {
     pesanAk("Gagal: " + e.message + (/Failed to fetch/i.test(e.message) ? " — periksa alamat perantara." : ""), true);
   } finally { if (gen === akGen) akMuat = false; }
 };
+// POLA TERAKHIR per koin yang kamu pegang (2026-09-22, permintaan user). Datanya sama dengan
+// kolom Terminal (pola valid terakhir <= 120 lilin 4H), peringkat = label chart.
+const PERINGKAT_APP = k => ({ FW: 1, ST: 2, PEN: 3, IHS: 4, AT: 5, TB: 6, CH: 7, RC: 8, DB: 9 }[k] || 10);
+function polaAkun(aset) {
+  if (STABIL.has(aset)) return "";
+  if (!data[aset]) return `<div class="ak-pola">tidak ada di watchlist — pola tidak dipantau</div>`;
+  const P = data[aset].pola;
+  if (!data[aset].ok) return `<div class="ak-pola">memuat pola 4H…</div>`;
+  if (!P || P.umur > POLA_MAKS_UMUR) return `<div class="ak-pola">belum ada pola 4H valid dalam 20 hari terakhir</div>`;
+  const tg = new Date(P.masukT + 4 * 3600e3 + 7 * 3600e3).toISOString().slice(5, 16).replace(/(\d\d)-(\d\d)T/, "$2/$1 ");
+  return `<div class="ak-pola"><span>Pola 4H: <b>${PERINGKAT_APP(P.kode)} ${P.nama}</b></span>${chipPola(P)}` +
+    `<span>E ${fHarga(P.entry)}</span><span>SL ${P.kenaTp1 ? fHarga(P.entry) + " (BE)" : fHarga(P.sl)}</span>` +
+    `<span>TP1 ${fHarga(P.tp1)}${P.kenaTp1 ? " ✓" : ""}</span><span>TP2 ${fHarga(P.tp2)}</span>` +
+    `<span>valid ${tg} WIB · ${P.umur} lilin lalu</span></div>`;
+}
 function gambarAkun(baris, akun) {
   const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
   const total = baris.reduce((a, b) => a + (b.nilai || 0), 0);
@@ -1252,7 +1271,7 @@ function gambarAkun(baris, akun) {
   $("akList").innerHTML = baris.sort((a, b) => (b.nilai || 0) - (a.nilai || 0)).map(b =>
     `<div class="jr-tr"><div style="min-width:0"><div class="nm">${b.aset}</div><div class="sub">${b.jml.toLocaleString("en-US", { maximumFractionDigits: 8 })}${b.terkunci ? ` · ${b.terkunci} terkunci di order` : ""}</div></div>` +
     `<div class="lv">${b.px == null ? "harga —" : "Kini " + fHarga(b.px)}${b.rata ? `<br>Beli ${fHarga(b.rata)}${b.sebagian ? " (sebagian)" : ""}` : ""}</div>` +
-    `<div class="ha"><b>${b.nilai == null ? "—" : b.nilai.toFixed(2)}</b><span class="${kl(b.pnl)}" style="font-size:12px">${b.pnl == null ? "" : fRp(b.pnl) + " (" + f2(b.pct) + "%)"}</span></div></div>`).join("") ||
+    `<div class="ha"><b>${b.nilai == null ? "—" : b.nilai.toFixed(2)}</b><span class="${kl(b.pnl)}" style="font-size:12px">${b.pnl == null ? "" : fRp(b.pnl) + " (" + f2(b.pct) + "%)"}</span></div>${polaAkun(b.aset)}</div>`).join("") ||
     `<div class="kosong">Tidak ada saldo.</div>`;
   const order = (akun && akun.order) || [];
   $("akOrderJudul").hidden = !order.length;
