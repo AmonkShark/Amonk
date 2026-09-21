@@ -86,7 +86,8 @@ function pesan(k, e, L, d, vol, uji) {
     `<b>AMONK · Pola 4H</b>\n` +
     `◻️◻️◻️◻️◻️\n` +
     `📊 EXCHANGE: BINANCE\n` +
-    `💰 Coin: <b>${esc(k)}/USDT</b>  ·  TF 4H\n` +
+    `💰 Coin: <b>${esc(k)}/USDT</b>\n` +
+    `⏱ Timeframe: <b>4H</b>\n` +
     `📐 Pola: <b>${PERINGKAT(e.kode)} ${esc(e.nama)}</b>\n` +
     `✅ Entry: <b>${fx(L.entry)}</b>\n` +
     `🎯 TP1: ${fx(L.tp1)}  (${pc(L.tp1, L.entry)})  ambil 50%, SL naik ke entry\n` +
