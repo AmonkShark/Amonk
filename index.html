@@ -1,0 +1,861 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Terminal AMONK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Satu tampilan gelap, sengaja — disamakan dengan panel AMONK di TradingView. */
+:root{
+  --bg:#0F131C; --bg1:#131722; --bg2:#171B26; --bglbl:#1B1F2B; --garis:#2A2E39;
+  --teks:#D1D4DC; --label:#787B86; --redup:#5D606B;
+  --hijau:#26A69A; --merah:#EF5350; --kuning:#FFB74D; --biru:#42A5F5;
+  --hijau-bg:rgba(38,166,154,.14); --merah-bg:rgba(239,83,80,.12); --kuning-bg:rgba(255,183,77,.14);
+  --f-ui:"IBM Plex Sans Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-num:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--teks)}
+body{margin:0;font:14px/1.45 var(--f-ui);padding:0 16px 40px;padding-top:env(safe-area-inset-top,0px)}
+.wrap{max-width:1700px;margin:0 auto}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;padding-block:18px 12px}
+h1{margin:0;font-size:20px;font-weight:600;letter-spacing:.02em}
+h1 b{color:var(--hijau);font-weight:600}
+.status{display:flex;align-items:center;gap:8px;color:var(--label);font-size:12px;margin-left:auto}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--redup)}
+.dot.on{background:var(--hijau);box-shadow:0 0 0 3px rgba(38,166,154,.18)}
+.dot.off{background:var(--merah)}
+
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--garis);border:1px solid var(--garis);border-radius:6px;overflow:hidden}
+.strip>div{background:var(--bg1);padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--label)}
+.v{font:500 17px var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s{font-size:12px;color:var(--label)}
+
+.alat{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-block:14px 10px}
+.seg{display:flex;flex-wrap:wrap;gap:4px}
+.seg button,.btn{font:500 13px var(--f-ui);color:var(--label);background:var(--bg2);border:1px solid var(--garis);border-radius:4px;padding:6px 10px;cursor:pointer}
+.seg button[aria-pressed="true"]{color:var(--teks);border-color:var(--label);background:var(--bglbl)}
+.seg button .n{font-family:var(--f-num);font-size:11px;color:var(--redup);margin-left:4px}
+.btn:hover,.seg button:hover{color:var(--teks)}
+button:focus-visible,input:focus-visible,a:focus-visible,th:focus-visible{outline:2px solid var(--biru);outline-offset:1px}
+#cari{font:13px var(--f-ui);color:var(--teks);background:var(--bg2);border:1px solid var(--garis);border-radius:4px;padding:6px 10px;width:130px}
+label.cek{display:flex;align-items:center;gap:6px;color:var(--label);font-size:13px;cursor:pointer}
+.kanan{margin-left:auto;display:flex;gap:8px;align-items:center}
+
+.tabel{overflow-x:auto;border:1px solid var(--garis);border-radius:6px;background:var(--bg1)}
+/* LEBAR KOLOM BISA DIATUR (2026-09-22): tabel berlebar tetap = jumlah lebar kolom.
+   "Paskan layar" membagi lebar layar ke semua kolom; garis tipis di kanan tiap judul
+   bisa diseret. Isi yang tidak muat dipotong dengan "…" (arahkan kursor untuk melihat). */
+table{border-collapse:collapse;table-layout:fixed;width:100%;font-size:var(--fs,13px)}
+th{position:relative}
+th .grip{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:3;touch-action:none}
+th .grip::after{content:"";position:absolute;top:25%;bottom:25%;left:3px;width:1px;background:var(--garis)}
+th .grip:hover::after,th .grip.aktif::after{background:var(--biru);width:2px}
+th,td{overflow:hidden;text-overflow:ellipsis}
+.ukuran{display:flex;align-items:center;gap:6px;color:var(--label);font-size:13px}
+.ukuran input[type=range]{width:90px;accent-color:var(--biru)}
+th.grup,td.grup{border-left:1px solid var(--garis)}
+.chip.jalan{color:var(--kuning);background:var(--kuning-bg);border-color:rgba(255,183,77,.35)}
+.chip.tp{color:var(--hijau);background:var(--hijau-bg);border-color:rgba(38,166,154,.35)}
+.chip.sl{color:var(--merah);background:var(--merah-bg)}
+.pnl{font-weight:500}
+.tp1{font-size:10px;color:var(--hijau);margin-left:4px;font-family:var(--f-ui)}
+th,td{padding:7px var(--px,10px);text-align:right;white-space:nowrap;border-bottom:1px solid var(--garis)}
+th{position:sticky;top:0;background:var(--bglbl);font-weight:500;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--label);cursor:pointer;user-select:none}
+th.urut{color:var(--teks)}
+th.urut::after{content:attr(data-arah);margin-left:4px;color:var(--biru)}
+td{font-family:var(--f-num);font-size:1em;font-variant-numeric:tabular-nums}
+tbody tr:nth-child(even) td{background:var(--bg2)}
+tbody tr:hover td{background:var(--bglbl)}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;z-index:1}
+td:first-child{background:var(--bg1);font-family:var(--f-ui);font-weight:600;font-size:1.05em}
+tbody tr:nth-child(even) td:first-child{background:var(--bg2)}
+th:first-child{z-index:2}
+td:first-child a{color:var(--teks);text-decoration:none}
+td:first-child a:hover{color:var(--biru)}
+td.kiri{text-align:left}
+.naik{color:var(--hijau)} .turun{color:var(--merah)} .redup{color:var(--redup)} .kng{color:var(--kuning)}
+.chip{display:inline-block;font:500 12px var(--f-ui);padding:2px 8px;border-radius:3px;border:1px solid transparent;min-width:70px;text-align:center}
+.chip.fib{color:var(--hijau);background:var(--hijau-bg);border-color:rgba(38,166,154,.35)}
+.chip.dalam{color:var(--kuning);background:var(--kuning-bg);border-color:rgba(255,183,77,.35)}
+.chip.bawah{color:var(--merah);background:var(--merah-bg)}
+.chip.atas{color:var(--label);background:transparent;border-color:var(--garis)}
+.chip.nd{color:var(--redup)}
+svg.sp{display:block;width:84px;height:22px}
+.flash-up{animation:fu .7s} .flash-dn{animation:fd .7s}
+@keyframes fu{from{color:#7fe7dc}} @keyframes fd{from{color:#ff9d9b}}
+@media (prefers-reduced-motion:reduce){.flash-up,.flash-dn{animation:none}}
+
+.catatan{margin-top:18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px 24px;color:var(--label);font-size:12.5px}
+.catatan p{margin:0;max-width:62ch}
+.catatan b{color:var(--teks);font-weight:500}
+.kosong{padding:28px;text-align:center;color:var(--label);font-family:var(--f-ui)}
+@media (max-width:560px){ .status{margin-left:0;width:100%} .kanan{margin-left:0} #cari{width:100%} .alat>*{flex:1 1 auto} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Terminal <b>AMONK</b></h1>
+    <span class="s">109 koin watchlist hijau · sinyal: POLA 4H · spot · hanya membaca</span>
+    <div class="status"><span class="dot" id="dot"></span><span id="stat">menyambung…</span></div>
+  </header>
+
+  <section class="strip" aria-label="Ringkasan pasar">
+    <div><span class="k">BTC</span><span class="v" id="sBtc">—</span><span class="s" id="sBtc24">—</span></div>
+    <div><span class="k">Rezim BTC · EMA100 D</span><span class="v" id="sRez">—</span><span class="s" id="sRezS">—</span></div>
+    <div><span class="k">Median vs EMA200 4H</span><span class="v" id="sMed">—</span><span class="s" id="sMedS">—</span></div>
+    <div><span class="k">Trade pola · 1000 USDT</span><span class="v" id="sPola">—</span><span class="s" id="sPolaS">data pola belum ada</span></div>
+    <div><span class="k">Lilin 4H berikut</span><span class="v" id="sJam">—</span><span class="s" id="sMuat">indikator dari lilin tutup</span></div>
+  </section>
+
+  <div class="alat">
+    <div class="seg" role="group" aria-label="Saring zona">
+      <button id="fSemua" data-f="semua" aria-pressed="true">Semua<span class="n" id="nSemua"></span></button>
+      <button id="fPola" data-f="pola" aria-pressed="false">Pola jalan<span class="n" id="nPola"></span></button>
+    </div>
+    <input id="cari" type="search" placeholder="Cari koin" autocomplete="off">
+    <label class="cek"><input id="likuid" type="checkbox" checked> Sembunyikan &lt; $1jt/hari</label>
+    <div class="kanan">
+      <label class="ukuran" for="fs">Huruf <input id="fs" type="range" min="10" max="16" step="0.5" value="13"></label>
+      <label class="ukuran" for="rapat">Jarak <input id="rapat" type="range" min="2" max="12" step="1" value="10"></label>
+      <button class="btn" id="paskan" title="Bagi lebar layar ke semua kolom supaya tidak perlu geser ke kanan">Paskan layar</button>
+      <button class="btn" id="muat">Muat ulang 4H</button>
+    </div>
+  </div>
+
+  <div class="tabel">
+    <table id="tbl">
+      <colgroup id="cg"></colgroup>
+      <thead><tr>
+        <th data-k="koin" tabindex="0">Koin</th>
+        <th data-k="harga" tabindex="0">Harga</th>
+        <th data-k="ch" tabindex="0">24j</th>
+        <th data-k="rsi" tabindex="0">RSI 4H</th>
+        <th data-k="q" tabindex="0">Likuid 24j</th>
+        <th data-k="polaNama" tabindex="0" class="kiri grup">Pola 4H</th>
+        <th data-k="polaSt" tabindex="0" class="kiri">Status</th>
+        <th data-k="polaUmur" tabindex="0">Umur</th>
+        <th tabindex="-1" style="cursor:default">Entry</th>
+        <th tabindex="-1" style="cursor:default">SL</th>
+        <th tabindex="-1" style="cursor:default">TP1</th>
+        <th tabindex="-1" style="cursor:default">TP2</th>
+        <th data-k="pnl" tabindex="0">PnL 1000 USDT</th>
+      </tr></thead>
+      <tbody id="tb"><tr><td colspan="13" class="kosong">Mengambil lilin 4H dari Binance…</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="catatan">
+    <p><b>Hanya membaca.</b> Data publik Binance tanpa kunci API; halaman ini tidak bisa memasang order. Indikator dihitung dari lilin 4H yang sudah tutup; harga dan 24j hidup lewat WebSocket.</p>
+    <p><b>Pola 4H · 1000 USDT.</b> Pola VALID terakhir tiap koin (≤ 20 hari), level sama dengan chart: entry = close bar valid, SL buku, TP1, TP2. Keluar bertahap: 50% di TP1, 50% di TP2; sesudah TP1 kena, SL sisa naik ke entry (BE). Biaya 0.2%. Trade "Jalan" dinilai dengan harga hidup. Pola dihitung di browser ini sendiri tiap lilin 4H tutup — tidak butuh Claude.</p>
+    <p><b>Terminal ≠ edge.</b> Tampilan yang lebih rapi tidak menambah peluang. Hasil uji proyek tetap berlaku: pola 4H impas (+0.024R), sinyal baru belum ada yang lolos.</p>
+  </div>
+</div>
+
+<script>
+/*POLA-MULAI*/
+// DITANAM OTOMATIS dari research/pola_dc_peristiwa.cjs oleh tools/bangun_terminal.cjs - jangan disunting di sini
+window.PolaDC = (function () {
+const module = { exports: {} };
+/**
+ * MODUL — peristiwa VALID persis seperti indikator goldencross/amonk_pola_dc.pine
+ * (versi CALON 2026-09-17). Dipakai bersama supaya uji tidak menyalin aturan.
+ *
+ * Alur per bar (sama urutannya dengan Pine, semua di penutupan lilin):
+ *   1. Directional Change m x ATR14/close (m 2.5 di 4H) -> titik baru SAH?
+ *   2. PANTAU setup: tembus (satu VALID per bar, setup terbaru menang) / batal / basi
+ *   3. titik baru -> bentuk() -> daftar(): SETUP, atau langsung VALID bila garis sudah
+ *      tertembus <= 1 ATR (tembus duluan); saringan kunci, kembar, tumpang tindih 25%
+ *   4. pelacak hasil horizon 24 bar (berbalik dihapus dari layar)
+ *   5. pangkas: maks 4 pola VALID tampil
+ * Aturan bentuk = mode KETAT modul uji_pola_klasik_semesta_baru (nilai disalin sebagai
+ * konstanta DI SINI karena Pine juga menyalinnya; perubahan wajib di dua tempat).
+ *
+ * peristiwa(d, A, opsi) -> [{ i, nama, kode, lewat, level, tinggi, mulaiB, R24 }]
+ * d = { t, o, h, l, c, v }, A = ATR14 (Wilder).
+ */
+const C = {
+  mx: 2.5, tolEks: 3, tolBahu: 4, tolLeher: 4, minAntara: 10, minJarak: 10,
+  minTiang: 15, maksBalik: 45, umur3: 90, umur5: 140, umurSetup: 60, maksSetup: 4,
+  maksValid: 4, maksTumpang: 25, maksLewat: 1.0, horizon: 24, ambangBalik: 1.0,
+};
+// Peringkat uji (Pine: fungsi `peringkat`) — dipakai mengurutkan CALON.
+const PERINGKAT = k => ({ FW: 1, ST: 2, PEN: 3, IHS: 4, AT: 5, TB: 6, CH: 7, RC: 8, DB: 9 }[k] || 10);
+const dekat = (a, b, p) => a > 0 && b > 0 && Math.abs(a / b - 1) * 100 <= p;
+const garis = (b1, p1, b2, p2, x) => b2 === b1 ? p2 : p1 + (p2 - p1) / (b2 - b1) * (x - b1);
+const lvlDi = (q, x) => q.miring ? garis(q.uaB, q.uaP, q.ubB, q.ubP, x) : q.lvl;
+const batDi = (q, x) => q.batalMiring ? garis(q.laB, q.laP, q.lbB, q.lbP, x) : q.batal;
+const bawahDi = (q, x) => garis(q.laB, q.laP, q.lbB, q.lbP, x);
+
+/** Semua bentuk dari daftar titik P (terakhir = P[n-1]), urutan = prioritas Pine. */
+function bentuk(P, i) {
+  const out = [], n = P.length;
+  if (n < 3) return out;
+  const pk = k => P[n - k], t1 = pk(1);
+  if (n >= 5 && !t1.hi) {
+    const [p1, p2, p3, p4, p5] = [pk(5), pk(4), pk(3), pk(2), t1];
+    if (i - p1.b <= C.umur5) {
+      if (p3.p < p1.p && p3.p < p5.p && dekat(p1.p, p5.p, C.tolBahu) && dekat(p2.p, p4.p, C.tolLeher)) {
+        const neck = (p2.p + p4.p) / 2;
+        out.push({ nama: "Inverse H&S", kode: "IHS", lvl: neck, uaB: p1.b, batal: p3.p, tinggi: neck - p3.p, kr: [p1, p2, p3, p4, p5] });
+      }
+      if (dekat(p1.p, p3.p, C.tolEks) && dekat(p3.p, p5.p, C.tolEks) && dekat(p1.p, p5.p, C.tolEks)) {
+        const atas = Math.max(p2.p, p4.p), dasar = Math.min(p1.p, p3.p, p5.p);
+        out.push({ nama: "Triple Bottom", kode: "TB", lvl: atas, uaB: p1.b, batal: dasar, tinggi: atas - dasar, kr: [p1, p2, p3, p4, p5] });
+      }
+    }
+  }
+  if (n >= 4 && !t1.hi) {
+    const [c1, c2, c3, c4] = [pk(4), pk(3), pk(2), t1];
+    const um = i - c1.b;
+    if (c1.hi && um >= 30 && um <= 160 && c1.p > 0 && c3.p > 0 &&
+        (1 - c2.p / c1.p) * 100 >= 15 && (1 - c3.p / c1.p) * 100 <= 6 && (1 - c4.p / c3.p) * 100 <= 12 && c4.p > c2.p) {
+      const bibir = Math.max(c1.p, c3.p);
+      out.push({ nama: "Cup & Handle", kode: "CH", lvl: bibir, uaB: c1.b, batal: (c1.p + c2.p) / 2, tinggi: bibir - c2.p, kr: [c1, c2, c3, c4] });
+    }
+  }
+  if (n >= 4) {
+    const [s1, s2, s3, s4] = [pk(4), pk(3), pk(2), t1];
+    const hh1 = s1.hi ? s1 : s2, hh0 = s1.hi ? s3 : s4, ll1 = s1.hi ? s2 : s1, ll0 = s1.hi ? s4 : s3;
+    const lA = Math.abs(hh1.p - ll1.p), lB = Math.abs(hh0.p - ll0.p);
+    if (i - Math.min(hh1.b, ll1.b) <= C.umur3 && lA > 0) {
+      const fw = hh0.p < hh1.p && ll0.p < ll1.p && lB < lA * 0.8;
+      const at = dekat(hh0.p, hh1.p, 1.5) && ll0.p > ll1.p * 1.01;
+      const st = hh0.p < hh1.p * 0.99 && ll0.p > ll1.p * 1.01;
+      if (fw || at || st) {
+        let tiang = null;
+        if (st && s1.hi && n >= 5) { const s0 = pk(5), nt = hh1.p - s0.p; if (!s0.hi && s0.p > 0 && nt / s0.p * 100 >= C.minTiang && nt > lA) tiang = s0; }
+        const nama = fw ? "Falling Wedge" : at ? "Ascending Triangle" : tiang ? "Bullish Pennant" : "Symmetrical Triangle";
+        const kode = fw ? "FW" : at ? "AT" : tiang ? "PEN" : "ST";
+        const lvl = Math.max(hh0.p, hh1.p);
+        out.push({ nama, kode, miring: !at, lvl, uaB: hh1.b, uaP: hh1.p, ubB: hh0.b, ubP: hh0.p,
+          adaBawah: true, laB: ll1.b, laP: ll1.p, lbB: ll0.b, lbP: ll0.p, batalMiring: true,
+          tinggi: at ? lvl - ll1.p : lA, tiang, kr: [s1, s2, s3, s4] });
+      }
+    }
+  }
+  if (n >= 3 && !t1.hi) {
+    const a = pk(3), b = pk(2), d = t1;
+    if (i - a.b <= C.umur3) {
+      const dasar = Math.min(a.p, d.p);
+      if (dekat(a.p, d.p, C.tolEks) && (b.p - dasar) / dasar * 100 >= C.minAntara && d.b - a.b >= C.minJarak)
+        out.push({ nama: "Double Bottom", kode: "DB", lvl: b.p, uaB: a.b, batal: dasar, tinggi: b.p - dasar, kr: n >= 4 ? [pk(4), a, b, d] : [a, b, d] });
+      const tg = b.p - a.p;
+      if (tg > 0 && tg / a.p * 100 >= C.minTiang && b.p - d.p <= C.maksBalik / 100 * tg)
+        out.push({ nama: "Bull Flag", kode: "BF", lvl: b.p, uaB: b.b, batal: b.p - C.maksBalik / 100 * tg, tinggi: tg, tiang: a, kr: [b, d] });
+    }
+  }
+  if (n >= 5) {
+    const [r1, r2, r3, r4, r5] = [pk(5), pk(4), pk(3), pk(2), t1];
+    if (i - r1.b <= C.umur5) {
+      const h0 = r1.hi ? r1.p : r2.p, h1 = r1.hi ? r3.p : r4.p, g0 = r1.hi ? r2.p : r1.p, g1 = r1.hi ? r4.p : r3.p;
+      const atas = r1.hi ? Math.max(r1.p, r3.p, r5.p) : Math.max(r2.p, r4.p);
+      const bawah = r1.hi ? Math.min(r2.p, r4.p) : Math.min(r1.p, r3.p, r5.p);
+      if (dekat(h0, h1, 2.5) && dekat(g0, g1, 2.5) && atas / bawah - 1 > 0.04)
+        out.push({ nama: "Rectangle", kode: "RC", lvl: atas, uaB: r1.b, adaBawah: true, laB: r1.b, laP: bawah, lbB: r5.b, lbP: bawah,
+          batal: bawah, tinggi: atas - bawah, kr: [r1, r2, r3, r4, r5] });
+    }
+  }
+  for (const q of out) {
+    q.kunci = t1.b;
+    // titik awal "makna pola" (2026-09-17, uji titik awal per pola): lembah pertama DB,
+    // dasar tiang BF/PEN, puncak pertama wedge/segitiga, titik pertama kerangka lainnya
+    if (q.kode === "DB") q.titikAwal = q.kr[q.kr.length - 3];
+    else if (q.kode === "BF" || q.kode === "PEN") q.titikAwal = q.tiang;
+    else if (q.kode === "FW" || q.kode === "AT" || q.kode === "ST") q.titikAwal = q.kr.find(k => k.b === q.uaB);
+    else q.titikAwal = q.kr[0];
+  }
+  return out;
+}
+
+// opsi.setupAkhir DITAMBAHKAN 2026-09-19: kalau true, larik hasil ikut membawa
+// properti `.setup` = pola berstatus SETUP (belum tembus) yang masih hidup di bar
+// terakhir. Default {} -> perilaku & isi larik PERSIS seperti sebelumnya.
+function peristiwa(d, A, opsi = {}) {
+  const n = d.c.length, pv = [], semua = [], hasil = [];
+  // opsi.mx DITAMBAHKAN 2026-09-20: ambang Directional Change. Bawaan C.mx (2.5 =
+  // setelan 4H). Pine memakai 3.5 di TF <= 1H, jadi uji lintas-TF WAJIB mengoper
+  // mx = 3.5 untuk 1H — kalau tidak, yang dibandingkan bukan TF-nya tapi ambangnya.
+  const MX = opsi.mx > 0 ? opsi.mx : C.mx;
+  let naik = true, eks = null, eksB = null;
+  for (let i = 0; i < n; i++) {
+    // 1. DC
+    let baru = false;
+    if (eks === null) { eks = d.c[i]; eksB = i; }
+    else if (A[i] > 0 && d.c[i] > 0) {
+      const th = MX * A[i] / d.c[i];
+      if (naik) {
+        if (d.h[i] > eks) { eks = d.h[i]; eksB = i; }
+        else if (d.l[i] <= eks * (1 - th)) { pv.push({ hi: true, p: eks, b: eksB }); baru = true; naik = false; eks = d.l[i]; eksB = i; }
+      } else {
+        if (d.l[i] < eks) { eks = d.l[i]; eksB = i; }
+        else if (d.h[i] >= eks * (1 + th)) { pv.push({ hi: false, p: eks, b: eksB }); baru = true; naik = true; eks = d.h[i]; eksB = i; }
+      }
+    }
+    if (pv.length > 12) pv.shift();
+    const c = d.c[i];
+    // 2. PANTAU
+    let validBar = false;
+    for (let j = semua.length - 1; j >= 0; j--) {
+      const q = semua[j];
+      if (q.status !== 0) continue;
+      const lv = lvlDi(q, i), bt = batDi(q, i);
+      const ujung = q.adaBawah && q.miring && lv <= bawahDi(q, i);
+      if (c > lv && !ujung && validBar) semua.splice(j, 1);
+      else if (c > lv && !ujung) { jadiValid(q, i, lv, false); validBar = true; }
+      else if (c < bt || ujung || i - q.lahirB > C.umurSetup) semua.splice(j, 1);
+    }
+    // 3. pola baru
+    if (baru) {
+      // URUTAN PERINGKAT — disamakan dengan Pine 2026-09-20 (persetujuan user).
+      // Sejak POLA v51 Pine memakai `urutPeringkat()`: pada titik yang SAMA, pola
+      // berperingkat uji lebih baik didahulukan. Modul ini dulu memakai urutan
+      // BENTUK (urutan fungsi `bentuk`), jadi saat dua pola lahir di titik yang
+      // sama, rutin dan chart bisa memilih pola yang berbeda.
+      // TERUKUR 2026-09-20 (40 koin 4H): 69 dari 279 pola valid — seperempatnya —
+      // dipilih berbeda. Itu sebab daftar pola ROSE tidak cocok dengan chart.
+      for (const p of bentuk(pv, i).sort((a, b) => PERINGKAT(a.kode) - PERINGKAT(b.kode))) {
+        const lv = lvlDi(p, i), bt = batDi(p, i);
+        let mulai = p.uaB;
+        if (p.adaBawah) mulai = Math.min(mulai, p.laB);
+        if (p.tiang) mulai = Math.min(mulai, p.tiang.b);
+        let akhir = mulai;
+        for (const k of p.kr) { mulai = Math.min(mulai, k.b); akhir = Math.max(akhir, k.b); }
+        p.mulaiB = mulai;
+        const lebar = Math.max(1, akhir - mulai);
+        const ada = bentrok(p, lv, i, akhir, mulai, lebar);
+        const dasarOk = !ada && Number.isFinite(lv) && Number.isFinite(bt) && c >= bt && lv > bt;
+        const nSetup = semua.filter(q => q.status === 0).length;
+        p.status = 0; p.lahirB = i; p.tampil = true;
+        if (dasarOk && c <= lv && nSetup < C.maksSetup) semua.push(p);
+        else if (dasarOk && c > lv && !validBar && c - lv <= C.maksLewat * A[i] && !(p.adaBawah && p.miring && lv <= bawahDi(p, i))) {
+          semua.push(p); jadiValid(p, i, lv, true); validBar = true;
+        }
+      }
+    }
+    // 4. hasil (horizon)
+    for (let j = semua.length - 1; j >= 0; j--) {
+      const q = semua[j];
+      if (q.status === 1 && !q.selesai && i - q.tembusB >= C.horizon) {
+        q.selesai = true;
+        const s = (c - q.acuan) / Math.max(A[i], 1e-12);
+        if (s <= -C.ambangBalik) semua.splice(j, 1);          // berbalik -> dihapus
+        else if (!q.tampil) semua.splice(j, 1);
+      }
+    }
+    // 5. pangkas
+    let nV = semua.filter(q => q.status === 1 && q.tampil).length;
+    while (nV > C.maksValid) {
+      const k = semua.findIndex(q => q.status === 1 && q.tampil);
+      if (semua[k].selesai) semua.splice(k, 1); else semua[k].tampil = false;
+      nV--;
+    }
+    while (semua.length > 80) semua.shift();
+  }
+  // BENTROK — saringan yang sama untuk SETUP dan CALON (Pine: fungsi `bentrok`).
+  // Dipisah 2026-09-20 saat CALON ditambahkan; isinya SALINAN PERSIS dari kode
+  // yang tadinya sebaris di langkah 3, supaya hasil rutin lama tidak berubah.
+  function bentrok(p, lv, i, akhir, mulai, lebar) {
+    let ada = false;
+    for (const q of semua) {
+      if (q.kunci === p.kunci) ada = true;
+      else if (q.status === 0 && q.kode === p.kode && lv > 0 && Math.abs(lvlDi(q, i) / lv - 1) < 0.002) ada = true;
+      else if (q.tampil) {
+        const qA = q.status === 1 ? q.tembusB : i;
+        const ir = Math.min(akhir, qA) - Math.max(mulai, q.mulaiB);
+        if (ir > 0 && 100 * ir / lebar > C.maksTumpang) ada = true;
+      }
+    }
+    return ada;
+  }
+
+  function jadiValid(q, i, lv, lewat) {
+    q.status = 1; q.tembusB = i; q.acuan = d.c[i]; q.lewat = lewat;
+    const j = i + C.horizon;
+    hasil.push({ i, nama: q.nama, kode: q.kode, lewat, level: lv, tinggi: q.tinggi, mulaiB: q.mulaiB,
+      batal: batDi(q, i), // garis batal di bar valid (ditambahkan 2026-09-17 untuk uji TP/SL buku)
+      awal: q.kr[0],      // titik ayunan pertama kerangka {hi,p,b} (ditambahkan 2026-09-17 untuk uji titik awal)
+      titikAwal: q.titikAwal, // titik awal bermakna per pola (lihat bentuk())
+      R24: j < n && A[i] > 0 ? (d.c[j] - d.c[i]) / A[i] : NaN });
+  }
+  if (opsi.setupAkhir) {
+    const i = n - 1;
+    hasil.setup = semua.filter(q => q.status === 0).map(q => ({
+      nama: q.nama, kode: q.kode, level: lvlDi(q, i), batal: batDi(q, i),
+      lahirB: q.lahirB, umur: i - q.lahirB, sisa: C.umurSetup - (i - q.lahirB),
+      mulaiB: q.mulaiB, tinggi: q.tinggi }));
+  }
+  // opsi.calonAkhir DITAMBAHKAN 2026-09-20: tahap SEBELUM setup. Selama DC masih
+  // mencari lembah (naik === false), lembah terendah sejauh ini dipakai sebagai
+  // titik SEMENTARA dan bentuk() dijalankan dengan titik itu — persis blok CALON
+  // di amonk_pola_dc.pine (urut peringkat, maks `maksCalon`, satu kode sekali,
+  // wajib close di antara garis batal dan garis tembus, lolos saringan bentrok).
+  // `sahP` = harga yang membuat lembah sementara itu SAH menurut DC.
+  if (opsi.calonAkhir) {
+    const i = n - 1, c0 = d.c[i];
+    const maks = opsi.maksCalon || 4;
+    hasil.calon = [];
+    if (!naik && eks != null && A[i] > 0 && c0 > 0) {
+      const th = MX * A[i] / c0;
+      const tmp = pv.slice();
+      tmp.push({ hi: false, p: eks, b: eksB });
+      const arr = bentuk(tmp, i).sort((a, b) => PERINGKAT(a.kode) - PERINGKAT(b.kode));
+      for (const p of arr) {
+        if (hasil.calon.length >= maks) break;
+        const lv = lvlDi(p, i), bt = batDi(p, i);
+        if (!Number.isFinite(lv) || !Number.isFinite(bt)) continue;
+        if (!(c0 <= lv && c0 >= bt && lv > bt)) continue;
+        if (hasil.calon.some(x => x.kode === p.kode)) continue;
+        let mulai = p.uaB;
+        if (p.adaBawah) mulai = Math.min(mulai, p.laB);
+        if (p.tiang) mulai = Math.min(mulai, p.tiang.b);
+        let akhir = mulai;
+        for (const k of p.kr) { mulai = Math.min(mulai, k.b); akhir = Math.max(akhir, k.b); }
+        p.mulaiB = mulai;
+        if (bentrok(p, lv, i, akhir, mulai, Math.max(1, akhir - mulai))) continue;
+        hasil.calon.push({ nama: p.nama, kode: p.kode, nomor: PERINGKAT(p.kode),
+          level: lv, batal: bt, sahP: eks * (1 + th), lembahP: eks, lembahB: eksB,
+          umurLembah: i - eksB, mulaiB: mulai, tinggi: p.tinggi });
+      }
+    }
+  }
+  return hasil;
+}
+
+module.exports = { peristiwa, bentuk, C };
+
+return module.exports;
+})();
+/*POLA-SELESAI*/
+</script>
+<script>
+"use strict";
+const KOIN = ["AAVE","ACE","ADA","ALLO","APT","ARB","ASTER","ATOM","AVAX","BANK","BB","BCH","BICO","BIO","BNB","BOME","BONK","BTC","CAKE","CFG","CHIP","COTI","CRV","DASH","DEXE","DOGE","DOT","EDEN","ENA","ENJ","ETC","ETH","ETHFI","FET","FIL","FLOKI","GALA","GIGGLE","GPS","GRAM","HBAR","HEI","HEMI","HOME","ICP","INJ","JST","JUP","KAITO","LDO","LINK","LTC","MEGA","MORPHO","MUB","MUBARAK","NEAR","NEIRO","NFP","NIL","ONDO","ONG","ONT","OP","ORDI","PENDLE","PENGU","PEOPLE","PEPE","PLUME","PNUT","POL","PORTAL","PROM","PUMP","PYTH","QNT","RE","RED","RENDER","ROBO","ROSE","SCRT","SEI","SHIB","SKY","SOL","SPK","SUI","TAO","TIA","TRUMP","TRX","TST","TUT","U","UNI","VET","VIRTUAL","WIF","WLD","WLFI","XLM","XPL","XRP","ZAMA","ZEC","ZEN","ZRO"];
+const REST = ["https://data-api.binance.vision", "https://api.binance.com"];
+const WS = ["wss://stream.binance.com:9443/ws/!miniTicker@arr", "wss://data-stream.binance.vision/ws/!miniTicker@arr"];
+const BIAYA = 0.2, STOP_ATR = 2.5, LIKUID_MIN = 1e6, H4 = 4 * 3600e3;
+// Pola dihitung DI BROWSER ini sendiri (2026-09-21, user: "jika claude terputus tetap
+// masih bisa terbaca"). Aturannya ditanam dari research/pola_dc_peristiwa.cjs oleh
+// tools/bangun_terminal.cjs di antara penanda POLA-MULAI/SELESAI - satu sumber aturan
+// dengan rutin & chart. Tidak butuh Claude, rutin, atau server: cukup browser + internet.
+let POLA = { waktu: null };
+const MODAL_POLA = 1000, BIAYA_POLA = 0.002, POLA_MAKS_UMUR = 120;   // 120 bar 4H = 20 hari
+
+const $ = id => document.getElementById(id);
+const baca = (k, d) => { try { const v = localStorage.getItem("amonkTerm." + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } };
+const simpan = (k, v) => { try { localStorage.setItem("amonkTerm." + k, JSON.stringify(v)); } catch (e) {} };
+
+// Kolom vs EMA200, ATR%, Ongkos R, vs EMA100, dan grafik 7 hari DIBUANG 2026-09-22 atas permintaan user.
+const st = { saring: baca("saring", "semua"), urut: baca("urut", "pnl"), arah: baca("arah", -1), cari: "", likuid: baca("likuid", true) };
+if (["d", "atrp", "ongkos", "d100", "zonaUrut"].includes(st.urut)) { st.urut = "pnl"; st.arah = -1; }
+const data = {};   // koin -> { ema, atr, rsi, closes[], emas[], harga, open24, q, ok }
+KOIN.forEach(k => data[k] = { ok: false });
+let btcD = null;   // { ema100 }
+
+async function getJ(path) {
+  for (const b of REST) {
+    try {
+      const r = await fetch(b + path, { cache: "no-store" });
+      if (r.ok) return await r.json();
+      if (r.status === 400) return null;       // simbol tidak ada di spot
+    } catch (e) {}
+  }
+  return null;
+}
+
+// --- indikator (sama dengan skrip riset: EMA benih SMA, RSI & ATR Wilder) ---
+function emaArr(c, n) {
+  const o = new Array(c.length).fill(null); if (c.length < n) return o;
+  const k = 2 / (n + 1); let e = 0; for (let i = 0; i < n; i++) e += c[i]; e /= n; o[n - 1] = e;
+  for (let i = n; i < c.length; i++) { e = c[i] * k + e * (1 - k); o[i] = e; }
+  return o;
+}
+function rsiW(c, n = 14) {
+  if (c.length <= n) return null;
+  let g = 0, l = 0;
+  for (let i = 1; i <= n; i++) { const d = c[i] - c[i - 1]; if (d > 0) g += d; else l -= d; }
+  g /= n; l /= n;
+  for (let i = n + 1; i < c.length; i++) { const d = c[i] - c[i - 1]; g = (g * (n - 1) + Math.max(d, 0)) / n; l = (l * (n - 1) + Math.max(-d, 0)) / n; }
+  return l === 0 ? 100 : 100 - 100 / (1 + g / l);
+}
+function atrW(h, l, c, n = 14) {
+  if (c.length <= n) return null;
+  const tr = i => Math.max(h[i] - l[i], Math.abs(h[i] - c[i - 1]), Math.abs(l[i] - c[i - 1]));
+  let a = 0; for (let i = 1; i <= n; i++) a += tr(i); a /= n;
+  for (let i = n + 1; i < c.length; i++) a = (a * (n - 1) + tr(i)) / n;
+  return a;
+}
+
+async function muatKoin(k) {
+  const j = await getJ(`/api/v3/klines?symbol=${k}USDT&interval=4h&limit=600`);
+  const d = data[k];
+  if (!Array.isArray(j) || j.length < 60) { d.ok = false; d.gagal = true; return; }
+  const sekarang = Date.now();
+  const b = j.filter(x => +x[6] < sekarang);          // buang lilin yang masih berjalan
+  const h = b.map(x => +x[2]), l = b.map(x => +x[3]), c = b.map(x => +x[4]);
+  const e = emaArr(c, 200);
+  d.ema = e[e.length - 1]; d.atr = atrW(h, l, c); d.rsi = rsiW(c);
+  d.closes = c.slice(-42); d.emas = e.slice(-42);
+  const e1 = emaArr(c, 100); d.ema100 = e1[e1.length - 1];
+  if (d.harga == null) d.harga = c[c.length - 1];
+  d.ok = true; d.gagal = false; d.pendek = d.ema == null;   // < 200 lilin: EMA200 belum ada
+  // koin basi (delisting): lilin terakhir > 12 jam lalu -> jangan dinilai
+  if (sekarang - +b[b.length - 1][6] > 12 * 3600e3) { d.ok = false; d.gagal = true; d.basi = true; d.pola = null; return; }
+  try {
+    d.pola = polaTerakhir({ t: b.map(x => +x[0]), o: b.map(x => +x[1]), h, l, c, v: b.map(x => +x[5]) });
+  } catch (err) { d.pola = null; }
+}
+
+// Sama persis dengan polaTerakhir() di fwd12/data_terminal.cjs (versi HP).
+// Level chart: entry = close bar VALID, SL = garis batal, TP2 = tembus + tinggi,
+// TP1 = entry + 0.75 x jarak SL (atau tengah jalan ke TP2). Tutup di SL / TP2;
+// lilin yang menyentuh keduanya = SL. DB/RC/BF disembunyikan seperti bawaan chart.
+const SEMBUNYI_POLA = new Set(["DB", "RC", "BF"]);
+function atrArr(h, l, c, n = 14) {
+  const o = new Array(c.length).fill(null);
+  if (c.length <= n) return o;
+  const tr = i => Math.max(h[i] - l[i], Math.abs(h[i] - c[i - 1]), Math.abs(l[i] - c[i - 1]));
+  let a = 0; for (let i = 1; i <= n; i++) a += tr(i); a /= n; o[n] = a;
+  for (let i = n + 1; i < c.length; i++) { a = (a * (n - 1) + tr(i)) / n; o[i] = a; }
+  return o;
+}
+function polaTerakhir(d) {
+  if (!window.PolaDC) return null;
+  const ev = window.PolaDC.peristiwa(d, atrArr(d.h, d.l, d.c)) || [];
+  const valid = ev.filter(e => !SEMBUNYI_POLA.has(e.kode));
+  const e = valid[valid.length - 1];
+  if (!e) return null;
+  const n = d.c.length, entry = d.c[e.i], sl = e.batal, tp2 = e.level + e.tinggi;
+  let tp1 = null;
+  if (entry > sl && tp2 > entry) { tp1 = entry + 0.75 * (entry - sl); if (tp1 >= tp2) tp1 = entry + 0.5 * (tp2 - entry); }
+  // KELUAR BERTAHAP (permintaan user 2026-09-21): 50% ditutup di TP1, 50% di TP2;
+  // begitu TP1 kena, SL sisa posisi naik ke harga ENTRY (impas). Lilin yang menyentuh
+  // SL dan TP1 bersamaan = SL (anggapan terburuk); lilin yang menyentuh TP1 dan TP2
+  // bersamaan = keduanya tertutup. Sesudah TP1, sentuhan entry menutup sisa di entry (BE).
+  let st = "jalan", kenaTp1 = false, sisa = 1, real = 0, keluarT = null;
+  const tutup = (w, px) => { real += w * MODAL_POLA * (px / entry - 1); sisa -= w; };
+  for (let k = e.i + 1; k < n && st === "jalan"; k++) {
+    if (!kenaTp1) {
+      if (sl != null && d.l[k] <= sl) { tutup(1, sl); st = "SL"; keluarT = d.t[k]; }
+      else if (tp1 == null) { if (d.h[k] >= tp2) { tutup(1, tp2); st = "TP2"; keluarT = d.t[k]; } }
+      else if (d.h[k] >= tp1) {
+        tutup(0.5, tp1); kenaTp1 = true;
+        if (d.h[k] >= tp2) { tutup(sisa, tp2); st = "TP2"; keluarT = d.t[k]; }
+      }
+    } else if (d.l[k] <= entry) { tutup(sisa, entry); st = "BE"; keluarT = d.t[k]; }
+    else if (d.h[k] >= tp2) { tutup(sisa, tp2); st = "TP2"; keluarT = d.t[k]; }
+  }
+  if (Math.abs(sisa) < 1e-9) sisa = 0;
+  return { nama: e.nama, kode: e.kode, masukT: d.t[e.i], umur: n - 1 - e.i, entry, sl, tp1, tp2, st, keluarT, kenaTp1, sisa, real };
+}
+
+async function muatBtcHarian() {
+  const j = await getJ(`/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=300`);
+  if (!Array.isArray(j)) return;
+  const c = j.filter(x => +x[6] < Date.now()).map(x => +x[4]);
+  const e = emaArr(c, 100); btcD = { ema100: e[e.length - 1] };
+}
+
+async function muatTicker() {
+  const j = await getJ(`/api/v3/ticker/24hr`);
+  if (!Array.isArray(j)) return;
+  for (const t of j) {
+    if (!t.symbol.endsWith("USDT")) continue;
+    const k = t.symbol.slice(0, -4); if (!data[k]) continue;
+    data[k].harga = +t.lastPrice; data[k].open24 = +t.openPrice; data[k].q = +t.quoteVolume;
+  }
+}
+
+let memuat = false;
+async function muatSemua() {
+  if (memuat) return; memuat = true;
+  $("sMuat").textContent = "memuat lilin 4H…";
+  await Promise.all([muatTicker(), muatBtcHarian()]);
+  let i = 0;
+  const kerja = async () => { while (i < KOIN.length) { const k = KOIN[i++]; await muatKoin(k); if (i % 10 === 0) gambar(); } };
+  await Promise.all(Array.from({ length: 6 }, kerja));
+  memuat = false;
+  POLA.waktu = Date.now();
+  gambar(); if (window.paskanOtomatis) window.paskanOtomatis();
+  const jam = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+  const gagal = KOIN.filter(k => data[k].gagal).length;
+  $("sMuat").textContent = `dimuat ${jam}` + (gagal ? ` · ${gagal} tanpa data spot` : "");
+  gambar();
+  jadwalkan();
+}
+let timer = null;
+function jadwalkan() {
+  clearTimeout(timer);
+  const berikut = Math.ceil(Date.now() / H4) * H4 + 45e3;   // 45 dtk sesudah lilin 4H tutup
+  timer = setTimeout(muatSemua, berikut - Date.now());
+}
+
+// --- WebSocket: harga hidup ---
+let wsI = 0, ws = null, kilat = {};
+function sambung() {
+  try { ws = new WebSocket(WS[wsI % WS.length]); } catch (e) { wsI++; setTimeout(sambung, 3000); return; }
+  ws.onopen = () => { $("dot").className = "dot on"; $("stat").textContent = "harga hidup"; };
+  ws.onmessage = ev => {
+    let arr; try { arr = JSON.parse(ev.data); } catch (e) { return; }
+    if (!Array.isArray(arr)) return;
+    for (const t of arr) {
+      if (!t.s || !t.s.endsWith("USDT")) continue;
+      const k = t.s.slice(0, -4), d = data[k]; if (!d) continue;
+      const p = +t.c;
+      if (d.harga != null && p !== d.harga) kilat[k] = p > d.harga ? 1 : -1;
+      d.harga = p; d.open24 = +t.o; d.q = +t.q;
+    }
+  };
+  ws.onclose = () => { $("dot").className = "dot off"; $("stat").textContent = "terputus — menyambung ulang"; wsI++; setTimeout(sambung, 3000); };
+  ws.onerror = () => { try { ws.close(); } catch (e) {} };
+}
+
+// --- turunan & tampilan ---
+function baris(k) {
+  const d = data[k], r = { koin: k, ok: d.ok && !d.pendek };
+  r.harga = d.harga; r.q = d.q;
+  r.ch = (d.harga && d.open24) ? (d.harga / d.open24 - 1) * 100 : null;
+  if (r.ok && d.harga) {
+    r.d = (d.harga / d.ema - 1) * 100;
+    r.rsi = d.rsi; r.atrp = d.atr / d.harga * 100;
+    r.ongkos = BIAYA / (STOP_ATR * r.atrp);
+    r.zona = r.d <= -25 ? "dalam" : r.d < 0 ? "bawah" : r.d <= 3 ? "fib" : "atas";
+  } else { r.d = r.rsi = r.atrp = r.ongkos = null; r.zona = "nd"; }
+  r.zonaUrut = { fib: 0, dalam: 1, bawah: 2, atas: 3, nd: 4 }[r.zona];
+  r.d100 = (d.ema100 && d.harga) ? (d.harga / d.ema100 - 1) * 100 : null;
+  // pola 4H dihitung di browser saat lilin 4H dimuat. Trade "jalan" dinilai
+  // dengan harga HIDUP; yang sudah tutup memakai harga keluarnya (SL / TP2).
+  const P = d.pola;
+  if (P && P.umur <= POLA_MAKS_UMUR) {
+    r.p = P; r.polaNama = P.nama; r.polaUmur = P.umur;
+    r.polaSt = { jalan: 0, TP2: 1, BE: 2, SL: 3 }[P.st];
+    // bagian yang sudah tutup (real) + sisa posisi dinilai dengan harga hidup
+    r.pnl = (P.sisa === 0 || d.harga) ? P.real + P.sisa * MODAL_POLA * ((d.harga || P.entry) / P.entry - 1) - MODAL_POLA * BIAYA_POLA : null;
+  } else { r.p = null; r.polaNama = r.polaUmur = r.polaSt = r.pnl = null; }
+  return r;
+}
+const ZNAMA = { fib: "Pita FIB", dalam: "Dalam", bawah: "Di bawah", atas: "Di atas", nd: "—" };
+
+function fHarga(p) {
+  if (p == null) return "—";
+  const a = Math.abs(p);
+  const dp = a >= 1000 ? 1 : a >= 10 ? 3 : a >= 1 ? 4 : a >= 0.01 ? 5 : a >= 0.0001 ? 7 : 9;
+  return p.toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp });
+}
+const fPct = (x, dp = 2) => x == null ? "—" : (x >= 0 ? "+" : "") + x.toFixed(dp) + "%";
+const fUsd = x => x == null ? "—" : x >= 1e9 ? "$" + (x / 1e9).toFixed(2) + "M" : x >= 1e6 ? "$" + (x / 1e6).toFixed(1) + "jt" : "$" + (x / 1e3).toFixed(0) + "rb";
+// catatan: "M" = miliar, "jt" = juta (satuan Indonesia)
+
+function spark(d) {
+  if (!d.closes || d.closes.length < 2) return "";
+  const c = d.closes, e = d.emas.map(v => v == null ? NaN : v);
+  const semua = c.concat(e.filter(isFinite));
+  const lo = Math.min(...semua), hi = Math.max(...semua), W = 84, H = 22, n = c.length;
+  const x = i => (i / (n - 1) * (W - 2) + 1).toFixed(1);
+  const y = v => (H - 2 - (v - lo) / ((hi - lo) || 1) * (H - 4)).toFixed(1);
+  const pc = c.map((v, i) => x(i) + "," + y(v)).join(" ");
+  const pe = e.map((v, i) => isFinite(v) ? x(i) + "," + y(v) : null).filter(Boolean).join(" ");
+  const warna = c[n - 1] >= (e[n - 1] || 0) ? "var(--hijau)" : "var(--merah)";
+  return `<svg class="sp" viewBox="0 0 ${W} ${H}" aria-hidden="true">` +
+    (pe ? `<polyline points="${pe}" fill="none" stroke="var(--kuning)" stroke-width="1" stroke-dasharray="2 2" opacity=".8"/>` : "") +
+    `<polyline points="${pc}" fill="none" stroke="${warna}" stroke-width="1.4"/>` +
+    `<circle cx="${x(n - 1)}" cy="${y(c[n - 1])}" r="1.8" fill="${warna}"/></svg>`;
+}
+
+function gambar() {
+  const semua = KOIN.map(baris);
+  const lolosLik = r => !st.likuid || r.q == null || r.q >= LIKUID_MIN;
+  const hit = { semua: 0, fib: 0, dalam: 0, bawah: 0, atas: 0 };
+  for (const r of semua) if (lolosLik(r) && r.ok) { hit.semua++; hit[r.zona]++; }
+  $("nSemua").textContent = hit.semua;
+  $("nPola").textContent = semua.filter(r => lolosLik(r) && r.p && r.p.st === "jalan").length;
+
+  let rs = semua.filter(r => lolosLik(r) && (!st.cari || r.koin.includes(st.cari)));
+  if (st.saring === "bawah") rs = rs.filter(r => r.zona === "bawah" || r.zona === "dalam");
+  else if (st.saring === "pola") rs = rs.filter(r => r.p && r.p.st === "jalan");
+  else if (st.saring !== "semua") rs = rs.filter(r => r.zona === st.saring);
+  const K = st.urut, A = st.arah;
+  rs.sort((a, b) => {
+    const x = a[K], y = b[K];
+    if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1;
+    return (typeof x === "string" ? x.localeCompare(y) : x - y) * A;
+  });
+
+  const tb = $("tb");
+  if (!rs.length) { tb.innerHTML = `<tr><td colspan="13" class="kosong">Tidak ada koin di zona ini sekarang.</td></tr>`; }
+  else tb.innerHTML = rs.map(r => {
+    const d = data[r.koin], kl = kilat[r.koin] === 1 ? " flash-up" : kilat[r.koin] === -1 ? " flash-dn" : "";
+    const url = `https://www.tradingview.com/chart/?symbol=BINANCE:${r.koin}USDT&interval=240`;
+    const dKls = r.d == null ? "redup" : r.d < 0 ? "turun" : "naik";
+    const rKls = r.rsi == null ? "redup" : r.rsi >= 70 ? "turun" : r.rsi <= 30 ? "naik" : "";
+    const oKls = r.ongkos == null ? "redup" : r.ongkos > 0.10 ? "turun" : r.ongkos <= 0.05 ? "naik" : "";
+    const qKls = r.q != null && r.q < LIKUID_MIN ? "turun" : "";
+    const catatan = d.gagal ? "tidak ada di spot" : d.pendek ? "< 200 lilin 4H" : "";
+    return `<tr><td><a href="${url}" target="_blank" rel="noopener" title="Buka chart 4H di TradingView">${r.koin}</a></td>` +
+      `<td class="${kl.trim()}">${fHarga(r.harga)}</td>` +
+      `<td class="${r.ch == null ? "redup" : r.ch >= 0 ? "naik" : "turun"}">${fPct(r.ch)}</td>` +
+      `<td class="${rKls}">${r.rsi == null ? "—" : r.rsi.toFixed(0)}</td>` +
+      `<td class="${qKls}">${fUsd(r.q)}</td>` +
+      selPola(r) + `</tr>`;
+  }).join("");
+  kilat = {};
+
+  document.querySelectorAll("th[data-k]").forEach(th => {
+    const on = th.dataset.k === st.urut; th.classList.toggle("urut", on); th.dataset.arah = on ? (st.arah > 0 ? "↑" : "↓") : "";
+  });
+  ringkas(semua);
+}
+
+function selPola(r) {
+  const P = r.p;
+  if (!P) return `<td class="kiri grup redup">—</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>`;
+  const pct = x => x == null ? "" : ` <span class="redup">${fPct((x / P.entry - 1) * 100, 1)}</span>`;
+  const chip = P.st === "jalan" ? (P.kenaTp1 ? `<span class="chip jalan">Jalan 50%</span>` : `<span class="chip jalan">Jalan</span>`)
+    : P.st === "TP2" ? `<span class="chip tp">TP1 + TP2</span>` : P.st === "BE" ? `<span class="chip tp">TP1 + BE</span>` : `<span class="chip sl">Kena SL</span>`;
+  const masuk = new Date(P.masukT).toISOString().slice(5, 16).replace("T", " ") + " UTC";
+  return `<td class="kiri grup" title="Valid ${masuk}">${P.nama}</td>` +
+    `<td class="kiri">${chip}${P.kenaTp1 && P.st === "jalan" ? '<span class="tp1">TP1 ✓ · SL = entry</span>' : ""}</td>` +
+    `<td>${P.umur} bar</td><td>${fHarga(P.entry)}</td><td>${P.kenaTp1 ? `<s class="redup">${fHarga(P.sl)}</s> ${fHarga(P.entry)} <span class="redup">BE</span>` : fHarga(P.sl) + pct(P.sl)}</td>` +
+    `<td>${fHarga(P.tp1)}${pct(P.tp1)}</td><td>${fHarga(P.tp2)}${pct(P.tp2)}</td>` +
+    `<td class="pnl ${r.pnl == null ? "" : r.pnl >= 0 ? "naik" : "turun"}">${r.pnl == null ? "—" : (r.pnl >= 0 ? "+" : "") + r.pnl.toFixed(2)} ` +
+    `<span class="redup">${r.pnl == null ? "" : fPct(r.pnl / MODAL_POLA * 100, 1)}</span></td>`;
+}
+
+function ringkas(semua) {
+  if (POLA.waktu) {
+    const ps = semua.filter(r => r.p), jalan = ps.filter(r => r.p.st === "jalan"), tutup = ps.filter(r => r.p.st !== "jalan");
+    const sj = jalan.reduce((a, r) => a + (r.pnl || 0), 0), stp = tutup.reduce((a, r) => a + (r.pnl || 0), 0);
+    $("sPola").innerHTML = `<span class="${sj >= 0 ? "naik" : "turun"}">${sj >= 0 ? "+" : ""}${sj.toFixed(0)}</span> <small class="s">jalan</small>`;
+    $("sPolaS").textContent = `${jalan.length} jalan · ${tutup.length} tutup ${stp >= 0 ? "+" : ""}${stp.toFixed(0)} USDT · pola ${new Date(POLA.waktu).toISOString().slice(11, 16)} UTC`;
+  }
+  const b = data.BTC;
+  if (b && b.harga) {
+    $("sBtc").textContent = fHarga(b.harga);
+    const ch = b.open24 ? (b.harga / b.open24 - 1) * 100 : null;
+    $("sBtc24").innerHTML = `<span class="${ch >= 0 ? "naik" : "turun"}">${fPct(ch)}</span> 24 jam`;
+    if (btcD && btcD.ema100) {
+      const j = (b.harga / btcD.ema100 - 1) * 100, atas = j >= 0;
+      $("sRez").innerHTML = `<span class="${atas ? "naik" : "turun"}">${atas ? "Di atas" : "Di bawah"}</span>`;
+      $("sRezS").textContent = `${fPct(j, 1)} dari EMA100 harian ${fHarga(btcD.ema100)}`;
+    }
+  }
+  const ds = semua.filter(r => r.d != null).map(r => r.d).sort((x, y) => x - y);
+  if (ds.length) {
+    const med = ds.length % 2 ? ds[(ds.length - 1) / 2] : (ds[ds.length / 2 - 1] + ds[ds.length / 2]) / 2;
+    $("sMed").innerHTML = `<span class="${med >= 0 ? "naik" : "turun"}">${fPct(med, 1)}</span>`;
+    const bawah = ds.filter(x => x < 0).length;
+    $("sMedS").textContent = `${bawah} dari ${ds.length} koin di bawah EMA200`;
+  }
+}
+
+function jam() {
+  const sisa = Math.ceil(Date.now() / H4) * H4 - Date.now();
+  const h = Math.floor(sisa / 3600e3), m = Math.floor(sisa % 3600e3 / 60e3), s = Math.floor(sisa % 60e3 / 1e3);
+  $("sJam").textContent = `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+// --- kontrol ---
+function setSaring(f) {
+  st.saring = f; simpan("saring", f);
+  document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.f === f ? "true" : "false"));
+  gambar();
+}
+document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => setSaring(b.dataset.f)));
+document.querySelectorAll("th[data-k]").forEach(th => {
+  const klik = () => {
+    const k = th.dataset.k;
+    if (st.urut === k) st.arah = -st.arah; else { st.urut = k; st.arah = (k === "koin" || k === "d" || k === "zonaUrut" || k === "ongkos" || k === "rsi") ? 1 : -1; }
+    simpan("urut", st.urut); simpan("arah", st.arah); gambar();
+  };
+  th.addEventListener("click", klik);
+  th.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); klik(); } });
+});
+$("cari").addEventListener("input", e => { st.cari = e.target.value.trim().toUpperCase(); gambar(); });
+$("likuid").checked = st.likuid;
+$("likuid").addEventListener("change", e => { st.likuid = e.target.checked; simpan("likuid", st.likuid); gambar(); });
+$("muat").addEventListener("click", muatSemua);
+
+// saringan zona (fib/dalam/bawah/atas) dibuang 2026-09-21; pilihan lama yang tersimpan dikembalikan ke "semua"
+// ---- LEBAR KOLOM (2026-09-22, permintaan user: "atur lebar kolomnya agar bisa memuat
+// semua data ketika aku membukanya tanpa menggeser ke kanan"). Lebar tiap kolom,
+// ukuran huruf, dan jarak isi disimpan di browser ini sendiri.
+const tbl = $("tbl"), cg = $("cg"), ths = [...tbl.querySelectorAll("thead th")];
+const cols = ths.map(() => cg.appendChild(document.createElement("col")));
+const fsEl = $("fs"), rpEl = $("rapat");
+fsEl.value = baca("fs", 13); rpEl.value = baca("rapat", 10);
+let lebar = baca("lebar", null), manual = baca("lebarManual", false);
+const jumlah = a => a.reduce((x, y) => x + y, 0);
+const pasangHuruf = () => { tbl.style.setProperty("--fs", fsEl.value + "px"); tbl.style.setProperty("--px", rpEl.value + "px"); };
+function pasangLebar() {
+  cols.forEach((c, i) => c.style.width = lebar[i] + "px");
+  tbl.style.width = jumlah(lebar) + "px";
+}
+// Lebar alami tiap kolom = sel terlebar di kolom itu (diukur dengan tata letak otomatis).
+function ukurAlami() {
+  tbl.style.tableLayout = "auto"; tbl.style.width = "auto"; cols.forEach(c => c.style.width = "");
+  const w = ths.map(th => Math.ceil(th.getBoundingClientRect().width));
+  tbl.style.tableLayout = "";
+  return w;
+}
+// PASKAN LAYAR: ukur isi tiap kolom; kalau totalnya lebih lebar dari layar, kecilkan
+// jarak isi lalu ukuran huruf sampai muat (paling kecil huruf 10px, jarak 3px);
+// sisa ruang dibagi rata sebanding. Hasilnya: semua data terlihat tanpa geser ke kanan.
+function paskan(dariTombol) {
+  const W = tbl.parentElement.clientWidth - 2;
+  if (W < 200) return;
+  let fs = dariTombol ? 13 : +fsEl.value, px = dariTombol ? 10 : +rpEl.value, alami;
+  for (let i = 0; i < 40; i++) {
+    fsEl.value = fs; rpEl.value = px; pasangHuruf();
+    alami = ukurAlami();
+    if (jumlah(alami) <= W || (fs <= 10 && px <= 3)) break;
+    if (px > 4) px -= 2; else if (px > 3) px -= 1; else fs -= 0.5;
+  }
+  const k = W / jumlah(alami);
+  lebar = alami.map(x => Math.max(30, Math.floor(x * k)));
+  pasangLebar();
+  manual = false;
+  simpan("lebar", lebar); simpan("lebarManual", false); simpan("fs", +fsEl.value); simpan("rapat", +rpEl.value);
+}
+pasangHuruf();
+if (Array.isArray(lebar) && lebar.length === ths.length) pasangLebar(); else lebar = ths.map(() => 80);
+$("paskan").addEventListener("click", () => paskan(true));
+// Selama lebar belum kamu seret sendiri, tabel menyesuaikan otomatis sesudah data
+// termuat dan saat jendela berubah ukuran.
+window.paskanOtomatis = () => { if (!manual) paskan(false); };
+let tunda = null;
+window.addEventListener("resize", () => { clearTimeout(tunda); tunda = setTimeout(window.paskanOtomatis, 250); });
+// seret garis di kanan judul kolom
+ths.forEach((th, i) => {
+  const g = document.createElement("span"); g.className = "grip"; g.title = "Seret untuk mengubah lebar kolom";
+  th.appendChild(g);
+  g.addEventListener("click", e => e.stopPropagation());
+  g.addEventListener("pointerdown", e => {
+    e.preventDefault(); e.stopPropagation();
+    const x0 = e.clientX, w0 = lebar[i]; g.classList.add("aktif"); g.setPointerCapture(e.pointerId);
+    const gerak = ev => { lebar[i] = Math.max(30, Math.round(w0 + ev.clientX - x0)); pasangLebar(); };
+    const lepas = () => { g.classList.remove("aktif"); g.removeEventListener("pointermove", gerak);
+      manual = true; simpan("lebar", lebar); simpan("lebarManual", true); };
+    g.addEventListener("pointermove", gerak);
+    g.addEventListener("pointerup", lepas, { once: true });
+    g.addEventListener("pointercancel", lepas, { once: true });
+  });
+});
+// ukuran huruf & jarak isi sel (geser manual)
+fsEl.addEventListener("input", () => { pasangHuruf(); simpan("fs", +fsEl.value); });
+rpEl.addEventListener("input", () => { pasangHuruf(); simpan("rapat", +rpEl.value); });
+// isi yang terpotong tetap bisa dibaca lewat tooltip
+tbl.addEventListener("mouseover", e => { const td = e.target.closest("td"); if (td && td.scrollWidth > td.clientWidth) td.title = td.innerText; });
+
+setSaring(["semua", "pola"].includes(st.saring) ? st.saring : "semua");
+jam(); setInterval(jam, 1000);
+setInterval(() => { if (!memuat) gambar(); }, 2000);
+muatSemua();
+sambung();
+</script>
+</body>
+</html>
