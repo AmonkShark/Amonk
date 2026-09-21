@@ -4,7 +4,12 @@ name: notif-pola-4h
 on:
   schedule:
     - cron: "7 0,4,8,12,16,20 * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      uji:
+        description: "Kirim 1 pesan UJI (pola valid terbaru dari semua koin), tidak mengubah status"
+        type: boolean
+        default: false
 permissions:
   contents: write
 concurrency:
@@ -15,14 +20,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "22"
       - name: Cek pola & kirim Telegram
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT: ${{ secrets.TELEGRAM_CHAT }}
+          UJI: ${{ inputs.uji }}
         run: node notif/notif_pola.cjs
       - name: Simpan status terkirim
         run: |
