@@ -72,6 +72,26 @@ const fx = p => { const a = Math.abs(p); const dp = a >= 1000 ? 1 : a >= 10 ? 3 
 const pc = (x, e) => ((x / e - 1) * 100 >= 0 ? "+" : "") + ((x / e - 1) * 100).toFixed(1) + "%";
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+// FORMAT PESAN — permintaan user 2026-09-22:
+//   ADA/USDT TF 4H / <peringkat> <nama pola> / Entry / SL / TP1 ambil 50% SL naik ke entry / TP2
+// Angka peringkat SAMA dengan label di chart (fungsi `peringkat` di Pine & PERINGKAT di
+// pola_dc_peristiwa.cjs: FW 1, ST 2, PEN 3, IHS 4, AT 5, TB 6, CH 7, RC 8, DB 9, lainnya 10).
+// Peringkat itu urutan hasil uji lama, BUKAN jaminan: tidak ada pola yang lolos uji profit.
+const PERINGKAT = k => ({ FW: 1, ST: 2, PEN: 3, IHS: 4, AT: 5, TB: 6, CH: 7, RC: 8, DB: 9 }[k] || 10);
+const wib = t => new Date(t + 7 * 3600e3).toISOString().slice(5, 16).replace(/(\d\d)-(\d\d)T/, "$2/$1 ") + " WIB";
+function pesan(k, e, L, d, vol, uji) {
+  const tutupT = d.t[e.i] + 4 * 3600e3;
+  return (uji ? "🧪 <b>PESAN UJI</b> — contoh, bukan pola baru\n\n" : "") +
+    `<b>${esc(k)}/USDT</b> TF 4H\n` +
+    `<b>${PERINGKAT(e.kode)} ${esc(e.nama)}</b>\n\n` +
+    `Entry  <b>${fx(L.entry)}</b>\n` +
+    `SL     ${fx(L.sl)}  (${pc(L.sl, L.entry)})\n` +
+    `TP1   ${fx(L.tp1)}  (${pc(L.tp1, L.entry)})  ambil 50%, SL naik ke entry\n` +
+    `TP2   ${fx(L.tp2)}  (${pc(L.tp2, L.entry)})\n\n` +
+    `<i>valid ${wib(tutupT)}${vol != null && vol < 1e6 ? " · ⚠️ likuiditas tipis" : ""}</i>\n` +
+    `<a href="https://www.tradingview.com/chart/?symbol=BINANCE:${esc(k)}USDT&interval=240">Chart 4H</a> · <a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`;
+}
+
 async function kirim(teks, chat) {
   if (DRY) { console.log("---- (uji kering) ----\n" + teks.replace(/<[^>]+>/g, "") + "\n"); return true; }
   const r = await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
@@ -110,46 +130,16 @@ async function kirim(teks, chat) {
       const kunci = `${k}|${e.nama}|${d.t[e.i]}`;
       if (status[kunci]) continue;
       const L = level(d, e); if (!L) continue;
-      // rekam jejak koin+pola yang sama di jendela 600 lilin (hanya trade yang sudah tutup) — INFO saja
-      const lalu = ev.filter(x => x.nama === e.nama && x.i < e.i).map(x => { const LL = level(d, x); return LL ? hasilA(d, x.i, LL) : null; }).filter(x => x != null);
-      const rj = lalu.length ? `${lalu.length} trade, ${lalu.filter(x => x > 0).length} untung, total ${(lalu.reduce((a, x) => a + x, 0) >= 0 ? "+" : "")}${lalu.reduce((a, x) => a + x, 0).toFixed(0)} USDT` : "belum ada";
-      const vol = d.v.slice(-6).reduce((a, x, q) => a + x * d.c[n - 6 + q], 0);
-      const waktu = new Date(d.t[e.i] + 4 * 3600e3).toISOString().slice(5, 16).replace("-", "/").replace("T", " ");
-      const teks =
-        `🔔 <b>POLA 4H BARU — ${esc(k)}</b>\n` +
-        `${esc(e.nama)} · valid lilin tutup ${waktu} UTC\n\n` +
-        `Entry  <b>${fx(L.entry)}</b>\n` +
-        `SL     ${fx(L.sl)}  (${pc(L.sl, L.entry)})\n` +
-        `TP1   ${fx(L.tp1)}  (${pc(L.tp1, L.entry)}) → ambil 50%, SL sisa ke entry\n` +
-        `TP2   ${fx(L.tp2)}  (${pc(L.tp2, L.entry)})\n` +
-        `Likuiditas 24j ≈ $${(vol / 1e6).toFixed(1)}jt${vol < 1e6 ? " ⚠️ tipis" : ""}\n\n` +
-        `Rekam jejak ${esc(k)} + ${esc(e.nama)} (~100 hari): ${rj}.\n` +
-        `<i>Info saja — rekam jejak koin×pola terbukti TIDAK meramalkan hasil berikutnya, dan pola 4H dalam uji panjang impas. Bukan aba-aba beli.</i>\n\n` +
-        `<a href="https://www.tradingview.com/chart/?symbol=BINANCE:${esc(k)}USDT&interval=240">Chart 4H</a> · <a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`;
+      const vol = d.v.slice(-6).reduce((a, x, q) => a + x * d.c[n - 6 + q], 0);   // nilai USDT 24 jam
+      const teks = pesan(k, e, L, d, vol, false);
       if (await kirim(teks)) { status[kunci] = sekarang; baru++; }
     }
   }
   if (UJI) {
     if (!calonUji) { console.log("UJI: tidak ada pola valid di jendela data"); return; }
     const { k, d, e, ev } = calonUji, L = level(d, e), n = d.c.length;
-    const waktu = new Date(d.t[e.i] + 4 * 3600e3).toISOString().slice(5, 16).replace("-", "/").replace("T", " ");
-    const ok = await kirim(`🧪 <b>PESAN UJI</b> — beginilah bentuk notifikasi pola baru.
-
-` +
-      `🔔 <b>POLA 4H — ${esc(k)}</b>
-${esc(e.nama)} · valid lilin tutup ${waktu} UTC (${n - 1 - e.i} lilin lalu)
-
-` +
-      `Entry  <b>${fx(L.entry)}</b>
-SL     ${fx(L.sl)}  (${pc(L.sl, L.entry)})
-TP1   ${fx(L.tp1)}  (${pc(L.tp1, L.entry)}) → ambil 50%, SL sisa ke entry
-TP2   ${fx(L.tp2)}  (${pc(L.tp2, L.entry)})
-
-` +
-      `<i>Pola ini BUKAN baru — hanya contoh. Notifikasi asli datang otomatis tiap ada pola 4H baru.</i>
-
-` +
-      `<a href="https://www.tradingview.com/chart/?symbol=BINANCE:${esc(k)}USDT&interval=240">Chart 4H</a> · <a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`);
+    const vol = d.v.slice(-6).reduce((a, x, q) => a + x * d.c[n - 6 + q], 0);
+    const ok = await kirim(pesan(k, e, L, d, vol, true));
     console.log(`UJI: pesan ${ok ? "terkirim" : "GAGAL"} (${dicek} koin dicek)`);
     return;
   }
