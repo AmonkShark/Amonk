@@ -1192,6 +1192,19 @@ function rataBeli(aset, trade) {
   }
   return q > 0 ? { rata: biaya / q, qTercatat: q } : null;
 }
+// PnL AKUN DALAM RUPIAH (2026-09-22, permintaan user; hanya tab Akun).
+// USDT dianggap = USD. Kurs dari open.er-api.com, cadangan api.frankfurter.dev; disimpan 1 jam.
+let KURS = { idr: null, t: 0, sumber: "" };
+async function ambilKurs() {
+  if (KURS.idr && Date.now() - KURS.t < 3600e3) return KURS.idr;
+  try { const r = await fetch("https://open.er-api.com/v6/latest/USD"); const j = await r.json();
+    if (j && j.rates && j.rates.IDR > 1000) { KURS = { idr: j.rates.IDR, t: Date.now(), sumber: "open.er-api.com" }; return KURS.idr; } } catch (e) {}
+  try { const r = await fetch("https://api.frankfurter.dev/v1/latest?base=USD&symbols=IDR"); const j = await r.json();
+    if (j && j.rates && j.rates.IDR > 1000) { KURS = { idr: j.rates.IDR, t: Date.now(), sumber: "frankfurter" }; return KURS.idr; } } catch (e) {}
+  return KURS.idr;
+}
+const fRp = v => v == null ? "—" : !KURS.idr ? (v >= 0 ? "+" : "") + v.toFixed(2) + " USDT"
+  : (v >= 0 ? "+" : "−") + "Rp " + Math.round(Math.abs(v) * KURS.idr).toLocaleString("id-ID");
 window.muatAkun = async function (paksa) {
   const c = akCfg();
   if (!c.url || !c.sandi) { pesanAk("Isi alamat perantara & sandi lalu tekan Sambungkan."); return; }
@@ -1218,6 +1231,7 @@ window.muatAkun = async function (paksa) {
       if (r && b.px) { b.rata = r.rata; b.pnl = (b.px - r.rata) * Math.min(b.jml, r.qTercatat); b.pct = (b.px / r.rata - 1) * 100; b.sebagian = r.qTercatat < b.jml * 0.98; }
     }
     if (gen !== akGen) return;
+    await ambilKurs();
     gambarAkun(baris, akun);
     pesanAk(`Tersambung · diperbarui ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} · hanya membaca${akun.izinBaca ? "" : " (izin baca tidak terdeteksi)"}`);
   } catch (e) {
@@ -1232,12 +1246,13 @@ function gambarAkun(baris, akun) {
   const pnl = baris.reduce((a, b) => a + (b.pnl || 0), 0);
   $("akRing").innerHTML = `<div class="jr-kotak"><h3>Saldo spot <small>${baris.length} aset</small></h3>` +
     `<div class="jr-angka"><div><span>Total USDT</span><b>${total.toFixed(2)}</b></div><div><span>Stablecoin</span><b>${stabil.toFixed(2)}</b></div>` +
-    `<div><span>PnL koin</span><b class="${kl(pnl)}">${f2(pnl)}</b></div></div>` +
-    `<p class="jr-ket">PnL koin = harga kini vs harga beli rata-rata dari 500 trade terakhir tiap koin (belum terealisasi). Koin hasil deposit/transfer tidak punya harga beli.</p></div>`;
+    `<div><span>PnL koin (Rp)</span><b class="${kl(pnl)}">${fRp(pnl)}</b></div></div>` +
+    `<p class="jr-ket">PnL koin = harga kini vs harga beli rata-rata dari 500 trade terakhir tiap koin (belum terealisasi). Koin hasil deposit/transfer tidak punya harga beli.` +
+    (KURS.idr ? ` Rupiah memakai kurs 1 USDT ≈ Rp ${Math.round(KURS.idr).toLocaleString("id-ID")} (${KURS.sumber}, diperbarui tiap jam).` : ` Kurs rupiah gagal diambil — PnL sementara ditampilkan dalam USDT.`) + `</p></div>`;
   $("akList").innerHTML = baris.sort((a, b) => (b.nilai || 0) - (a.nilai || 0)).map(b =>
     `<div class="jr-tr"><div style="min-width:0"><div class="nm">${b.aset}</div><div class="sub">${b.jml.toLocaleString("en-US", { maximumFractionDigits: 8 })}${b.terkunci ? ` · ${b.terkunci} terkunci di order` : ""}</div></div>` +
     `<div class="lv">${b.px == null ? "harga —" : "Kini " + fHarga(b.px)}${b.rata ? `<br>Beli ${fHarga(b.rata)}${b.sebagian ? " (sebagian)" : ""}` : ""}</div>` +
-    `<div class="ha"><b>${b.nilai == null ? "—" : b.nilai.toFixed(2)}</b><span class="${kl(b.pnl)}" style="font-size:12px">${b.pnl == null ? "" : f2(b.pnl) + " (" + f2(b.pct) + "%)"}</span></div></div>`).join("") ||
+    `<div class="ha"><b>${b.nilai == null ? "—" : b.nilai.toFixed(2)}</b><span class="${kl(b.pnl)}" style="font-size:12px">${b.pnl == null ? "" : fRp(b.pnl) + " (" + f2(b.pct) + "%)"}</span></div></div>`).join("") ||
     `<div class="kosong">Tidak ada saldo.</div>`;
   const order = (akun && akun.order) || [];
   $("akOrderJudul").hidden = !order.length;
