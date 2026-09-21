@@ -121,6 +121,9 @@ svg.sp{display:block;width:84px;height:22px}
 .info h3{margin:0 0 6px;font:600 15px var(--f-ui);color:var(--teks)}
 .info ul{margin:0;padding-left:18px} .info li{margin:3px 0} .info b{color:var(--teks);font-weight:500}
 .info p{margin:0 0 6px}
+.rw-tabel{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;margin-bottom:12px}
+.rw-tabel div{background:var(--bg1);border:1px solid var(--garis);border-radius:6px;padding:7px 10px;font-size:12.5px;display:flex;justify-content:space-between;gap:8px}
+.rw-tabel b{font:500 12.5px var(--f-num)}
 /* TAB AKUN BINANCE (2026-09-22) — hanya membaca, lewat Cloudflare Worker. */
 .ak-set{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;background:var(--bg1);border:1px solid var(--garis);border-radius:8px;padding:12px;margin-bottom:12px}
 .ak-set label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--label)}
@@ -158,6 +161,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
 
   <nav class="tab" role="tablist" aria-label="Halaman">
     <button role="tab" id="tbTerminal" data-hal="Terminal" aria-selected="true">Terminal</button>
+    <button role="tab" id="tbRiwayat" data-hal="Riwayat" aria-selected="false">Riwayat</button>
     <button role="tab" id="tbJurnal" data-hal="Jurnal" aria-selected="false">Jurnal</button>
     <button role="tab" id="tbAkun" data-hal="Akun" aria-selected="false">Akun</button>
     <button role="tab" id="tbInfo" data-hal="Info" aria-selected="false">Info</button>
@@ -224,6 +228,20 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
     <p><b>Pola 4H · 1000 USDT.</b> Pola VALID terakhir tiap koin (≤ 20 hari), level sama dengan chart: entry = close bar valid, SL buku, TP1, TP2. Keluar bertahap: 50% di TP1, 50% di TP2; sesudah TP1 kena, SL sisa naik ke entry (BE). Biaya 0.2%. Trade "Jalan" dinilai dengan harga hidup. Pola dihitung di browser ini sendiri tiap lilin 4H tutup — tidak butuh Claude.</p>
     <p><b>Terminal ≠ edge.</b> Tampilan yang lebih rapi tidak menambah peluang. Hasil uji proyek tetap berlaku: pola 4H impas (+0.024R), sinyal baru belum ada yang lolos.</p>
   </div>
+  </div>
+
+  <div class="hal" id="halRiwayat" hidden>
+    <div class="jr-ring" id="rwRing"><div class="kosong">Riwayat muncul sesudah lilin 4H termuat…</div></div>
+    <div class="rw-tabel" id="rwPola"></div>
+    <div class="jr-pilih seg" role="group" aria-label="Saring riwayat">
+      <button data-r="semua" aria-pressed="true">Semua</button>
+      <button data-r="jalan" aria-pressed="false">Jalan</button>
+      <button data-r="tutup" aria-pressed="false">Tutup</button>
+      <button data-r="untung" aria-pressed="false">Untung</button>
+      <button data-r="rugi" aria-pressed="false">Rugi</button>
+    </div>
+    <div class="jr-list" id="rwList"></div>
+    <p class="jr-ket" style="margin-top:10px">Riwayat = SEMUA pola 4H valid di 109 koin selama ~100 hari terakhir, dihitung di perangkat ini dengan aturan yang sama dengan Terminal (entry close bar valid, 50% di TP1, SL ke entry, 50% di TP2, biaya 0,2%, 1000 USDT). Trade lebih tua dari ~100 hari tetap disimpan di perangkat ini. Beda dengan tab Jurnal (buku rutin: SL 2,5 ATR / TP 1R).</p>
   </div>
 
   <div class="hal" id="halJurnal" hidden>
@@ -633,7 +651,8 @@ async function muatKoin(k) {
   // koin basi (delisting): lilin terakhir > 12 jam lalu -> jangan dinilai
   if (sekarang - +b[b.length - 1][6] > 12 * 3600e3) { d.ok = false; d.gagal = true; d.basi = true; d.pola = null; return; }
   try {
-    d.pola = polaTerakhir({ t: b.map(x => +x[0]), o: b.map(x => +x[1]), h, l, c, v: b.map(x => +x[5]) });
+    const dd = { t: b.map(x => +x[0]), o: b.map(x => +x[1]), h, l, c, v: b.map(x => +x[5]) };
+    d.riwayat = polaSemua(dd); d.pola = polaTerakhir(dd, d.riwayat);
   } catch (err) { d.pola = null; }
 }
 
@@ -650,12 +669,18 @@ function atrArr(h, l, c, n = 14) {
   for (let i = n + 1; i < c.length; i++) { a = (a * (n - 1) + tr(i)) / n; o[i] = a; }
   return o;
 }
-function polaTerakhir(d) {
-  if (!window.PolaDC) return null;
+// RIWAYAT (2026-09-22): simulasi dijalankan untuk SEMUA pola valid di jendela 600 lilin
+// (~100 hari), bukan hanya yang terakhir. Yang terakhir = kolom Terminal; semuanya = tab Riwayat.
+function polaSemua(d) {
+  if (!window.PolaDC) return [];
   const ev = window.PolaDC.peristiwa(d, atrArr(d.h, d.l, d.c)) || [];
-  const valid = ev.filter(e => !SEMBUNYI_POLA.has(e.kode));
-  const e = valid[valid.length - 1];
-  if (!e) return null;
+  return ev.filter(e => !SEMBUNYI_POLA.has(e.kode)).map(e => simTrade(d, e));
+}
+function polaTerakhir(d, semua) {
+  const a = semua || polaSemua(d);
+  return a.length ? a[a.length - 1] : null;
+}
+function simTrade(d, e) {
   const n = d.c.length, entry = d.c[e.i], sl = e.batal, tp2 = e.level + e.tinggi;
   let tp1 = null;
   if (entry > sl && tp2 > entry) { tp1 = entry + 0.75 * (entry - sl); if (tp1 >= tp2) tp1 = entry + 0.5 * (tp2 - entry); }
@@ -708,6 +733,7 @@ async function muatSemua() {
   memuat = false;
   POLA.waktu = Date.now();
   gambar(); if (window.paskanOtomatis) window.paskanOtomatis();
+  if (window.simpanRiwayat) window.simpanRiwayat();
   const jam = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
   const gagal = KOIN.filter(k => data[k].gagal).length;
   $("sMuat").textContent = `dimuat ${jam}` + (gagal ? ` · ${gagal} tanpa data spot` : "");
@@ -1043,9 +1069,10 @@ setSaring(["semua", "pola"].includes(st.saring) ? st.saring : "semua");
 let JR = null, jrPilih = baca("jrPilih", "POLA 4H"), halAktif = baca("hal", "Terminal");
 function pindahHal(h) {
   halAktif = h; simpan("hal", h);
-  for (const x of ["Terminal", "Jurnal", "Akun", "Info"]) { $("hal" + x).hidden = x !== h; $("tb" + x).setAttribute("aria-selected", x === h ? "true" : "false"); }
+  for (const x of ["Terminal", "Riwayat", "Jurnal", "Akun", "Info"]) { $("hal" + x).hidden = x !== h; $("tb" + x).setAttribute("aria-selected", x === h ? "true" : "false"); }
   if (h === "Jurnal") { if (!JR) muatJurnal(); else gambarJurnal(); }
   if (h === "Akun" && window.muatAkun) window.muatAkun();
+  if (h === "Riwayat" && window.gambarRiwayat) window.gambarRiwayat();
   if (h === "Terminal") { gambar(); if (window.paskanOtomatis) window.paskanOtomatis(); }
 }
 document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click", () => pindahHal(b.dataset.hal)));
@@ -1200,7 +1227,85 @@ function gambarAkun(baris, akun) {
 }
 setInterval(() => { if (halAktif === "Akun" && akCfg().url) window.muatAkun(); }, 60e3);
 
-pindahHal(["Terminal", "Jurnal", "Akun", "Info"].includes(halAktif) ? halAktif : "Terminal");
+// ================= RIWAYAT TRADE TERMINAL (2026-09-22) =================
+// Semua pola valid 109 koin (~100 hari) dihitung ulang tiap lilin 4H. Supaya trade yang
+// sudah keluar dari jendela 600 lilin tidak hilang, riwayat disimpan juga di perangkat
+// ini (localStorage). Yang masih di jendela selalu memakai hasil hitungan terbaru.
+let rwPilih = baca("rwPilih", "semua");
+const RW_MAKS = 3000;
+let RW = baca("riwayat", {}) || {};   // salinan di memori; tetap jalan walau penyimpanan diblokir
+function kumpulRiwayat() {
+  const skr = {};
+  for (const k of KOIN) for (const t of (data[k] && data[k].riwayat) || [])
+    skr[k + "|" + t.masukT] = { koin: k, nama: t.nama, masukT: t.masukT, keluarT: t.keluarT, entry: t.entry, sl: t.sl,
+      tp1: t.tp1, tp2: t.tp2, st: t.st, kenaTp1: t.kenaTp1, sisa: t.sisa, real: t.real };
+  return skr;
+}
+window.simpanRiwayat = function () {
+  const skr = kumpulRiwayat();
+  if (!Object.keys(skr).length) return;
+  const lama = RW;
+  const batasJendela = Math.min(...Object.values(skr).map(t => t.masukT));
+  // yang lebih tua dari jendela sekarang dipertahankan dari simpanan; sisanya diganti hasil baru
+  const gabung = {};
+  for (const [kk, t] of Object.entries(lama)) if (t.masukT < batasJendela) gabung[kk] = { ...t, luar: true };
+  Object.assign(gabung, skr);
+  const urut = Object.entries(gabung).sort((a, b) => b[1].masukT - a[1].masukT).slice(0, RW_MAKS);
+  RW = Object.fromEntries(urut); simpan("riwayat", RW);
+  if (halAktif === "Riwayat") window.gambarRiwayat();
+};
+const pnlTrade = t => {
+  if (t.sisa === 0) return t.real - MODAL_POLA * BIAYA_POLA;
+  const px = data[t.koin] && data[t.koin].harga;
+  return px ? t.real + t.sisa * MODAL_POLA * (px / t.entry - 1) - MODAL_POLA * BIAYA_POLA : null;
+};
+function chipRw(t) {
+  if (t.st === "jalan") return t.luar ? `<span class="chip nd">tak terlacak</span>` : (t.kenaTp1 ? `<span class="chip jalan">Jalan 50%</span>` : `<span class="chip jalan">Jalan</span>`);
+  return t.st === "TP2" ? `<span class="chip tp">TP1+TP2</span>` : t.st === "BE" ? `<span class="chip tp">TP1+BE</span>` : `<span class="chip sl">Kena SL</span>`;
+}
+window.gambarRiwayat = function () {
+  const semua = Object.values(RW);
+  if (!semua.length) return;
+  const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
+  const tutup = semua.filter(t => t.st !== "jalan"), jalan = semua.filter(t => t.st === "jalan" && !t.luar);
+  tutup.forEach(t => t.pnl = pnlTrade(t)); jalan.forEach(t => t.pnl = pnlTrade(t));
+  const tot = tutup.reduce((a, t) => a + t.pnl, 0), menang = tutup.filter(t => t.pnl > 0).length;
+  const totJ = jalan.reduce((a, t) => a + (t.pnl || 0), 0);
+  const mulai = new Date(Math.min(...semua.map(t => t.masukT))).toISOString().slice(0, 10);
+  const kurva = kurvaJ(tutup.map(t => ({ usdt: t.pnl, keluar: new Date(t.keluarT || t.masukT).toISOString(), masuk: "" })));
+  $("rwRing").innerHTML = `<div class="jr-kotak"><h3>Riwayat trade pola 4H <small>sejak ${mulai}</small></h3>` +
+    `<div class="jr-angka"><div><span>Tutup</span><b>${tutup.length}</b></div><div><span>WR</span><b>${tutup.length ? Math.round(menang / tutup.length * 100) : 0}%</b></div>` +
+    `<div><span>USDT tutup</span><b class="${kl(tot)}">${f2(tot)}</b></div></div>` +
+    `<div class="jr-angka"><div><span>Jalan</span><b>${jalan.length}</b></div><div><span>Rata/trade</span><b class="${kl(tot)}">${tutup.length ? f2(tot / tutup.length) : "—"}</b></div>` +
+    `<div><span>USDT jalan</span><b class="${kl(totJ)}">${f2(totJ)}</b></div></div>` + kurva + `</div>`;
+  // per pola
+  const per = {};
+  for (const t of tutup) { const x = per[t.nama] = per[t.nama] || { n: 0, m: 0, u: 0 }; x.n++; x.m += t.pnl > 0; x.u += t.pnl; }
+  $("rwPola").innerHTML = Object.entries(per).sort((a, b) => b[1].u - a[1].u).map(([nm, x]) =>
+    `<div><span>${nm} <span class="redup">${x.n}× · ${Math.round(x.m / x.n * 100)}%</span></span><b class="${kl(x.u)}">${f2(x.u)}</b></div>`).join("");
+  let rows = semua.slice();
+  if (rwPilih === "jalan") rows = jalan; else if (rwPilih === "tutup") rows = tutup;
+  else if (rwPilih === "untung") rows = tutup.filter(t => t.pnl > 0); else if (rwPilih === "rugi") rows = tutup.filter(t => t.pnl <= 0);
+  rows.sort((a, b) => b.masukT - a.masukT);
+  const tampil = rows.slice(0, 300);
+  $("rwList").innerHTML = tampil.map(t => {
+    const p = t.pnl === undefined ? pnlTrade(t) : t.pnl;
+    const tg = new Date(t.masukT).toISOString().slice(5, 16).replace("-", "/").replace("T", " ");
+    return `<div class="jr-tr${t.st === "jalan" ? " buka" : ""}"><div style="min-width:0"><div class="nm">${t.koin}</div><div class="sub">${t.nama} · ${tg} UTC</div></div>` +
+      `<div class="lv">E ${fHarga(t.entry)} · SL ${fHarga(t.sl)}<br>TP1 ${fHarga(t.tp1)}${t.kenaTp1 ? " ✓" : ""} · TP2 ${fHarga(t.tp2)}</div>` +
+      `<div class="ha"><b class="${kl(p)}">${f2(p)}</b>${chipRw(t)}</div></div>`;
+  }).join("") + (rows.length > 300 ? `<div class="kosong">+${rows.length - 300} trade lebih lama tidak ditampilkan.</div>` : "") ||
+    `<div class="kosong">Tidak ada trade di sini.</div>`;
+};
+document.querySelectorAll("#halRiwayat .jr-pilih button").forEach(b => {
+  b.setAttribute("aria-pressed", b.dataset.r === rwPilih ? "true" : "false");
+  b.addEventListener("click", () => { rwPilih = b.dataset.r; simpan("rwPilih", rwPilih);
+    document.querySelectorAll("#halRiwayat .jr-pilih button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false")); window.gambarRiwayat(); });
+});
+setInterval(() => { if (halAktif === "Riwayat") window.gambarRiwayat(); }, 5000);
+
+pindahHal(["Terminal", "Riwayat", "Jurnal", "Akun", "Info"].includes(halAktif) ? halAktif : "Terminal");
+
 
 
 
