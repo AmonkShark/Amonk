@@ -81,14 +81,18 @@ const PERINGKAT = k => ({ FW: 1, ST: 2, PEN: 3, IHS: 4, AT: 5, TB: 6, CH: 7, RC:
 const wib = t => new Date(t + 7 * 3600e3).toISOString().slice(5, 16).replace(/(\d\d)-(\d\d)T/, "$2/$1 ") + " WIB";
 function pesan(k, e, L, d, vol, uji) {
   const tutupT = d.t[e.i] + 4 * 3600e3;
+  // Gaya "kartu sinyal" (contoh gambar user 2026-09-22): judul, baris kotak, satu baris per data dengan emoji.
   return (uji ? "🧪 <b>PESAN UJI</b> — contoh, bukan pola baru\n\n" : "") +
-    `<b>${esc(k)}/USDT</b> TF 4H\n` +
-    `<b>${PERINGKAT(e.kode)} ${esc(e.nama)}</b>\n\n` +
-    `Entry  <b>${fx(L.entry)}</b>\n` +
-    `SL     ${fx(L.sl)}  (${pc(L.sl, L.entry)})\n` +
-    `TP1   ${fx(L.tp1)}  (${pc(L.tp1, L.entry)})  ambil 50%, SL naik ke entry\n` +
-    `TP2   ${fx(L.tp2)}  (${pc(L.tp2, L.entry)})\n\n` +
-    `<i>valid ${wib(tutupT)}${vol != null && vol < 1e6 ? " · ⚠️ likuiditas tipis" : ""}</i>\n` +
+    `<b>AMONK · Pola 4H</b>\n` +
+    `◻️◻️◻️◻️◻️\n` +
+    `📊 EXCHANGE: BINANCE\n` +
+    `💰 Coin: <b>${esc(k)}/USDT</b>  ·  TF 4H\n` +
+    `📐 Pola: <b>${PERINGKAT(e.kode)} ${esc(e.nama)}</b>\n` +
+    `✅ Entry: <b>${fx(L.entry)}</b>\n` +
+    `🎯 TP1: ${fx(L.tp1)}  (${pc(L.tp1, L.entry)})  ambil 50%, SL naik ke entry\n` +
+    `🎯 TP2: ${fx(L.tp2)}  (${pc(L.tp2, L.entry)})\n` +
+    `‼️ SL: ${fx(L.sl)}  (${pc(L.sl, L.entry)})\n` +
+    `🕒 valid ${wib(tutupT)}${vol != null && vol < 1e6 ? "\n⚠️ likuiditas tipis (< $1jt/hari)" : ""}\n\n` +
     `<a href="https://www.tradingview.com/chart/?symbol=BINANCE:${esc(k)}USDT&interval=240">Chart 4H</a> · <a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`;
 }
 
