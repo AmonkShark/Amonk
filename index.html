@@ -94,6 +94,33 @@ svg.sp{display:block;width:84px;height:22px}
 .catatan p{margin:0;max-width:62ch}
 .catatan b{color:var(--teks);font-weight:500}
 .kosong{padding:28px;text-align:center;color:var(--label);font-family:var(--f-ui)}
+/* APLIKASI SATU KLIK (2026-09-22): tiga tab — Terminal, Jurnal, Info. */
+.tab{display:flex;gap:4px;border-bottom:1px solid var(--garis);margin-bottom:12px;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5;padding-top:4px}
+.tab button{font:600 14px var(--f-ui);color:var(--label);background:none;border:0;border-bottom:2px solid transparent;padding:9px 14px;cursor:pointer}
+.tab button[aria-selected="true"]{color:var(--teks);border-bottom-color:var(--hijau)}
+.hal[hidden]{display:none!important}
+.jr-ring{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-bottom:14px}
+.jr-kotak{background:var(--bg1);border:1px solid var(--garis);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.jr-kotak h3{margin:0;font:600 15px var(--f-ui);display:flex;justify-content:space-between;align-items:baseline}
+.jr-kotak h3 small{font-weight:400;color:var(--label);font-size:12px}
+.jr-angka{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.jr-angka div{display:flex;flex-direction:column}
+.jr-angka b{font:500 16px var(--f-num)}
+.jr-angka span{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--label)}
+.jr-kurva{width:100%;height:56px;display:block}
+.jr-ket{font-size:12px;color:var(--label);margin:0}
+.jr-pilih{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.jr-list{display:flex;flex-direction:column;gap:6px}
+.jr-tr{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--bg1);border:1px solid var(--garis);border-radius:8px;padding:9px 12px}
+.jr-tr.buka{border-color:rgba(255,183,77,.35)}
+.jr-tr .nm{font:600 15px var(--f-ui)} .jr-tr .sub{font-size:12px;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jr-tr .lv{font:12px var(--f-num);color:var(--label);line-height:1.5}
+.jr-tr .ha{text-align:right;font-family:var(--f-num)} .jr-tr .ha b{font-size:15px;font-weight:500;display:block}
+.info{max-width:760px;display:flex;flex-direction:column;gap:14px;font-size:14px;line-height:1.6}
+.info section{background:var(--bg1);border:1px solid var(--garis);border-radius:8px;padding:12px 16px}
+.info h3{margin:0 0 6px;font:600 15px var(--f-ui);color:var(--teks)}
+.info ul{margin:0;padding-left:18px} .info li{margin:3px 0} .info b{color:var(--teks);font-weight:500}
+.info p{margin:0 0 6px}
 /* TAMPILAN HP (2026-09-22): kartu per koin dengan kolom penting saja. */
 #hpList{display:flex;flex-direction:column;gap:6px}
 .kartu{background:var(--bg1);border:1px solid var(--garis);border-radius:8px;padding:10px 12px;cursor:pointer}
@@ -117,9 +144,17 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
 <div class="wrap">
   <header>
     <h1>Terminal <b>AMONK</b></h1>
-    <span class="s">109 koin watchlist hijau · sinyal: POLA 4H · spot · hanya membaca</span>
+    <span class="s">109 koin · sinyal POLA 4H &amp; AI 4H · spot · hanya membaca</span>
     <div class="status"><span class="dot" id="dot"></span><span id="stat">menyambung…</span></div>
   </header>
+
+  <nav class="tab" role="tablist" aria-label="Halaman">
+    <button role="tab" id="tbTerminal" data-hal="Terminal" aria-selected="true">Terminal</button>
+    <button role="tab" id="tbJurnal" data-hal="Jurnal" aria-selected="false">Jurnal</button>
+    <button role="tab" id="tbInfo" data-hal="Info" aria-selected="false">Info</button>
+  </nav>
+
+  <div class="hal" id="halTerminal">
 
   <section class="strip" aria-label="Ringkasan pasar">
     <div><span class="k">BTC</span><span class="v" id="sBtc">—</span><span class="s" id="sBtc24">—</span></div>
@@ -179,6 +214,49 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
     <p><b>Hanya membaca.</b> Data publik Binance tanpa kunci API; halaman ini tidak bisa memasang order. Indikator dihitung dari lilin 4H yang sudah tutup; harga dan 24j hidup lewat WebSocket.</p>
     <p><b>Pola 4H · 1000 USDT.</b> Pola VALID terakhir tiap koin (≤ 20 hari), level sama dengan chart: entry = close bar valid, SL buku, TP1, TP2. Keluar bertahap: 50% di TP1, 50% di TP2; sesudah TP1 kena, SL sisa naik ke entry (BE). Biaya 0.2%. Trade "Jalan" dinilai dengan harga hidup. Pola dihitung di browser ini sendiri tiap lilin 4H tutup — tidak butuh Claude.</p>
     <p><b>Terminal ≠ edge.</b> Tampilan yang lebih rapi tidak menambah peluang. Hasil uji proyek tetap berlaku: pola 4H impas (+0.024R), sinyal baru belum ada yang lolos.</p>
+  </div>
+  </div>
+
+  <div class="hal" id="halJurnal" hidden>
+    <div class="jr-ring" id="jrRing"><div class="kosong">Memuat jurnal…</div></div>
+    <div class="jr-pilih seg" role="group" aria-label="Pilih sinyal">
+      <button data-j="POLA 4H" aria-pressed="true">POLA 4H</button>
+      <button data-j="AI 4H" aria-pressed="false">AI 4H</button>
+      <button data-j="buka" aria-pressed="false">Masih jalan</button>
+    </div>
+    <div class="jr-list" id="jrList"></div>
+    <p class="jr-ket" id="jrWaktu" style="margin-top:10px"></p>
+  </div>
+
+  <div class="hal info" id="halInfo" hidden>
+    <section><h3>Yang ada di aplikasi ini</h3><ul>
+      <li><b>Terminal</b> — 109 koin watchlist hijau, harga hidup, pola 4H terakhir tiap koin dengan Entry/SL/TP1/TP2 dan PnL simulasi 1000 USDT. Dihitung sendiri di HP ini, tidak butuh Claude.</li>
+      <li><b>Jurnal</b> — catatan forward-test <b>POLA 4H</b> dan <b>AI 4H</b>: tiap sinyal dianggap entry 1000 USDT. Dikirim dari laptop tiap 4 jam; trade yang masih jalan dinilai dengan harga hidup.</li>
+      <li>Hanya dua sinyal: POLA 4H dan AI 4H. Timeframe 4H, spot, long saja. Tanpa akun Binance — aplikasi hanya membaca data pasar publik, tidak bisa memasang order.</li>
+    </ul></section>
+    <section><h3>Aturan trade pola di Terminal</h3><ul>
+      <li><b>Entry</b> = harga tutup lilin 4H saat pola valid (garis tembus). <b>SL</b> = garis batal pola. <b>TP2</b> = tinggi pola diproyeksikan dari titik tembus. <b>TP1</b> = entry + 0,75 × jarak SL (atau tengah jalan ke TP2).</li>
+      <li><b>Keluar bertahap:</b> 50% di TP1, lalu SL sisa naik ke entry (impas), 50% sisanya di TP2. Lilin yang menyentuh SL dan TP1 bersamaan dihitung SL.</li>
+      <li>Biaya spot 0,2% pulang-pergi sudah dipotong. Pola Double Bottom, Rectangle, Bull Flag disembunyikan (sama dengan bawaan chart).</li>
+      <li>Level sama dengan indikator AMONK di TradingView: 43 dari 44 koin cocok persis saat dicek 22-09 (beda: TRX).</li>
+    </ul></section>
+    <section><h3>Aturan buku di Jurnal</h3><ul>
+      <li><b>POLA 4H</b> — buku rutin: SL 2,5 × ATR, TP 1R, keluar penuh. Jadi angkanya <b>berbeda</b> dari PnL di Terminal (yang memakai level chart & 50/50).</li>
+      <li><b>AI 4H</b> — entry/SL/TP dari analisa chart Claude tiap 4 jam; keluar di SL, TP, atau batas waktu.</li>
+      <li>Nominal tetap 1000 USDT per sinyal ⇒ satuan yang sah USDT dan persen, bukan R.</li>
+    </ul></section>
+    <section><h3>Yang sudah terbukti dari uji</h3><ul>
+      <li><b>Pola 4H impas:</b> backtest panjang +0,024R per trade — dorongan naik sesudah tembus habis oleh stop & ongkos. 20 pola × 4 uji: 0 lolos.</li>
+      <li><b>Pola 1D tidak lebih baik</b> dari 4H (era baru nol, CI lewat nol).</li>
+      <li><b>Ambil separuh di TP1</b> tidak menaikkan rata-rata hasil (0/7 lolos); gunanya hanya mengurangi trade yang berakhir rugi.</li>
+      <li><b>Volume ledakan</b> (≥3× rata-rata) saat tembus justru pita terburuk untuk pola.</li>
+      <li><b>Penilaian chart (AI)</b> lolos placebo koin (+0,296 vs 498/500 koin acak) — satu-satunya yang ada dasarnya, tapi sampelnya masih tipis.</li>
+    </ul></section>
+    <section><h3>Cara membaca angka</h3><ul>
+      <li>Belum ada kesimpulan sebelum <b>≥ 30 trade tutup DAN ≥ 6 bulan</b>. Jurnal sekarang baru beberapa minggu.</li>
+      <li>Angka "jalan" belum terkunci — bisa berbalik seluruhnya sebelum trade tutup.</li>
+      <li>Banyak pola lahir bersamaan saat pasar naik serentak; untung bersama itu lebih banyak mencerminkan pasar daripada polanya.</li>
+    </ul></section>
   </div>
 </div>
 
@@ -934,6 +1012,81 @@ $("hpList").addEventListener("click", e => {
 { const simpanan = baca("modeHP", null); pasangMode(simpanan === null ? window.innerWidth <= 760 : !!simpanan); }
 
 setSaring(["semua", "pola"].includes(st.saring) ? st.saring : "semua");
+
+// ================= TAB & JURNAL (aplikasi satu klik, 2026-09-22) =================
+// Jurnal dimuat dari data_jurnal.json di situs yang sama (dikirim laptop tiap 4 jam lewat
+// fwd12/ekspor_jurnal_app.cjs + kirim_github.cjs). Trade yang masih jalan dinilai dengan
+// harga HIDUP dari terminal ini. Kalau berkas dibuka langsung (file://), jurnal tidak tersedia.
+let JR = null, jrPilih = baca("jrPilih", "POLA 4H"), halAktif = baca("hal", "Terminal");
+function pindahHal(h) {
+  halAktif = h; simpan("hal", h);
+  for (const x of ["Terminal", "Jurnal", "Info"]) { $("hal" + x).hidden = x !== h; $("tb" + x).setAttribute("aria-selected", x === h ? "true" : "false"); }
+  if (h === "Jurnal") { if (!JR) muatJurnal(); else gambarJurnal(); }
+  if (h === "Terminal") { gambar(); if (window.paskanOtomatis) window.paskanOtomatis(); }
+}
+document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click", () => pindahHal(b.dataset.hal)));
+async function muatJurnal() {
+  try {
+    const r = await fetch("data_jurnal.json?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    JR = await r.json();
+  } catch (e) {
+    $("jrRing").innerHTML = `<div class="kosong">Jurnal belum tersedia di sini. Jurnal hanya ada di versi online (amonkshark.github.io/Amonk) sesudah laptop mengirim data_jurnal.json.</div>`;
+    $("jrList").innerHTML = ""; return;
+  }
+  gambarJurnal();
+}
+const hargaKini = k => (data[k] && data[k].harga) || null;
+const uangJ = (e, px) => e > 0 && px > 0 ? JR.nominal * (px / e - 1) - JR.nominal * JR.biaya : null;
+function kurvaJ(tutup) {
+  const u = tutup.slice().sort((a, b) => ((a.keluar || a.masuk || "") < (b.keluar || b.masuk || "") ? -1 : 1)).map(t => t.usdt);
+  if (u.length < 2) return "";
+  const c = [0]; for (const x of u) c.push(c[c.length - 1] + x);
+  const W = 300, H = 56, lo = Math.min(0, ...c), hi = Math.max(0, ...c), rg = (hi - lo) || 1;
+  const x = i => (3 + i / (c.length - 1) * (W - 6)).toFixed(1), y = v => (3 + (hi - v) / rg * (H - 6)).toFixed(1);
+  const pts = c.map((v, i) => x(i) + "," + y(v)).join(" "), w = c[c.length - 1] >= 0 ? "var(--hijau)" : "var(--merah)";
+  return `<svg class="jr-kurva" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="${W}" y1="${y(0)}" y2="${y(0)}" stroke="var(--garis)" stroke-dasharray="3 3"/>` +
+    `<polygon points="${x(0)},${y(0)} ${pts} ${x(c.length - 1)},${y(0)}" fill="${w}" opacity=".12"/><polyline points="${pts}" fill="none" stroke="${w}" stroke-width="1.8"/></svg>`;
+}
+function gambarJurnal() {
+  if (!JR) return;
+  const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2);
+  const kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
+  $("jrRing").innerHTML = Object.entries(JR.sinyal).map(([nm, sg]) => {
+    const tutup = sg.trades.filter(t => !t.terbuka), buka = sg.trades.filter(t => t.terbuka);
+    const tot = tutup.reduce((a, t) => a + t.usdt, 0), menang = tutup.filter(t => t.usdt > 0).length;
+    const jalan = buka.reduce((a, t) => a + (uangJ(t.entry, hargaKini(t.koin)) || 0), 0);
+    return `<div class="jr-kotak"><h3>${nm} <small>${tutup.length} tutup · WR ${tutup.length ? Math.round(menang / tutup.length * 100) : 0}%</small></h3>` +
+      `<div class="jr-angka"><div><span>USDT tutup</span><b class="${kl(tot)}">${f2(tot)}</b></div>` +
+      `<div><span>Jalan</span><b>${buka.length}</b></div><div><span>USDT jalan</span><b class="${kl(jalan)}">${buka.length ? f2(jalan) : "—"}</b></div></div>` +
+      kurvaJ(tutup) + `<p class="jr-ket">${sg.ket}</p></div>`;
+  }).join("");
+  let rows = [];
+  for (const [nm, sg] of Object.entries(JR.sinyal)) for (const t of sg.trades) rows.push({ ...t, sinyal: nm });
+  rows = jrPilih === "buka" ? rows.filter(t => t.terbuka) : rows.filter(t => t.sinyal === jrPilih);
+  rows.sort((a, b) => (a.terbuka !== b.terbuka ? (a.terbuka ? -1 : 1) : ((b.masuk || "") < (a.masuk || "") ? -1 : 1)));
+  $("jrList").innerHTML = rows.length ? rows.map(t => {
+    const px = t.terbuka ? hargaKini(t.koin) : t.exit, us = t.terbuka ? uangJ(t.entry, px) : t.usdt;
+    const pc = us == null ? null : us / JR.nominal * 100;
+    const st = t.terbuka ? `<span class="chip jalan">Jalan</span>` : `<span class="chip ${t.usdt > 0 ? "tp" : "sl"}">${t.sebab || "tutup"}</span>`;
+    const tgl = t.masuk ? t.masuk.slice(5, 10).replace("-", "/") + " " + t.masuk.slice(11, 16) : "—";
+    return `<div class="jr-tr${t.terbuka ? " buka" : ""}"><div style="min-width:0"><div class="nm">${t.koin}</div><div class="sub">${t.sinyal} · ${t.jenis || ""} · ${tgl} UTC</div></div>` +
+      `<div class="lv">E ${fHarga(t.entry)}<br>SL ${fHarga(t.sl)} · TP ${fHarga(t.tp)}</div>` +
+      `<div class="ha"><b class="${kl(us)}">${f2(us)}</b>${st}</div></div>`;
+  }).join("") : `<div class="kosong">Tidak ada trade di sini.</div>`;
+  const w = new Date(JR.waktu);
+  $("jrWaktu").textContent = `Jurnal dikirim dari laptop ${w.toISOString().slice(0, 16).replace("T", " ")} UTC · trade "Jalan" dinilai dengan harga hidup.`;
+}
+document.querySelectorAll(".jr-pilih button").forEach(b => {
+  b.setAttribute("aria-pressed", b.dataset.j === jrPilih ? "true" : "false");
+  b.addEventListener("click", () => { jrPilih = b.dataset.j; simpan("jrPilih", jrPilih);
+    document.querySelectorAll(".jr-pilih button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false")); gambarJurnal(); });
+});
+setInterval(() => { if (halAktif === "Jurnal" && JR) gambarJurnal(); }, 5000);
+setInterval(() => { if (JR) muatJurnal(); }, 30 * 60e3);   // ambil ulang jurnal tiap 30 menit
+pindahHal(["Terminal", "Jurnal", "Info"].includes(halAktif) ? halAktif : "Terminal");
+
+
 jam(); setInterval(jam, 1000);
 setInterval(() => { if (!memuat) gambar(); }, 2000);
 muatSemua();
