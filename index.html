@@ -1705,14 +1705,24 @@ function kotakBanding(s) {
   const ring = a => { const n = a.length, rata = n ? a.reduce((x, y) => x + y.pct, 0) / n : null;
     return { n, wr: n ? Math.round(a.filter(x => x.pct > 0).length / n * 100) : 0, rata, per1000: rata == null ? null : rata * 10 }; };
   const ra = ring(A), rb = ring(Bt);
-  const sama = []; for (const b of Bt) { const a = A.find(x => x.koin === b.koin && Math.abs(x.t - b.t) <= 48 * 3600e3); if (a) sama.push({ koin: b.koin, pola: b.pola, anda: a.pct, bot: b.pct }); }
+  const sama = [], dipakaiA = new Set(), dipakaiB = new Set();
+  Bt.forEach((b, ib) => { const ia = A.findIndex((x, i) => !dipakaiA.has(i) && x.koin === b.koin && Math.abs(x.t - b.t) <= 48 * 3600e3);
+    if (ia >= 0) { dipakaiA.add(ia); dipakaiB.add(ib); sama.push({ koin: b.koin, pola: b.pola, anda: A[ia].pct, bot: b.pct }); } });
+  // PEMBAGIAN (2026-09-22, user: "koin selain yang di-entry bot berarti aku yang entry"):
+  // hanya Anda = trade akun asli tanpa pasangan bot; hanya bot = trade bot tanpa pasangan Anda.
+  const hA = ring(A.filter((_, i) => !dipakaiA.has(i))), hB = ring(Bt.filter((_, i) => !dipakaiB.has(i)));
+  const sA = ring(sama.map(x => ({ pct: x.anda }))), sB = ring(sama.map(x => ({ pct: x.bot })));
+  const rinci = `<div class="jr-angka"><div><span>Hanya Anda</span><b class="${kl(hA.rata)}">${f2(hA.rata)}%</b><span class="rp">${hA.n} trade · koin yang tidak diambil bot</span></div>` +
+    `<div><span>Sama-sama diambil</span><b>${sama.length ? `${f2(sA.rata)}% / ${f2(sB.rata)}%` : "—"}</b><span class="rp">${sama.length} sinyal · Anda / bot</span></div>` +
+    `<div><span>Hanya bot</span><b class="${kl(hB.rata)}">${f2(hB.rata)}%</b><span class="rp">${hB.n} trade · tidak Anda ambil</span></div></div>`;
   const tg = new Date(awal + 7 * 3600e3).toISOString().slice(0, 10).split("-").reverse().join("/");
   return `<div class="jr-kotak"><h3>Anda vs bot <small>sejak ${tg} · trade tutup</small></h3>` +
     `<div class="jr-angka"><div><span>Anda (akun asli)</span><b class="${kl(ra.rata)}">${f2(ra.rata)}%</b><span class="rp">${ra.n} trade · WR ${ra.wr}% · ${f2(ra.per1000)} per 1000</span></div>` +
     `<div><span>Bot (testnet)</span><b class="${kl(rb.rata)}">${f2(rb.rata)}%</b><span class="rp">${rb.n} trade · WR ${rb.wr}% · ${f2(rb.per1000)} per 1000</span></div>` +
-    `<div><span>Selisih rata/trade</span><b class="${kl(ra.rata != null && rb.rata != null ? ra.rata - rb.rata : null)}">${ra.rata != null && rb.rata != null ? f2(ra.rata - rb.rata) + "%" : "—"}</b><span class="rp">Anda − bot</span></div></div>` +
+    `<div><span>Selisih rata/trade</span><b class="${kl(ra.rata != null && rb.rata != null ? ra.rata - rb.rata : null)}">${ra.rata != null && rb.rata != null ? f2(ra.rata - rb.rata) + "%" : "—"}</b><span class="rp">Anda − bot</span></div></div>` + rinci +
     (sama.length ? `<div class="ak-pola">${sama.slice(0, 12).map(x => `<span>${x.koin} ${x.pola}: Anda <b class="${kl(x.anda)}">${f2(x.anda)}%</b> · bot <b class="${kl(x.bot)}">${f2(x.bot)}%</b></span>`).join("")}</div>` : "") +
-    `<p class="jr-ket">Dihitung dalam % per trade, jadi beda ukuran posisi tidak memengaruhi. ${sama.length} sinyal diambil oleh keduanya (koin sama, masuk dalam 48 jam). ` +
+    `<p class="jr-ket">Dihitung dalam % per trade, jadi beda ukuran posisi tidak memengaruhi. Semua trade di akun Binance asli adalah trade Anda; bot hanya bertrading di testnet. ` +
+    `"Sama-sama diambil" = koin sama, masuk dalam 48 jam. Kalau bot mengambil SEMUA sinyal, "Hanya Anda" vs "Hanya bot" menjawab apakah pilihan Anda lebih baik dari tidak memilih. ` +
     `Ingat: bot memakai harga TESTNET yang bisa berbeda dari pasar asli, dan vonis baru berarti setelah ≥ ${AMBANG_N} trade di masing-masing sisi.</p></div>`;
 }
 function gambarBot(s) {
