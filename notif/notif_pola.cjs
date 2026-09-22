@@ -299,9 +299,24 @@ function teksJeda(tutupMinggu, h) {
 //      (lembah terakhir belum sah), urut jarak ke garis tembus.
 // Aturan = pola_dc_peristiwa.cjs (sama dengan chart). Tidak menulis status/maju/audit apa pun.
 // 1D TIDAK teruji menguntungkan (memori pola-1d-tidak-lebih-valid) -> ditulis di pesannya.
-const SCAN = process.env.SCAN === "true" || process.env.JADWAL === "17 0 * * *";
+// JAM KIRIM (2026-09-22, user: "kirim jam 4 pagi waktu australia"): SCAN_JAM di zona SCAN_TZ
+// (bawaan 04:00 Australia/Sydney). Cron GitHub hanya UTC dan tidak kenal daylight saving
+// (Sydney UTC+10, mulai 4 Okt UTC+11), jadi workflow jalan tiap jam 16-21 UTC ("12 16-21 * * *")
+// dan skrip ini sendiri yang memutuskan: kirim bila jam lokal = SCAN_JAM (boleh telat s.d. +2 jam
+// kalau GitHub melewati satu run) dan hari itu belum terkirim (notif/scan.json). Run manual
+// (input scan) selalu kirim dan tidak mencatat, jadi tidak menghalangi kiriman terjadwal.
+const SCAN_TZ = process.env.SCAN_TZ || "Australia/Sydney", SCAN_JAM = +(process.env.SCAN_JAM || 4);
+const SCAN_JADWAL = process.env.JADWAL === "12 16-21 * * *";
+const SCAN = process.env.SCAN === "true" || SCAN_JADWAL;
 const SCAN_MAKS = Math.max(1, +(process.env.SCAN_MAKS || 8));
 const SCAN_AREA_R = 0.25;
+const F_SCAN = path.join(__dirname, "scan.json");
+const KOTA = SCAN_TZ.split("/").pop().replace(/_/g, " ");
+function lokal(t) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: SCAN_TZ, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false })
+    .formatToParts(new Date(t)).map(x => [x.type, x.value]));
+  return { tgl: `${p.year}-${p.month}-${p.day}`, jam: +p.hour % 24, teks: `${p.day}/${p.month} ${String(+p.hour % 24).padStart(2, "0")}:${p.minute}` };
+}
 async function scanTF(k, tf) {
   const barMs = tf === "1d" ? 864e5 : 4 * 3600e3, umurMaks = tf === "1d" ? 20 : 120;
   const j = await getJ(`/api/v3/klines?symbol=${k}USDT&interval=${tf}&limit=${tf === "1d" ? 1000 : 600}`);
@@ -331,12 +346,12 @@ async function scanTF(k, tf) {
 function pesanScan(tf, V, H, dicek) {
   const tfT = tf === "1d" ? "1D" : "4H", tipis = x => x.vol < 1e6 ? " ⚠️tipis" : "";
   const bV = V.sort((a, b) => a.r - b.r).slice(0, SCAN_MAKS).map(x =>
-    `• <b>${esc(x.k)}</b> ${PERINGKAT(x.kode)} ${esc(x.nama)} · valid ${wib(x.validT).slice(0, 5)}\n` +
+    `• <b>${esc(x.k)}</b> ${PERINGKAT(x.kode)} ${esc(x.nama)} · valid ${lokal(x.validT).teks.slice(0, 5)}\n` +
     `   E ${fx(x.L.entry)} (kini ${pc(x.px, x.L.entry)}) · SL ${fx(x.L.sl)} (${pc(x.L.sl, x.L.entry)}) · TP1 ${fx(x.L.tp1)} · TP2 ${fx(x.L.tp2)}${tipis(x)}`).join("\n");
   const bH = H.sort((a, b) => a.jarak - b.jarak).slice(0, SCAN_MAKS).map(x =>
     `• <b>${esc(x.k)}</b> ${PERINGKAT(x.kode)} ${esc(x.nama)}${x.tahap === "CALON" ? " <i>(calon)</i>" : ""} · tembus ${fx(x.E)} (<b>+${x.jarak.toFixed(1)}%</b>)\n` +
     `   SL ${fx(x.S)} (${pc(x.S, x.E)}) · TP2 ${fx(x.T2)} (${pc(x.T2, x.E)})${tipis(x)}`).join("\n");
-  return `<b>AMONK SINYAL · SCAN HARIAN ${tfT}</b>\n◻️◻️◻️◻️◻️\n📅 ${wib(Date.now())} · ${dicek} koin\n\n` +
+  return `<b>AMONK SINYAL · SCAN HARIAN ${tfT}</b>\n◻️◻️◻️◻️◻️\n📅 ${lokal(Date.now()).teks} waktu ${esc(KOTA)} · ${dicek} koin\n\n` +
     `✅ <b>Valid, masih di area entry</b> (≤ +${SCAN_AREA_R}R, belum TP1/SL): ${V.length}\n${bV || "   — tidak ada"}` +
     (V.length > SCAN_MAKS ? `\n   … +${V.length - SCAN_MAKS} lagi${tf === "1d" ? "" : " di aplikasi"}` : "") + `\n\n` +
     `⏳ <b>Hampir valid</b> — menunggu lilin ${tfT} TUTUP di atas garis tembus: ${H.length}\n${bH || "   — tidak ada"}` +
@@ -346,15 +361,24 @@ function pesanScan(tf, V, H, dicek) {
     `<a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`;
 }
 async function scanHarian() {
+  const L0 = lokal(Date.now());
+  if (SCAN_JADWAL && process.env.SCAN !== "true") {
+    let st = {}; try { st = JSON.parse(fs.readFileSync(F_SCAN, "utf8")); } catch (e) {}
+    if (st.tgl === L0.tgl) { console.log(`SCAN: sudah terkirim hari ini (${L0.tgl}, ${SCAN_TZ})`); return; }
+    if (L0.jam < SCAN_JAM || L0.jam > SCAN_JAM + 2) { console.log(`SCAN: belum jamnya (${SCAN_TZ} pukul ${L0.jam}, target ${SCAN_JAM})`); return; }
+  }
   const hasil = { "4h": { V: [], H: [], n: 0 }, "1d": { V: [], H: [], n: 0 } };
   for (const k of KOIN) for (const tf of ["4h", "1d"]) {
     const r = await scanTF(k, tf); if (!r) continue;
     hasil[tf].n++; hasil[tf].V.push(...r.valid); hasil[tf].H.push(...r.hampir);
   }
+  let terkirimSatu = false;
   for (const tf of ["4h", "1d"]) {
     const x = hasil[tf], ok = await kirim(pesanScan(tf, x.V, x.H, x.n));
     console.log(`SCAN ${tf}: ${x.n} koin · valid di area entry ${x.V.length} · hampir valid ${x.H.length} · ${ok ? "terkirim" : "GAGAL"}`);
+    if (ok) terkirimSatu = true;
   }
+  if (SCAN_JADWAL && process.env.SCAN !== "true" && terkirimSatu && !DRY) fs.writeFileSync(F_SCAN, JSON.stringify({ tgl: L0.tgl, t: Date.now(), tz: SCAN_TZ }));
 }
 
 async function rekap() {
