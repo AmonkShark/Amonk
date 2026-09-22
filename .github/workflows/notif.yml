@@ -11,7 +11,7 @@ on:
     - cron: "7 0,4,8,12,16,20 * * *"
     - cron: "37 0,4,8,12,16,20 * * *"
     - cron: "0 13 * * 0"
-    - cron: "17 0 * * *"     # SCAN HARIAN 4H & 1D, 07:17 WIB (sesudah lilin 1D tutup)
+    - cron: "12 16-21 * * *" # SCAN HARIAN 4H & 1D: skrip kirim sekali saat pukul 04:xx Australia/Sydney (ikut daylight saving)
   workflow_dispatch:
     inputs:
       uji:
@@ -59,7 +59,7 @@ jobs:
         run: |
           git config user.name "amonk-notif"
           git config user.email "amonk-notif@users.noreply.github.com"
-          git add notif/terkirim.json notif/maju.json notif/audit.json 2>/dev/null || true
+          git add notif/terkirim.json notif/maju.json notif/audit.json notif/scan.json 2>/dev/null || true
           if ! git diff --cached --quiet; then
             git commit -m "notif: status & catatan maju"
             for i in 1 2 3; do git pull --rebase && git push && break; sleep 5; done
