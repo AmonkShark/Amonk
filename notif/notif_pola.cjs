@@ -40,6 +40,7 @@ const BAGI_MODAL = Math.max(1, Math.round(+(process.env.BAGI_MODAL || 3)) || 3);
 const AKUN_URL = (process.env.AKUN_URL || "").replace(/\/+$/, ""), SANDI = process.env.SANDI_APP || "";
 const MODAL_CADANGAN = +(process.env.MODAL_USDT || 0);
 const F_STATUS = path.join(__dirname, "terkirim.json"), F_MAJU = path.join(__dirname, "maju.json");
+const F_AUDIT = path.join(__dirname, "audit.json");   // saran #4: sekali kirim per ambang tercapai
 const MAJU_MULAI = Date.UTC(2026, 8, 22, 0, 0);          // sama dengan mode "Maju" di aplikasi
 const HOSTS = ["https://data-api.binance.vision", "https://api.binance.com", "https://api-gcp.binance.com"];
 const STABIL = new Set(["USDT", "USDC", "FDUSD", "BUSD", "TUSD", "DAI"]);
@@ -169,6 +170,47 @@ async function kirim(teksUmum, teksPribadi, chat) {
 }
 
 // ---------- 5. rekap mingguan ----------
+// ---------- 4. AUDIT OTOMATIS: beri tahu begitu pemantauan maju CUKUP DATA (>=30 trade & >=6 bulan).
+// Sama persis dengan ambang "progres bukti" di app & rekap mingguan — sekali per pola + sekali
+// keseluruhan, tidak diulang (ditandai di notif/audit.json). Lihat [[daya-statistik-30-trade]].
+const AMBANG_N = 30, AMBANG_BULAN = 6;
+async function cekAudit(maju) {
+  const tutup = Object.values(maju).filter(t => t.st !== "jalan");
+  if (!tutup.length) return;
+  let audit = {}; try { audit = JSON.parse(fs.readFileSync(F_AUDIT, "utf8")); } catch (e) {}
+  const skr = Date.now(), f2 = v => (v >= 0 ? "+" : "") + v.toFixed(2);
+  const bulanSejak = arr => (skr - Math.min(...arr.map(t => t.masukT))) / (30.44 * 864e5);
+
+  // keseluruhan
+  const bln = bulanSejak(tutup);
+  if (!audit.semua && tutup.length >= AMBANG_N && bln >= AMBANG_BULAN) {
+    const u = tutup.reduce((a, t) => a + t.usdt, 0), wr = Math.round(tutup.filter(t => t.usdt > 0).length / tutup.length * 100);
+    await kirim(`<b>AMONK SINYAL · AUDIT</b>\n◻️◻️◻️◻️◻️\n` +
+      `📐 Pemantauan maju SEMUA POLA kini <b>CUKUP DATA</b> (≥${AMBANG_N} trade & ≥${AMBANG_BULAN} bulan sejak 22/09/2026).\n\n` +
+      `${tutup.length} trade tutup · ${bln.toFixed(1)} bulan · WR ${wr}%\n` +
+      `Total: <b>${f2(u)} USDT</b> · rata ${f2(u / tutup.length)}/trade\n\n` +
+      `<i>Ini pertama kali angka ini boleh dibaca sebagai kesimpulan, bukan sekadar pengamatan. Tetap bandingkan dengan uji panjang proyek (pola 4H historis ≈ impas) sebelum mengubah cara trading.</i>\n\n` +
+      `<a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`);
+    audit.semua = true;
+  }
+
+  // per pola
+  const per = {};
+  for (const t of tutup) (per[t.nama] = per[t.nama] || { kode: t.kode, arr: [] }).arr.push(t);
+  audit.pola = audit.pola || {};
+  for (const [nm, x] of Object.entries(per)) {
+    if (audit.pola[nm] || x.arr.length < AMBANG_N || bulanSejak(x.arr) < AMBANG_BULAN) continue;
+    const u = x.arr.reduce((a, t) => a + t.usdt, 0), wr = Math.round(x.arr.filter(t => t.usdt > 0).length / x.arr.length * 100);
+    await kirim(`<b>AMONK SINYAL · AUDIT</b>\n◻️◻️◻️◻️◻️\n` +
+      `📐 Pola <b>${PERINGKAT(x.kode)} ${esc(nm)}</b> kini <b>CUKUP DATA</b> (≥${AMBANG_N} trade & ≥${AMBANG_BULAN} bulan).\n\n` +
+      `${x.arr.length} trade tutup · ${bulanSejak(x.arr).toFixed(1)} bulan · WR ${wr}%\n` +
+      `Total: <b>${f2(u)} USDT</b> · rata ${f2(u / x.arr.length)}/trade\n\n` +
+      `<i>Baru sekarang pola ini boleh dinilai, bukan sebelumnya.</i>\n\n<a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`);
+    audit.pola[nm] = true;
+  }
+  if (!DRY) fs.writeFileSync(F_AUDIT, JSON.stringify(audit));
+}
+
 async function rekap() {
   let maju = {}; try { maju = JSON.parse(fs.readFileSync(F_MAJU, "utf8")); } catch (e) {}
   const semua = Object.values(maju), skr = Date.now(), awal = skr - 7 * 864e5;
@@ -270,6 +312,7 @@ async function rekap() {
   }
   // bersihkan: status > 60 hari, catatan maju tetap (itu buku)
   for (const [kk, v] of Object.entries(status)) if (sekarang - v.t > 60 * 864e5) delete status[kk];
+  await cekAudit(maju);
   if (!DRY) { fs.writeFileSync(F_STATUS, JSON.stringify(status)); fs.writeFileSync(F_MAJU, JSON.stringify(maju)); }
   console.log(`selesai: ${dicek} koin dicek, ${baru} pola baru, ${keluar} update exit ${DRY ? "(uji kering, tidak dikirim)" : "terkirim"} · catatan maju ${Object.keys(maju).length} · ukuran posisi: ${M ? M.sumber : "tanpa modal"}`);
 })();
