@@ -15,12 +15,15 @@ say() { printf '\n\033[1;36m== %s\033[0m\n' "$*"; }
 say "1/7 Memeriksa IP & jangkauan Binance dari server ini"
 IP=$(curl -4 -fsS https://api.ipify.org || true)
 [ -n "$IP" ] || { echo "Tidak bisa membaca IP publik server."; exit 1; }
-KODE=$(curl -s -o /dev/null -w '%{http_code}' https://api.binance.com/api/v3/ping || true)
-echo "IP publik server : $IP"
-echo "Binance ping     : HTTP $KODE"
+echo "IP publik server : $IP  (negara menurut ipinfo: $(curl -s --max-time 5 ipinfo.io/country || echo '?'))"
+KODE=""
+for h in api api-gcp api1 api2 api3 api4; do          # semua alamat resmi; perantara memakai yang pertama menjawab
+  k=$(curl -s --max-time 8 -o /dev/null -w '%{http_code}' "https://$h.binance.com/api/v3/ping" || true)
+  echo "Binance $h : HTTP $k"; [ "$k" = "200" ] && { KODE=200; break; }
+done
 if [ "$KODE" != "200" ]; then
-  echo "!! Binance tidak bisa dijangkau dari lokasi server ini (HTTP $KODE; 451 = wilayah diblokir, mis. AS)."
-  echo "!! Hapus server ini dan buat ulang di lokasi lain (disarankan: Sydney)."; exit 1
+  echo "!! Binance menolak semua alamat dari lokasi server ini (451 = wilayah diblokir: AS, Australia, dll)."
+  echo "!! Hapus server ini dan buat ulang di lokasi lain (coba: Frankfurt fra1, lalu Bangalore blr1)."; exit 1
 fi
 HOST="$(echo "$IP" | tr . -).sslip.io"
 
