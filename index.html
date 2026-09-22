@@ -414,7 +414,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
     <div class="jr-list" id="akList"></div>
     <div class="jn-kepala" id="akOrderJudul" hidden><h3>Order terbuka <small class="redup" id="akOrderN"></small></h3><button class="btn" type="button" id="akOrderToggle" aria-controls="akOrder" aria-expanded="true">Sembunyikan</button></div>
     <div class="jr-list" id="akOrder"></div>
-    <div class="jn-kepala"><h3>Bot trading otomatis <small class="redup" id="btJaringan">TESTNET · saldo latihan</small></h3><span class="tb"><button class="btn" type="button" id="btTes" title="Cek jalur aplikasi → bot → perantara → Binance dengan kunci bot">🔌 Uji sambungan</button><button class="btn" type="button" id="btMuat">Perbarui</button></span></div>
+    <div class="jn-kepala"><h3>Bot trading otomatis <small class="redup" id="btJaringan">TESTNET · saldo latihan</small></h3><span class="tb"><button class="btn" type="button" id="btJeda" title="Hentikan bot membeli; posisi terbuka tetap dijaga SL/TP">⏸ Jeda bot</button><button class="btn" type="button" id="btTes" title="Cek jalur aplikasi → bot → perantara → Binance dengan kunci bot">🔌 Uji sambungan</button><button class="btn" type="button" id="btMuat">Perbarui</button></span></div>
     <div class="ak-bar"><button class="btn" type="button" id="btToggle" aria-expanded="true" aria-controls="btForm">⚙ Sembunyikan pengaturan bot</button><span class="ak-pesan" id="btPesanBar"></span></div>
     <p class="ak-pesan kng" id="btKunci" hidden>🔒 Mode lihat — perangkat ini belum memasukkan sandi bot, jadi pengaturan hanya bisa dilihat. Isi <b>Sandi bot</b> lalu tekan <b>Buka kunci</b> untuk mengubah.</p>
     <form class="ak-set" id="btForm" autocomplete="off">
@@ -2023,8 +2023,12 @@ function gambarBot(s) {
   const rT = R.map(rBot).filter(v => v != null), rRata = rT.length ? rT.reduce((a, b) => a + b, 0) / rT.length : null;
   const blnBot = R.length ? (Date.now() - Math.min(...R.map(r => r.masukT))) / (30.44 * 864e5) : 0;
   const versi = String(s.versi || "lama (belum ada versi)").replace(/[<>&"]/g, "");
-  $("btRing").innerHTML = `<div class="jr-kotak bt-kartu"><h3><span>Bot <span class="lencana ${s.aktif ? "on" : "off"}">${s.aktif ? "● AKTIF" : "○ KERING"}</span></span>` +
+  const dijeda = !!PG.jeda;
+  $("btJeda").textContent = dijeda ? "▶ Lanjutkan bot" : "⏸ Jeda bot";
+  $("btRing").innerHTML = `<div class="jr-kotak bt-kartu"><h3><span>Bot <span class="lencana ${s.aktif && !dijeda ? "on" : "off"}">${dijeda ? "⏸ DIJEDA" : s.aktif ? "● AKTIF" : "○ KERING"}</span>` +
+    `<span class="redup" style="font:400 11px var(--f-ui)">${s.telegram ? "🔔 Telegram aktif" : "🔕 Telegram belum diisi"}</span></span>` +
     `<small>${asli ? "Binance" : "Binance Testnet"} · kode ${versi}</small></h3>` +
+    (dijeda ? `<p class="jr-ket kng">⏸ Bot dijeda: tidak mengambil sinyal baru dan order FIB menunggu dibatalkan. Posisi yang sudah terbuka tetap dijaga SL/TP. Tekan ▶ Lanjutkan bot untuk menyalakan lagi.</p>` : "") +
     (asli && s.hentiAsli ? `<p class="jr-ket turun">⛔ Bot asli BERHENTI (tidak membeli): ${String(s.hentiAsli).replace(/[<>&]/g, "")}.</p>` : "") +
     (asli && s.kunciGalat ? `<p class="jr-ket turun">⛔ ${String(s.kunciGalat).replace(/[<>&]/g, "")}.</p>` : "") +
     (asli ? `<p class="jr-ket kng">Uang sungguhan. Modal awal dipagu ${s.modalAsliMaks || "?"} USDT oleh pengaturan Cloudflare. Koin yang sedang Anda pegang atau punya order Anda dilewati bot — jangan jual manual koin yang sedang dipegang bot.</p>` : "") +
@@ -2070,8 +2074,8 @@ function gambarBot(s) {
     if (akhir && akhir.kunci === kunci) { akhir.n++; akhir.tAwal = l.t; } else kelompok.push({ kunci, l, n: 1, tAwal: l.t });
     if (kelompok.length > 10) { kelompok.pop(); break; }
   }
-  const jenisKls = l => /galat|gagal|DARURAT|terlewati|tolak/.test(l.jenis) ? "merah" : /^masuk$|terisi/.test(l.jenis) ? "hijau"
-    : l.jenis === "tutup" ? (l.hasil >= 0 ? "hijau" : "merah") : /rencana|FIB order|dana bot/.test(l.jenis) ? "biru" : /lewati|batal|ditahan/.test(l.jenis) ? "abu" : "";
+  const jenisKls = l => /galat|gagal|DARURAT|terlewati|tolak|mati/.test(l.jenis) ? "merah" : /^masuk$|terisi/.test(l.jenis) ? "hijau"
+    : l.jenis === "tutup" ? (l.hasil >= 0 ? "hijau" : "merah") : /rencana|FIB order|dana bot|jeda|lanjut|pulih/.test(l.jenis) ? "biru" : /lewati|batal|ditahan/.test(l.jenis) ? "abu" : "";
   if (kelompok.length) baris.push(`<div class="jr-kotak"><h3>Catatan bot terakhir <small>jam ${ZONA || "lokal"}</small></h3>` + kelompok.map(({ l, n, tAwal }) =>
     `<div class="bt-log"><span class="bt-tag ${jenisKls(l)}">${l.jenis}</span><span class="bt-jam">${jamLokal(l.t)}${n > 1 ? ` ×${n} sejak ${jamLokal(tAwal).slice(6)}` : ""}</span>` +
     `<span class="bt-isi">${[l.sym ? "<b>" + l.sym.replace(/USDT$/, "") + "</b>" : "", l.alasan || "", l.galat || "",
@@ -2097,7 +2101,7 @@ window.muatBotBilaAda = () => { if (btCfg().url) muatBot(); };
 function kunciBot(terkunci) {
   $("btForm").classList.toggle("terkunci", terkunci); $("btKunci").hidden = !terkunci;
   $("btForm").querySelectorAll("input").forEach(el => { if (el.id !== "btSandi" && el.id !== "btUrl") el.disabled = terkunci; });
-  $("btTarik").disabled = $("btTambah").disabled = terkunci;
+  $("btTarik").disabled = $("btTambah").disabled = $("btJeda").disabled = terkunci;
   $("btSimpan").textContent = terkunci ? "🔓 Buka kunci" : "Simpan ke bot";
 }
 $("btMuat").addEventListener("click", muatBot);
@@ -2118,6 +2122,16 @@ async function ubahDana(tanda) {
   } catch (e) { btPesan("Gagal: " + e.message, true); }
 }
 $("btTarik").addEventListener("click", () => ubahDana(-1));
+// JEDA / LANJUTKAN BOT (2026-09-22, user). POST /atur {jeda}. Bot berhenti membeli; posisi terbuka tetap dikelola.
+$("btJeda").addEventListener("click", async () => {
+  if (!btCfg().sandi) { btPesan("Jeda bot butuh sandi bot (isi di ⚙ Pengaturan bot).", true); return; }
+  const jeda = !(BT_S && BT_S.pengaturan && BT_S.pengaturan.jeda);
+  if (!confirm(jeda ? "JEDA bot?\n\nBot berhenti mengambil sinyal baru dan membatalkan order limit FIB yang menunggu (dalam ≤ 5 menit). Posisi yang sudah terbuka TETAP dijaga SL/TP."
+    : "LANJUTKAN bot?\n\nBot kembali mengambil sinyal pola 4H dan FIB 1H.")) return;
+  try { btPesan("Menyimpan…"); await btPanggil("/atur", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jeda }) });
+    await muatBot(); btPesan(jeda ? "⏸ Bot dijeda." : "▶ Bot dilanjutkan."); }
+  catch (e) { btPesan("Gagal: " + e.message, true); }
+});
 $("btTambah").addEventListener("click", () => ubahDana(1));
 // UJI SAMBUNGAN (2026-09-22, user: "bagaimana cara cek jika sudah benar semua?"). GET /tes (wajib sandi):
 // bot membaca saldo USDT lewat jalurnya sendiri — di mode asli lewat perantara VPS dengan kunci asli.
