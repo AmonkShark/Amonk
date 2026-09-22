@@ -1236,7 +1236,7 @@ function pindahHal(h) {
   for (const x of ["Terminal", "Riwayat", "Jurnal", "Akun", "Info"]) { $("hal" + x).hidden = x !== h; $("tb" + x).setAttribute("aria-selected", x === h ? "true" : "false"); }
   if (h === "Jurnal") { if (!JR) muatJurnal(); else gambarJurnal(); }
   if (h === "Akun" && window.muatAkun) window.muatAkun();
-  if (h === "Akun" && window.muatBot) window.muatBot();
+  if (h === "Akun" && window.muatBotBilaAda) window.muatBotBilaAda();
   if (h === "Riwayat" && window.gambarRiwayat) window.gambarRiwayat();
   if (h === "Terminal") { gambar(); if (window.paskanOtomatis) window.paskanOtomatis(); }
 }
@@ -1799,7 +1799,9 @@ async function muatBot() {
     btPesan(`Tersambung ke bot · diperbarui ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`); }
   catch (e) { btPesan("Bot: " + e.message + (/Failed to fetch/i.test(e.message) ? " — periksa alamat bot." : ""), true); }
 }
-window.muatBot = () => { if (btCfg().sandi) muatBot(); };
+// JANGAN menimpa window.muatBot: fungsi global = properti window, jadi muatBot akan memanggil dirinya sendiri
+// tanpa henti ("Maximum call stack size exceeded", terlihat user 2026-09-22). Pakai nama lain.
+window.muatBotBilaAda = () => { if (btCfg().sandi) muatBot(); };
 $("btMuat").addEventListener("click", muatBot);
 $("btForm").addEventListener("submit", async ev => {
   ev.preventDefault();
@@ -1817,7 +1819,7 @@ $("btForm").addEventListener("submit", async ev => {
   if (!(bt >= 0.1 && bt <= 100)) { btPesan("Batas rugi bot harus 0.1 sampai 100 (% modal).", true); return; }
   try { const j = await btPanggil("/atur", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modalMaks: v, koin, pola, maksPosisi: mp, batasTrade: bt, fib }) });
     const kini = j.modal && j.modal.kini ? j.modal.kini : j.modalMaks;
-    btPesan(`Tersimpan di bot: modal awal ${j.modalMaks ? Math.round(j.modalMaks).toLocaleString("en-US") + " USDT" : "seluruh saldo testnet"}${j.modal && j.modal.laba ? ` (kini ${Math.round(kini).toLocaleString("en-US")} dengan laba)` : ""} · maks ${j.maksPosisi} entry (±${kini ? Math.round(kini / j.maksPosisi).toLocaleString("en-US") + " USDT" : "saldo ÷ " + j.maksPosisi} per entry) · koin ${j.koin && j.koin.length ? j.koin.map(k => k.replace(/USDT$/, "")).join(", ") : "semua"} · pola ${(j.pola || []).join(", ")}${j.fib ? " + FIB 1H" : ""}.`); await muatBot(); }
+    const pesanSimpan = `Tersimpan di bot: modal awal ${j.modalMaks ? Math.round(j.modalMaks).toLocaleString("en-US") + " USDT" : "seluruh saldo testnet"}${j.modal && j.modal.laba ? ` (kini ${Math.round(kini).toLocaleString("en-US")} dengan laba)` : ""} · maks ${j.maksPosisi} entry (±${kini ? Math.round(kini / j.maksPosisi).toLocaleString("en-US") + " USDT" : "saldo ÷ " + j.maksPosisi} per entry) · koin ${j.koin && j.koin.length ? j.koin.map(k => k.replace(/USDT$/, "")).join(", ") : "semua"} · pola ${(j.pola || []).join(", ")}${j.fib ? " + FIB 1H" : ""}.`; await muatBot(); btPesan(pesanSimpan); }
   catch (e) { btPesan("Gagal menyimpan: " + e.message, true); }
 });
 setInterval(() => { if (halAktif === "Akun" && btCfg().sandi) muatBot(); }, 60e3);
