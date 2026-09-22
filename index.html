@@ -139,12 +139,17 @@ svg.sp{display:block;width:84px;height:22px}
 .rw-judul{font:600 14px var(--f-ui);margin:4px 0 8px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .rw-judul small{font-weight:400;color:var(--label);font-size:12px}
 /* TAB AKUN BINANCE (2026-09-22) — hanya membaca, lewat Cloudflare Worker. */
-.ak-set{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;background:var(--bg1);border:1px solid var(--garis);border-radius:8px;padding:12px;margin-bottom:12px}
+.ak-set{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;align-items:end;background:var(--bg1);border:1px solid var(--garis);border-radius:8px;padding:12px;margin-bottom:12px}
 .ak-set label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--label)}
 .ak-set input{font:13px var(--f-num);color:var(--teks);background:var(--bg2);border:1px solid var(--garis);border-radius:4px;padding:7px 9px;min-width:0}
 .ak-set .tb{display:flex;gap:6px}
 @media (max-width:640px){.ak-set{grid-template-columns:1fr}}
 .ak-pesan{font-size:13px;color:var(--label);margin:0 0 10px}
+.rp{display:block;font:12px var(--f-num);color:var(--label);margin-top:1px}
+.jn-kepala{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin:18px 0 8px}
+.jn-kepala h3{margin:0;font:600 14px var(--f-ui)}
+.jn-label{font:600 11px var(--f-ui);padding:1px 6px;border-radius:3px;border:1px solid var(--garis);color:var(--label)}
+.jn-label.sinyal{color:var(--hijau);border-color:rgba(38,166,154,.45)}
 .ak-pola{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font:12px var(--f-num);color:var(--label);border-top:1px dashed var(--garis);padding-top:7px;margin-top:2px}
 .ak-pola b{color:var(--teks);font-family:var(--f-ui);font-weight:600}
 .ak-pola .chip{min-width:0;font-size:11px;padding:1px 6px}
@@ -235,8 +240,9 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
         <th tabindex="-1" style="cursor:default">TP1</th>
         <th tabindex="-1" style="cursor:default">TP2</th>
         <th data-k="pnl" tabindex="0">PnL 1000 USDT</th>
+        <th tabindex="-1" style="cursor:default" title="Ukuran posisi agar rugi bila kena SL = risiko % modal (atur di tab Akun)">Ukuran risiko</th>
       </tr></thead>
-      <tbody id="tb"><tr><td colspan="13" class="kosong">Mengambil lilin 4H dari Binance…</td></tr></tbody>
+      <tbody id="tb"><tr><td colspan="14" class="kosong">Mengambil lilin 4H dari Binance…</td></tr></tbody>
     </table>
   </div>
 
@@ -281,6 +287,8 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
     <form class="ak-set" id="akForm" autocomplete="off">
       <label for="akUrl">Alamat perantara (Cloudflare Worker)<input id="akUrl" type="url" placeholder="https://amonk-binance.NAMAMU.workers.dev" inputmode="url"></label>
       <label for="akSandi">Sandi aplikasi<input id="akSandi" type="password" placeholder="sandi yang kamu isi di Cloudflare"></label>
+      <label for="akRisiko">Risiko per trade (%)<input id="akRisiko" type="number" step="0.1" min="0.1" max="5" inputmode="decimal"></label>
+      <label for="akModal">Modal untuk ukuran (USDT)<input id="akModal" type="number" step="1" min="0" inputmode="decimal" placeholder="kosong = saldo Binance"></label>
       <div class="tb"><button class="btn" type="submit">Sambungkan</button><button class="btn" type="button" id="akLupa">Lupakan</button></div>
     </form>
     <p class="ak-pesan" id="akPesan">Belum tersambung. Alamat &amp; sandi disimpan hanya di perangkat ini. Aplikasi hanya MEMBACA saldo — tidak bisa memasang order atau menarik dana.</p>
@@ -288,6 +296,10 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
     <div class="jr-list" id="akList"></div>
     <h3 id="akOrderJudul" style="font:600 14px var(--f-ui);margin:16px 0 8px" hidden>Order terbuka</h3>
     <div class="jr-list" id="akOrder"></div>
+    <div class="jn-kepala"><h3>Jurnal trade nyata</h3><button class="btn" type="button" id="jnMuat">Muat dari Binance</button></div>
+    <p class="ak-pesan" id="jnPesan">Membaca riwayat beli/jual Binance-mu (500 trade terakhir per koin), menyusunnya jadi trade, lalu mencocokkan dengan sinyal pola 4H. Butuh ±1–2 menit.</p>
+    <div class="jr-ring" id="jnRing"></div>
+    <div class="jr-list" id="jnList"></div>
   </div>
 
   <div class="hal info" id="halInfo" hidden>
@@ -863,7 +875,7 @@ function gambar() {
 
   if (modeHP) { gambarHP(rs); ringkas(semua); kilat = {}; return; }
   const tb = $("tb");
-  if (!rs.length) { tb.innerHTML = `<tr><td colspan="13" class="kosong">Tidak ada koin di zona ini sekarang.</td></tr>`; }
+  if (!rs.length) { tb.innerHTML = `<tr><td colspan="14" class="kosong">Tidak ada koin di zona ini sekarang.</td></tr>`; }
   else tb.innerHTML = rs.map(r => {
     const d = data[r.koin], kl = kilat[r.koin] === 1 ? " flash-up" : kilat[r.koin] === -1 ? " flash-dn" : "";
     const url = `https://www.tradingview.com/chart/?symbol=BINANCE:${r.koin}USDT&interval=240`;
@@ -915,7 +927,8 @@ function gambarHP(rs) {
            `<span>SL <b>${P.kenaTp1 ? fHarga(P.entry) + " (BE)" : fHarga(P.sl)}</b></span>` +
            `<span>TP1 <b>${fHarga(P.tp1)}${P.kenaTp1 ? " ✓" : ""}</b></span>` +
            `<span>TP2 <b>${fHarga(P.tp2)}</b></span>` +
-           `<span>Umur <b>${P.umur} bar</b></span>` : "") +
+           `<span>Umur <b>${P.umur} bar</b></span>` +
+           `<span style="grid-column:1/-1">Ukuran risiko ${risikoPct()}% <b>${ukuranTeks(P, false)}</b></span>` : "") +
       `<span>24j <b class="${kls(r.ch)}">${fPct(r.ch)}</b></span>` +
       `<span>RSI 4H <b>${r.rsi == null ? "—" : r.rsi.toFixed(0)}</b></span>` +
       `<span>Likuid <b>${fUsd(r.q)}</b></span>` +
@@ -927,9 +940,32 @@ function gambarHP(rs) {
       rinci + `</div>`;
   }).join("");
 }
+// UKURAN POSISI BERDASAR RISIKO (2026-09-22, saran #1 disetujui user): rugi bila kena SL =
+// risiko % modal. Modal = isian manual di tab Akun, atau total saldo Binance terakhir yang terbaca.
+// Dengan keluar 50/50 + SL ke entry, rugi maksimal tetap = seluruh posisi kena SL sebelum TP1.
+function risikoPct() { const r = +baca("risikoPct", 0.5); return r > 0 && r <= 5 ? r : 0.5; }
+function modalUkuran() {
+  const m = +baca("modalManual", 0); if (m > 0) return { modal: m, sumber: "manual" };
+  const a = +baca("modalAkun", 0); return a > 0 ? { modal: a, sumber: "saldo Binance" } : null;
+}
+function ukuran(P) {
+  const M = modalUkuran(); if (!M || !P || !(P.entry > P.sl)) return null;
+  const risiko = M.modal * risikoPct() / 100;
+  let qty = risiko / (P.entry - P.sl), nilai = qty * P.entry, batas = false;
+  if (nilai > M.modal) { qty = M.modal / P.entry; nilai = M.modal; batas = true; }
+  return { qty, nilai, rugi: qty * (P.entry - P.sl), batas, M };
+}
+function ukuranTeks(P, pendek) {
+  const u = ukuran(P);
+  if (!u) return pendek ? `<span class="redup" title="Sambungkan tab Akun atau isi modal manual">—</span>` : "sambungkan Akun / isi modal di tab Akun";
+  const q = u.qty.toLocaleString("en-US", { maximumFractionDigits: u.qty < 10 ? 4 : 0 });
+  return pendek ? `${Math.round(u.nilai).toLocaleString("en-US")} <span class="redup">USDT</span>` +
+      `<span class="rp">rugi maks ${u.rugi.toFixed(0)}</span>`
+    : `${q} koin ≈ ${Math.round(u.nilai).toLocaleString("en-US")} USDT · rugi maks bila SL ≈ ${u.rugi.toFixed(2)} USDT${u.batas ? " · dibatasi modal" : ""}`;
+}
 function selPola(r) {
   const P = r.p;
-  if (!P) return `<td class="kiri grup redup">—</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>`;
+  if (!P) return `<td class="kiri grup redup">—</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>`;
   const pct = x => x == null ? "" : ` <span class="redup">${fPct((x / P.entry - 1) * 100, 1)}</span>`;
   const chip = P.st === "jalan" ? (P.kenaTp1 ? `<span class="chip jalan">Jalan 50%</span>` : `<span class="chip jalan">Jalan</span>`)
     : P.st === "TP2" ? `<span class="chip tp">TP1 + TP2</span>` : P.st === "BE" ? `<span class="chip tp">TP1 + BE</span>` : `<span class="chip sl">Kena SL</span>`;
@@ -939,7 +975,8 @@ function selPola(r) {
     `<td>${P.umur} bar</td><td>${fHarga(P.entry)}</td><td>${P.kenaTp1 ? `<s class="redup">${fHarga(P.sl)}</s> ${fHarga(P.entry)} <span class="redup">BE</span>` : fHarga(P.sl) + pct(P.sl)}</td>` +
     `<td>${fHarga(P.tp1)}${pct(P.tp1)}</td><td>${fHarga(P.tp2)}${pct(P.tp2)}</td>` +
     `<td class="pnl ${r.pnl == null ? "" : r.pnl >= 0 ? "naik" : "turun"}">${r.pnl == null ? "—" : (r.pnl >= 0 ? "+" : "") + r.pnl.toFixed(2)} ` +
-    `<span class="redup">${r.pnl == null ? "" : fPct(r.pnl / MODAL_POLA * 100, 1)}</span></td>`;
+    `<span class="redup">${r.pnl == null ? "" : fPct(r.pnl / MODAL_POLA * 100, 1)}</span></td>` +
+    `<td>${ukuranTeks(P, true)}</td>`;
 }
 
 function ringkas(semua) {
@@ -1263,15 +1300,21 @@ function gambarAkun(baris, akun) {
   const total = baris.reduce((a, b) => a + (b.nilai || 0), 0);
   const stabil = baris.filter(b => STABIL.has(b.aset)).reduce((a, b) => a + (b.nilai || 0), 0);
   const pnl = baris.reduce((a, b) => a + (b.pnl || 0), 0);
+  if (total > 0) simpan("modalAkun", total);            // dipakai ukuran posisi di Terminal
+  // RUPIAH DI BAWAH USDT (2026-09-22, permintaan user): total saldo & PnL, USDT di atas, Rp di bawah.
+  const rpN = v => KURS.idr && v != null ? "≈ Rp " + Math.round(v * KURS.idr).toLocaleString("id-ID") : "";
   $("akRing").innerHTML = `<div class="jr-kotak"><h3>Saldo spot <small>${baris.length} aset</small></h3>` +
-    `<div class="jr-angka"><div><span>Total USDT</span><b>${total.toFixed(2)}</b></div><div><span>Stablecoin</span><b>${stabil.toFixed(2)}</b></div>` +
-    `<div><span>PnL koin (Rp)</span><b class="${kl(pnl)}">${fRp(pnl)}</b></div></div>` +
+    `<div class="jr-angka"><div><span>Total saldo</span><b>${total.toFixed(2)} USDT</b><span class="rp">${rpN(total)}</span></div>` +
+    `<div><span>Stablecoin</span><b>${stabil.toFixed(2)}</b><span class="rp">${rpN(stabil)}</span></div>` +
+    `<div><span>PnL koin</span><b class="${kl(pnl)}">${f2(pnl)} USDT</b><span class="rp ${kl(pnl)}">${fRp(pnl)}</span></div></div>` +
     `<p class="jr-ket">PnL koin = harga kini vs harga beli rata-rata dari 500 trade terakhir tiap koin (belum terealisasi). Koin hasil deposit/transfer tidak punya harga beli.` +
     (KURS.idr ? ` Rupiah memakai kurs 1 USDT ≈ Rp ${Math.round(KURS.idr).toLocaleString("id-ID")} (${KURS.sumber}, diperbarui tiap jam).` : ` Kurs rupiah gagal diambil — PnL sementara ditampilkan dalam USDT.`) + `</p></div>`;
   $("akList").innerHTML = baris.sort((a, b) => (b.nilai || 0) - (a.nilai || 0)).map(b =>
     `<div class="jr-tr"><div style="min-width:0"><div class="nm">${b.aset}</div><div class="sub">${b.jml.toLocaleString("en-US", { maximumFractionDigits: 8 })}${b.terkunci ? ` · ${b.terkunci} terkunci di order` : ""}</div></div>` +
     `<div class="lv">${b.px == null ? "harga —" : "Kini " + fHarga(b.px)}${b.rata ? `<br>Beli ${fHarga(b.rata)}${b.sebagian ? " (sebagian)" : ""}` : ""}</div>` +
-    `<div class="ha"><b>${b.nilai == null ? "—" : b.nilai.toFixed(2)}</b><span class="${kl(b.pnl)}" style="font-size:12px">${b.pnl == null ? "" : fRp(b.pnl) + " (" + f2(b.pct) + "%)"}</span></div>${polaAkun(b.aset)}</div>`).join("") ||
+    `<div class="ha"><b>${b.nilai == null ? "—" : b.nilai.toFixed(2) + " USDT"}</b><span class="rp">${rpN(b.nilai)}</span>` +
+    (b.pnl == null ? "" : `<span class="${kl(b.pnl)}" style="font-size:12px;display:block">${f2(b.pnl)} USDT (${f2(b.pct)}%)</span><span class="rp ${kl(b.pnl)}">${fRp(b.pnl)}</span>`) +
+    `</div>${polaAkun(b.aset)}</div>`).join("") ||
     `<div class="kosong">Tidak ada saldo.</div>`;
   const order = (akun && akun.order) || [];
   $("akOrderJudul").hidden = !order.length;
@@ -1279,6 +1322,108 @@ function gambarAkun(baris, akun) {
     `<div class="lv">Harga ${fHarga(o.harga)}${o.stop ? "<br>Stop " + fHarga(o.stop) : ""}</div><div class="ha"><b>${o.jumlah}</b><span class="redup" style="font-size:12px">terisi ${o.terisi}</span></div></div>`).join("");
 }
 setInterval(() => { if (halAktif === "Akun" && akCfg().url) window.muatAkun(); }, 60e3);
+// isian risiko % & modal manual (tab Akun) -> ukuran posisi di Terminal
+$("akRisiko").value = risikoPct();
+$("akModal").value = +baca("modalManual", 0) || "";
+$("akRisiko").addEventListener("change", () => { const v = +$("akRisiko").value; if (v > 0 && v <= 5) simpan("risikoPct", v); $("akRisiko").value = risikoPct(); gambar(); });
+$("akModal").addEventListener("change", () => { const v = +$("akModal").value; simpan("modalManual", v > 0 ? v : 0); gambar(); });
+
+// ================= JURNAL TRADE NYATA (2026-09-22, saran #3 disetujui user) =================
+// Riwayat beli/jual Binance (500 trade terakhir per koin, lewat perantara baca-saja) disusun jadi
+// trade: mulai saat beli dari posisi nol, selesai saat posisi kembali ~nol. Tiap trade dicocokkan
+// dengan sinyal pola 4H (Riwayat) di koin yang sama: beli dalam 48 jam sesudah pola valid dan harga
+// beli rata-rata dalam ±5% dari entry sinyal. Hasil simulasi sinyal diskalakan ke nominal belimu.
+let JN = null;
+try { JN = baca("jnData", null); } catch (e) {}
+function nilaiKomisi(t, k) {
+  if (STABIL.has(t.asetKomisi)) return t.komisi;
+  if (t.asetKomisi === k) return 0;                              // dipotong dari jumlah koin (lihat bawah)
+  const px = data[t.asetKomisi] && data[t.asetKomisi].harga;
+  return px ? t.komisi * px : 0;                                 // mis. komisi dibayar BNB
+}
+function susunTrade(k, trades) {
+  const out = []; let pos = 0, ep = null;
+  for (const t of trades.slice().sort((a, b) => a.waktu - b.waktu)) {
+    const fee = nilaiKomisi(t, k);
+    if (t.beli) {
+      const q = t.jumlah - (t.asetKomisi === k ? t.komisi : 0);
+      if (!ep) { ep = { koin: k, mulai: t.waktu, beliQ: 0, beliU: 0, jualQ: 0, jualU: 0, fee: 0, tutup: false }; out.push(ep); }
+      ep.beliQ += q; ep.beliU += t.nilai; ep.fee += fee; pos += q;
+    } else {
+      if (!ep) continue;                                         // jual koin yang dibeli sebelum riwayat
+      ep.jualQ += t.jumlah; ep.jualU += t.nilai; ep.fee += fee; pos -= t.jumlah; ep.selesai = t.waktu;
+      if (pos <= ep.beliQ * 0.02) { ep.tutup = true; pos = 0; ep = null; }
+    }
+  }
+  for (const e of out) {
+    e.rataBeli = e.beliU / e.beliQ;
+    e.rataJual = e.jualQ ? e.jualU / e.jualQ : null;
+    const px = data[k] && data[k].harga;
+    e.pnl = e.tutup ? e.jualU - e.beliU * Math.min(1, e.jualQ / e.beliQ) - e.fee
+      : (px ? (e.beliQ - e.jualQ) * px + e.jualU - e.beliU - e.fee : null);
+    // cocokkan dengan sinyal
+    const kandidat = Object.values(RW).filter(p => p.koin === k).map(p => ({ p, dt: e.mulai - (p.masukT + 4 * 3600e3) }))
+      .filter(x => x.dt >= -3600e3 && x.dt <= 48 * 3600e3 && Math.abs(e.rataBeli / x.p.entry - 1) <= 0.05)
+      .sort((a, b) => Math.abs(a.dt) - Math.abs(b.dt));
+    e.sinyal = kandidat.length ? kandidat[0].p : null;
+    if (e.sinyal) { const u = pnlTrade(e.sinyal); e.sim = u == null ? null : u * e.beliU / MODAL_POLA; }
+  }
+  return out;
+}
+async function muatJurnalNyata() {
+  const c = akCfg();
+  if (!c.url || !c.sandi) { $("jnPesan").textContent = "Sambungkan Akun dulu (alamat perantara & sandi di atas)."; return; }
+  const koin = [...new Set([...KOIN, ...((AK && AK.saldo) || []).map(b => b.aset)])].filter(k => !STABIL.has(k));
+  const hasil = {}; let i = 0, selesai = 0, gagal = 0;
+  $("jnMuat").disabled = true;
+  const kerja = async () => {
+    while (i < koin.length) {
+      const k = koin[i++];
+      try { const j = await panggil("/trade?simbol=" + k + "USDT"); if (j.trade && j.trade.length) hasil[k] = j.trade; }
+      catch (e) { gagal++; }
+      selesai++; $("jnPesan").textContent = `Membaca riwayat Binance… ${selesai}/${koin.length} koin`;
+    }
+  };
+  await Promise.all([kerja(), kerja(), kerja()]);
+  $("jnMuat").disabled = false;
+  JN = { t: Date.now(), trade: hasil, gagal };
+  simpan("jnData", JN);
+  gambarJurnalNyata();
+}
+function gambarJurnalNyata() {
+  if (!JN) return;
+  const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
+  const rpN = v => KURS.idr && v != null ? (v >= 0 ? "+" : "−") + "Rp " + Math.round(Math.abs(v) * KURS.idr).toLocaleString("id-ID") : "";
+  const eps = []; for (const [k, tr] of Object.entries(JN.trade)) eps.push(...susunTrade(k, tr));
+  eps.sort((a, b) => b.mulai - a.mulai);
+  const tutup = eps.filter(e => e.tutup), buka = eps.filter(e => !e.tutup);
+  const sum = a => a.reduce((x, e) => x + (e.pnl || 0), 0);
+  const sin = tutup.filter(e => e.sinyal), luar = tutup.filter(e => !e.sinyal);
+  const simSin = sin.reduce((x, e) => x + (e.sim || 0), 0);
+  const wr = a => a.length ? Math.round(a.filter(e => e.pnl > 0).length / a.length * 100) : 0;
+  $("jnRing").innerHTML =
+    `<div class="jr-kotak"><h3>Trade nyata <small>${tutup.length} tutup · ${buka.length} terbuka</small></h3>` +
+    `<div class="jr-angka"><div><span>PnL tutup</span><b class="${kl(sum(tutup))}">${f2(sum(tutup))} USDT</b><span class="rp ${kl(sum(tutup))}">${rpN(sum(tutup))}</span></div>` +
+    `<div><span>WR</span><b>${wr(tutup)}%</b></div>` +
+    `<div><span>PnL terbuka</span><b class="${kl(sum(buka))}">${f2(sum(buka))} USDT</b><span class="rp ${kl(sum(buka))}">${rpN(sum(buka))}</span></div></div></div>` +
+    `<div class="jr-kotak"><h3>Sesuai sinyal vs di luar sinyal</h3>` +
+    `<div class="jr-angka"><div><span>Sesuai sinyal</span><b class="${kl(sum(sin))}">${f2(sum(sin))}</b><span class="rp">${sin.length} trade · WR ${wr(sin)}%</span></div>` +
+    `<div><span>Simulasi sinyal itu</span><b class="${kl(simSin)}">${f2(simSin)}</b><span class="rp">aturan aplikasi, nominal sama</span></div>` +
+    `<div><span>Di luar sinyal</span><b class="${kl(sum(luar))}">${f2(sum(luar))}</b><span class="rp">${luar.length} trade · WR ${wr(luar)}%</span></div></div>` +
+    `<p class="jr-ket">Selisih "sesuai sinyal" vs "simulasi" = efek eksekusimu (harga masuk, disiplin TP/SL, biaya). Hanya 500 trade terakhir per koin; koin yang dijual tanpa riwayat beli tidak dihitung.` +
+    ` Dimuat ${new Date(JN.t).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}${JN.gagal ? ` · ${JN.gagal} koin gagal dibaca` : ""}.</p></div>`;
+  $("jnList").innerHTML = eps.slice(0, 200).map(e => {
+    const tg = new Date(e.mulai + 7 * 3600e3).toISOString().slice(5, 16).replace(/(\d\d)-(\d\d)T/, "$2/$1 ");
+    const lab = e.sinyal ? `<span class="jn-label sinyal">${PERINGKAT_APP(e.sinyal.kode)} ${e.sinyal.nama}</span>` : `<span class="jn-label">di luar sinyal</span>`;
+    return `<div class="jr-tr${e.tutup ? "" : " buka"}"><div style="min-width:0"><div class="nm">${e.koin} ${lab}</div><div class="sub">beli ${tg} WIB · ${Math.round(e.beliU).toLocaleString("en-US")} USDT${e.tutup ? "" : " · masih terbuka"}</div></div>` +
+      `<div class="lv">Beli ${fHarga(e.rataBeli)}${e.rataJual ? `<br>Jual ${fHarga(e.rataJual)}` : ""}${e.sinyal ? `<br>Sinyal E ${fHarga(e.sinyal.entry)}${e.sim != null ? ` · sim ${f2(e.sim)}` : ""}` : ""}</div>` +
+      `<div class="ha"><b class="${kl(e.pnl)}">${f2(e.pnl)} USDT</b><span class="rp ${kl(e.pnl)}">${rpN(e.pnl)}</span></div></div>`;
+  }).join("") || `<div class="kosong">Belum ada trade di riwayat Binance yang terbaca.</div>`;
+  $("jnPesan").textContent = "Tekan \"Muat dari Binance\" untuk memperbarui.";
+}
+$("jnMuat").addEventListener("click", muatJurnalNyata);
+if (JN) setTimeout(gambarJurnalNyata, 0);
+
 
 // ================= RIWAYAT TRADE TERMINAL (2026-09-22) =================
 // Semua pola valid 109 koin (~100 hari) dihitung ulang tiap lilin 4H. Supaya trade yang
@@ -1294,7 +1439,7 @@ let RW = baca("riwayat", {}) || {};   // salinan di memori; tetap jalan walau pe
 function kumpulRiwayat() {
   const skr = {};
   for (const k of KOIN) for (const t of (data[k] && data[k].riwayat) || [])
-    skr[k + "|" + t.masukT] = { koin: k, nama: t.nama, masukT: t.masukT, keluarT: t.keluarT, entry: t.entry, sl: t.sl,
+    skr[k + "|" + t.masukT] = { koin: k, nama: t.nama, kode: t.kode, masukT: t.masukT, keluarT: t.keluarT, entry: t.entry, sl: t.sl,
       tp1: t.tp1, tp2: t.tp2, st: t.st, kenaTp1: t.kenaTp1, sisa: t.sisa, real: t.real };
   return skr;
 }
