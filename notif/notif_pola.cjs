@@ -21,7 +21,7 @@
  * DRY=1 atau tanpa token: hanya mencetak (uji kering). UJI=true: 1 pesan contoh. REKAP=true: rekap sekarang.
  */
 const fs = require("fs"), path = require("path");
-const { peristiwa } = require("./pola_dc_peristiwa.cjs");
+const { peristiwa, elliott } = require("./pola_dc_peristiwa.cjs");
 
 const U = require("./universe_gabungan.json");
 const KOIN = (U.koin || U).map(s => String(s).toUpperCase());
@@ -132,7 +132,7 @@ function pesanBaru(k, e, L, d, vol, uji, ukuran, tf = "4H") {
     `💰 Coin: <b>${esc(k)}/USDT</b>\n` +
     `⏱ Timeframe: <b>${tf}</b>\n` +
     `📐 Pola: <b>${PERINGKAT(e.kode)} ${esc(e.nama)}</b>\n` +
-    `✅ Entry: <b>${fx(L.entry)}</b>\n` +
+    (e.kode === "EW" ? `✅ Limit terisi: <b>${fx(L.entry)}</b>  (Elliott masuk lewat LIMIT beli, bukan tembus)\n` : `✅ Entry: <b>${fx(L.entry)}</b>\n`) +
     `🎯 TP1: ${fx(L.tp1)}  (${pc(L.tp1, L.entry)})  ambil 50%, SL naik ke entry\n` +
     `🎯 TP2: ${fx(L.tp2)}  (${pc(L.tp2, L.entry)})\n` +
     `‼️ SL: ${fx(L.sl)}  (${pc(L.sl, L.entry)})\n` +
@@ -140,6 +140,29 @@ function pesanBaru(k, e, L, d, vol, uji, ukuran, tf = "4H") {
     `🕒 valid ${wib(d.t[e.i] + (tf === "1D" ? 864e5 : 4 * 3600e3))}${vol != null && vol < 1e6 ? "\n⚠️ likuiditas tipis (< $1jt/hari)" : ""}\n` +
     (tf === "1D" ? `ℹ️ Pola 1D: di uji proyek tidak lebih baik dari entry acak, SL lebar — hitung ukuran dari rugi-bila-SL. Update TP/SL 1D tidak dikirim; pantau di scan harian.\n` : "") +
     `\n` + tautan(k, tf);
+}
+// ---------- 1a. SETUP ELLIOTT BARU (2026-09-23, permintaan user): limit Elliott 4H yang BARU LAHIR — sekali per setup.
+// Belum ada posisi: pasang limit beli sendiri bila mau. Level sama dengan chart (ELLIOTT ✓) & bot; SL perkiraan
+// dari ATR lilin sekarang (dihitung ulang saat terisi).
+function pesanSetupEw(k, S, d, vol, ukuran) {
+  const n = d.c.length, px = d.c[n - 1], L = { entry: S.level, sl: S.batal, tp2: S.level + S.tinggi };
+  L.tp1 = L.entry + 0.75 * (L.entry - L.sl); if (L.tp1 >= L.tp2) L.tp1 = L.entry + 0.5 * (L.tp2 - L.entry);
+  const habis = d.t[S.lahirB] + 61 * 4 * 3600e3;
+  return `<b>AMONK SINYAL · SETUP</b>\n` +
+    `◻️◻️◻️◻️◻️\n` +
+    `📊 EXCHANGE: BINANCE\n` +
+    `💰 Coin: <b>${esc(k)}/USDT</b>\n` +
+    `⏱ Timeframe: <b>4H</b>\n` +
+    `📐 Pola: <b>${PERINGKAT("EW")} Elliott Wave</b> — setup baru (ayunan gel.3 ${S.ayun.toFixed(0)}%)\n` +
+    `⏳ Limit beli: <b>${fx(L.entry)}</b>  (${pc(L.entry, px)} dari harga ${fx(px)})\n` +
+    `🎯 TP1: ${fx(L.tp1)}  (${pc(L.tp1, L.entry)})  ambil 50%, SL naik ke entry\n` +
+    `🎯 TP2: ${fx(L.tp2)}  (${pc(L.tp2, L.entry)})\n` +
+    `‼️ SL: ${fx(L.sl)}  (${pc(L.sl, L.entry)})  perkiraan, dihitung ulang saat terisi\n` +
+    (ukuran || "") +
+    `⌛ Batal bila tidak tersentuh s/d ${wib(habis)} (60 lilin 4H) atau siklus patah\n` +
+    `🕒 setup ${wib(d.t[S.lahirB] + 4 * 3600e3)}${vol != null && vol < 1e6 ? "\n⚠️ likuiditas tipis (< $1jt/hari)" : ""}\n` +
+    `<i>Belum sinyal masuk: entry hanya bila harga TURUN menyentuh limit. Elliott peringkat 10 — di uji di bawah entry acak.</i>\n` +
+    `\n` + tautan(k, "4H");
 }
 // ---------- 1b. POLA 1D BARU (2026-09-22, disetujui user): kartu yang sama, Timeframe 1D ----------
 // Lilin 1D Binance tutup 00:00 UTC; run 00:07 UTC (10:07 Sydney AEST) langsung menangkapnya, run
@@ -478,6 +501,19 @@ async function rekap() {
     const d = { t: b.map(x => +x[0]), o: b.map(x => +x[1]), h: b.map(x => +x[2]), l: b.map(x => +x[3]), c: b.map(x => +x[4]), v: b.map(x => +x[5]) };
     let ev = []; try { ev = peristiwa(d, atrArr(d.h, d.l, d.c), { elliott: true }) || []; } catch (e) { continue; }
     ev = ev.filter(e => !SEMBUNYI.has(e.kode));
+    if (!UJI) {                                                      // 1a. setup Elliott baru (sekali per setup)
+      let S = null; try { S = elliott(d, atrArr(d.h, d.l, d.c), 2.5).setup; } catch (e) { S = null; }
+      const nB = d.c.length;
+      if (S && S.umur < JENDELA_BAR && d.c[nB - 1] > S.level) {
+        const kS = `EWSETUP|${k}|${d.t[S.lahirB]}`;
+        if (!status[kS]) {
+          const LS = { entry: S.level, sl: S.batal, tp2: S.level + S.tinggi };
+          LS.tp1 = LS.entry + 0.75 * (LS.entry - LS.sl); if (LS.tp1 >= LS.tp2) LS.tp1 = LS.entry + 0.5 * (LS.tp2 - LS.entry);
+          const volS = d.v.slice(-6).reduce((a, x, q) => a + x * d.c[nB - 6 + q], 0);
+          if (LS.sl > 0 && await kirim(pesanSetupEw(k, S, d, volS, null), pesanSetupEw(k, S, d, volS, ukuranTeks(LS, M)))) status[kS] = { t: sekarang, tahap: "tutup" };
+        }
+      }
+    }
     const n = d.c.length, vol = d.v.slice(-6).reduce((a, x, q) => a + x * d.c[n - 6 + q], 0);
     if (UJI) { const e = ev[ev.length - 1]; if (e && (!calonUji || d.t[e.i] > calonUji.t)) calonUji = { t: d.t[e.i], k, d, e, vol }; continue; }
 
