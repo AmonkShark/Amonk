@@ -341,7 +341,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
     <form class="ak-set" id="btForm" autocomplete="off">
       <label for="btUrl">Alamat bot (Cloudflare Worker)<input id="btUrl" type="url" inputmode="url" placeholder="https://amonk-bot.NAMAMU.workers.dev"></label>
       <label for="btSandi">Sandi bot<input id="btSandi" type="password" placeholder="kosong = sama dengan sandi aplikasi"></label>
-      <label for="btModal">Saldo boleh dipakai bot (USDT)<input id="btModal" type="number" step="1" min="0" inputmode="decimal" placeholder="0 = seluruh saldo testnet"></label>
+      <label for="btModal">Modal awal bot (USDT, laba ikut diputar)<input id="btModal" type="number" step="1" min="0" inputmode="decimal" placeholder="0 = seluruh saldo testnet"></label>
       <label for="btPosisi">Maks entry bersamaan (saldo dibagi ini)<input id="btPosisi" type="number" step="1" min="1" max="20" inputmode="numeric"></label>
       <label for="btKoin" style="grid-column:span 2">Koin yang diambil bot<input id="btKoin" type="text" autocapitalize="characters" placeholder="kosong = semua koin ber-webhook · contoh: XRP, ETH, SOL"></label>
       <div class="bt-pola" style="grid-column:1/-1"><span>Pola yang diambil bot:</span>
@@ -351,7 +351,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
         <label><input type="checkbox" value="CH"> 7 Cup &amp; Handle</label></div>
       <div class="tb"><button class="btn" type="submit">Simpan ke bot</button></div>
     </form>
-    <p class="ak-pesan" id="btPesan">Pengaturan ini disimpan DI BOT, jadi tetap berlaku walau aplikasi tertutup. Ukuran tiap posisi = saldo bot ÷ maks entry (dipangkas batas rugi per trade), dan total posisi terbuka tidak pernah melewati saldo bot.</p>
+    <p class="ak-pesan" id="btPesan">Pengaturan ini disimpan DI BOT, jadi tetap berlaku walau aplikasi tertutup. Modal bot = modal awal + hasil semua trade bot yang sudah tutup (untung menambah, rugi mengurangi). Ukuran tiap posisi = modal bot ÷ maks entry (dipangkas batas rugi per trade), dan total posisi terbuka tidak pernah melewati modal bot. Mengganti angka modal awal = mulai hitungan baru.</p>
     <div class="jr-ring" id="btRing"></div>
     <div class="jr-list" id="btList"></div>
     <div class="jn-kepala"><h3>Jurnal trade nyata</h3><button class="btn" type="button" id="jnMuat">Muat dari Binance</button></div>
@@ -1754,18 +1754,23 @@ function kotakBanding(s) {
 function gambarBot(s) {
   BT_S = s;
   const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
-  const maks = +s.modalMaks || 0, pakai = +s.terpakai || 0, R = s.riwayat || [], P = s.posisi || [];
+  const MO = s.modal || { awal: +s.modalMaks || 0, laba: 0, kini: +s.modalMaks || 0, sejak: 0 };
+  const maks = +MO.kini || 0, pakai = +s.terpakai || 0, R = s.riwayat || [], P = s.posisi || [];
   const tot = R.reduce((a, r) => a + (r.hasil || 0), 0), wr = R.length ? Math.round(R.filter(r => r.hasil > 0).length / R.length * 100) : 0;
-  if (document.activeElement !== $("btModal")) $("btModal").value = maks || 0;
+  // kolom diisi MODAL AWAL (bukan modal kini): menyimpan ulang dengan angka sama tidak mengulang hitungan laba
+  if (document.activeElement !== $("btModal")) $("btModal").value = MO.awal || 0;
   const PG = s.pengaturan || {};
   if (document.activeElement !== $("btKoin")) $("btKoin").value = (PG.koin || []).map(k => k.replace(/USDT$/, "")).join(", ");
   if (document.activeElement !== $("btPosisi")) $("btPosisi").value = PG.maksPosisi || 3;
   document.querySelectorAll(".bt-pola input").forEach(c => { c.checked = (PG.polaBoleh || []).includes(c.value); });
   $("btRing").innerHTML = `<div class="jr-kotak"><h3>Bot <small>${s.testnet ? "Binance TESTNET" : "?"}</small></h3>` +
     `<div class="jr-angka"><div><span>Status</span><b class="${s.aktif ? "naik" : "kng"}">${s.aktif ? "AKTIF" : "KERING"}</b><span class="rp">${s.aktif ? "membeli di testnet" : "hanya mencatat rencana"}</span></div>` +
-    `<div><span>Saldo boleh dipakai</span><b>${maks ? Math.round(maks).toLocaleString("en-US") + " USDT" : "seluruh saldo"}</b><span class="rp">terpakai ${Math.round(pakai).toLocaleString("en-US")} USDT${maks ? ` (${Math.round(pakai / maks * 100)}%)` : ""}</span></div>` +
+    `<div><span>Modal bot kini</span><b>${maks ? Math.round(maks).toLocaleString("en-US") + " USDT" : "seluruh saldo"}</b><span class="rp">terpakai ${Math.round(pakai).toLocaleString("en-US")} USDT${maks ? ` (${Math.round(pakai / maks * 100)}%)` : ""}</span></div>` +
     `<div><span>Posisi terbuka</span><b>${P.length} / ${(s.pengaturan && s.pengaturan.maksPosisi) || "?"}</b><span class="rp">pola ${((s.pengaturan && s.pengaturan.polaBoleh) || []).join(", ")}</span></div></div>` +
-    `<div class="jr-angka"><div><span>Trade tutup</span><b>${R.length}</b></div><div><span>WR</span><b>${wr}%</b></div><div><span>Hasil tutup</span><b class="${kl(tot)}">${f2(tot)} USDT</b></div></div>` +
+    (MO.awal > 0 ? `<div class="jr-angka"><div><span>Modal awal</span><b>${Math.round(MO.awal).toLocaleString("en-US")} USDT</b><span class="rp">sejak ${MO.sejak ? new Date(MO.sejak + 7 * 3600e3).toISOString().slice(0, 10).split("-").reverse().join("/") : "—"}</span></div>` +
+      `<div><span>Laba bot (diputar)</span><b class="${kl(MO.laba)}">${f2(MO.laba)} USDT</b><span class="rp">${MO.nTutup || 0} trade tutup</span></div>` +
+      `<div><span>Pertumbuhan modal</span><b class="${kl(MO.laba)}">${f2(MO.laba / MO.awal * 100)}%</b><span class="rp">${Math.round(MO.awal).toLocaleString("en-US")} → ${Math.round(MO.kini).toLocaleString("en-US")} USDT</span></div></div>` : "") +
+    `<div class="jr-angka"><div><span>Trade tutup (semua)</span><b>${R.length}</b></div><div><span>WR</span><b>${wr}%</b></div><div><span>Hasil tutup (semua)</span><b class="${kl(tot)}">${f2(tot)} USDT</b></div></div>` +
     `<p class="jr-ket">Saldo TESTNET adalah uang latihan. Harga testnet bisa berbeda dari pasar asli, jadi hasil bot di sini menguji mekanisme (order, TP/SL, SL ke entry), bukan biaya eksekusi nyata.` +
     ` Koin: ${(PG.koin || []).length ? PG.koin.map(k => k.replace(/USDT$/, "")).join(", ") : "semua koin yang alert-nya ber-webhook"}.</p></div>` + kotakBanding(s);
   const baris = [];
@@ -1790,13 +1795,16 @@ $("btForm").addEventListener("submit", async ev => {
   simpan("btUrl", $("btUrl").value.trim()); simpan("btSandi", $("btSandi").value);
   const v = +$("btModal").value;
   if (!(v >= 0)) { btPesan("Isi angka USDT (0 = seluruh saldo testnet).", true); return; }
+  if (BT_S && BT_S.modal && BT_S.modal.awal > 0 && v !== BT_S.modal.awal && BT_S.modal.nTutup > 0 &&
+      !confirm(`Modal awal diganti dari ${Math.round(BT_S.modal.awal)} ke ${Math.round(v)} USDT. Laba bot yang sudah tercatat (${BT_S.modal.laba >= 0 ? "+" : ""}${BT_S.modal.laba} USDT) akan mulai dihitung dari nol lagi. Lanjutkan?`)) return;
   const koin = $("btKoin").value.split(/[\s,;]+/).map(x => x.trim().toUpperCase()).filter(Boolean);
   const pola = [...document.querySelectorAll(".bt-pola input:checked")].map(c => c.value);
   if (!pola.length) { btPesan("Centang minimal satu pola.", true); return; }
   const mp = Math.round(+$("btPosisi").value);
   if (!(mp >= 1 && mp <= 20)) { btPesan("Maks entry harus 1 sampai 20.", true); return; }
   try { const j = await btPanggil("/atur", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modalMaks: v, koin, pola, maksPosisi: mp }) });
-    btPesan(`Tersimpan di bot: saldo ${j.modalMaks ? Math.round(j.modalMaks).toLocaleString("en-US") + " USDT" : "seluruh saldo testnet"} · maks ${j.maksPosisi} entry (±${j.modalMaks ? Math.round(j.modalMaks / j.maksPosisi).toLocaleString("en-US") + " USDT" : "saldo ÷ " + j.maksPosisi} per entry) · koin ${j.koin && j.koin.length ? j.koin.map(k => k.replace(/USDT$/, "")).join(", ") : "semua"} · pola ${(j.pola || []).join(", ")}.`); await muatBot(); }
+    const kini = j.modal && j.modal.kini ? j.modal.kini : j.modalMaks;
+    btPesan(`Tersimpan di bot: modal awal ${j.modalMaks ? Math.round(j.modalMaks).toLocaleString("en-US") + " USDT" : "seluruh saldo testnet"}${j.modal && j.modal.laba ? ` (kini ${Math.round(kini).toLocaleString("en-US")} dengan laba)` : ""} · maks ${j.maksPosisi} entry (±${kini ? Math.round(kini / j.maksPosisi).toLocaleString("en-US") + " USDT" : "saldo ÷ " + j.maksPosisi} per entry) · koin ${j.koin && j.koin.length ? j.koin.map(k => k.replace(/USDT$/, "")).join(", ") : "semua"} · pola ${(j.pola || []).join(", ")}.`); await muatBot(); }
   catch (e) { btPesan("Gagal menyimpan: " + e.message, true); }
 });
 setInterval(() => { if (halAktif === "Akun" && btCfg().sandi) muatBot(); }, 60e3);
