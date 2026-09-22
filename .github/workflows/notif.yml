@@ -1,5 +1,7 @@
 # Notifikasi Telegram AMONK SINYAL — tanpa laptop/Claude.
 #  - tiap 4 jam, 7 menit sesudah lilin 4H tutup (UTC): pola baru + update exit (TP1/TP2/SL/BE)
+#  - jadwal CADANGAN 30 menit kemudian (GitHub kadang menunda/melewati cron; run 04:07 22-09 hilang).
+#    Skrip anti-duplikat (terkirim.json), jadi dua run berturut tidak mengirim pesan ganda.
 #  - Minggu 13:00 UTC (20:00 WIB): rekap mingguan
 # Rahasia (Settings -> Secrets -> Actions): TELEGRAM_TOKEN, TELEGRAM_CHAT, AKUN_URL, SANDI_APP
 #   (opsional MODAL_USDT, RISIKO_PCT).
@@ -7,6 +9,7 @@ name: notif-pola-4h
 on:
   schedule:
     - cron: "7 0,4,8,12,16,20 * * *"
+    - cron: "37 0,4,8,12,16,20 * * *"
     - cron: "0 13 * * 0"
   workflow_dispatch:
     inputs:
