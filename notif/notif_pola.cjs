@@ -61,7 +61,8 @@ const atrArr = (h, l, c, n = 14) => {
   return o;
 };
 function level(d, e) {
-  const entry = d.c[e.i], sl = e.batal, tp2 = e.level + e.tinggi;
+  // Elliott (EW) masuk lewat LIMIT: entry = harga limit (e.entry), bukan close bar isian.
+  const entry = e.entry != null ? e.entry : d.c[e.i], sl = e.batal, tp2 = e.level + e.tinggi;
   if (!(entry > sl) || !(tp2 > entry)) return null;
   let tp1 = entry + 0.75 * (entry - sl); if (tp1 >= tp2) tp1 = entry + 0.5 * (tp2 - entry);
   return { entry, sl, tp1, tp2 };
@@ -357,7 +358,8 @@ async function scanTF(k, tf) {
   if (!b.length || skr - +b[b.length - 1][6] > 3 * barMs) return null;           // basi / delisting
   const d = { t: b.map(x => +x[0]), o: b.map(x => +x[1]), h: b.map(x => +x[2]), l: b.map(x => +x[3]), c: b.map(x => +x[4]), v: b.map(x => +x[5]) };
   const n = d.c.length, px = d.c[n - 1], vol = +b[n - 1][7] * (tf === "1d" ? 1 : 6);
-  let ev; try { ev = peristiwa(d, atrArr(d.h, d.l, d.c), { setupAkhir: true, calonAkhir: true }) || []; } catch (e) { return null; }
+  // ELLIOTT (EW) hanya 4H (user: "masuk ke pola 4h")
+  let ev; try { ev = peristiwa(d, atrArr(d.h, d.l, d.c), { setupAkhir: true, calonAkhir: true, elliott: tf !== "1d" }) || []; } catch (e) { return null; }
   const out = { valid: [], hampir: [] };
   for (const e of ev) {
     if (SEMBUNYI.has(e.kode) || n - 1 - e.i > umurMaks) continue;
@@ -370,7 +372,8 @@ async function scanTF(k, tf) {
   for (const [tahap, arr] of [["SETUP", ev.setup || []], ["CALON", ev.calon || []]]) for (const s of arr) {
     if (SEMBUNYI.has(s.kode)) continue;
     const E = s.level, S = s.batal, T2 = s.level + s.tinggi;
-    if (!(S > 0) || !(E > S) || !(T2 > E) || !(px < E)) continue;
+    // pola tembus menunggu harga NAIK ke garis (px < E); Elliott menunggu harga TURUN ke limit (px > E)
+    if (!(S > 0) || !(E > S) || !(T2 > E) || !(s.limit ? px > E : px < E)) continue;
     out.hampir.push({ k, tahap, nama: s.nama, kode: s.kode, E, S, T2, px, jarak: (E / px - 1) * 100, sisa: s.sisa, vol });
   }
   return out;
@@ -380,8 +383,8 @@ function pesanScan(tf, V, H, dicek) {
   const bV = V.sort((a, b) => a.r - b.r).slice(0, SCAN_MAKS).map(x =>
     `• <b>${esc(x.k)}</b> ${PERINGKAT(x.kode)} ${esc(x.nama)} · valid ${lokal(x.validT).teks.slice(0, 5)}\n` +
     `   E ${fx(x.L.entry)} (kini ${pc(x.px, x.L.entry)}) · SL ${fx(x.L.sl)} (${pc(x.L.sl, x.L.entry)}) · TP1 ${fx(x.L.tp1)} · TP2 ${fx(x.L.tp2)}${tipis(x)}`).join("\n");
-  const bH = H.sort((a, b) => a.jarak - b.jarak).slice(0, SCAN_MAKS).map(x =>
-    `• <b>${esc(x.k)}</b> ${PERINGKAT(x.kode)} ${esc(x.nama)}${x.tahap === "CALON" ? " <i>(calon)</i>" : ""} · tembus ${fx(x.E)} (<b>+${x.jarak.toFixed(1)}%</b>)\n` +
+  const bH = H.sort((a, b) => Math.abs(a.jarak) - Math.abs(b.jarak)).slice(0, SCAN_MAKS).map(x =>
+    `• <b>${esc(x.k)}</b> ${PERINGKAT(x.kode)} ${esc(x.nama)}${x.tahap === "CALON" ? " <i>(calon)</i>" : ""} · ${x.kode === "EW" ? "limit beli" : "tembus"} ${fx(x.E)} (<b>${x.jarak >= 0 ? "+" : ""}${x.jarak.toFixed(1)}%</b>)\n` +
     `   SL ${fx(x.S)} (${pc(x.S, x.E)}) · TP2 ${fx(x.T2)} (${pc(x.T2, x.E)})${tipis(x)}`).join("\n");
   return `<b>AMONK SINYAL · SCAN HARIAN ${tfT}</b>\n◻️◻️◻️◻️◻️\n📅 ${lokal(Date.now()).teks} waktu ${esc(KOTA)} · ${dicek} koin\n\n` +
     `✅ <b>Valid, masih di area entry</b> (≤ +${SCAN_AREA_R}R, belum TP1/SL): ${V.length}\n${bV || "   — tidak ada"}` +
@@ -389,7 +392,7 @@ function pesanScan(tf, V, H, dicek) {
     `⏳ <b>Hampir valid</b> — menunggu lilin ${tfT} TUTUP di atas garis tembus: ${H.length}\n${bH || "   — tidak ada"}` +
     (H.length > SCAN_MAKS ? `\n   … +${H.length - SCAN_MAKS} lagi` : "") + `\n\n` +
     `<i>Hampir valid BELUM sinyal: entry hanya sesudah lilin tutup di atas garis tembus. Calon = lembah terakhir belum sah, bisa berubah.` +
-    (tf === "1d" ? ` Pola 1D di uji proyek tidak lebih baik dari entry acak — info saja; SL 1D lebar, hitung ukuran dari rugi-bila-SL.` : ` Level = aturan aplikasi (50% TP1, SL ke entry, 50% TP2).`) + `</i>\n\n` +
+    (tf === "1d" ? ` Pola 1D di uji proyek tidak lebih baik dari entry acak — info saja; SL 1D lebar, hitung ukuran dari rugi-bila-SL.` : ` Level = aturan aplikasi (50% TP1, SL ke entry, 50% TP2). Elliott Wave = limit beli: entry saat harga TURUN menyentuh limit (batal bila 60 lilin tak tersentuh).`) + `</i>\n\n` +
     `<a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`;
 }
 async function scanHarian() {
@@ -476,7 +479,7 @@ async function rekap() {
     if (!b.length || sekarang - +b[b.length - 1][6] > 12 * 3600e3) continue;       // koin basi/delisting
     dicek++;
     const d = { t: b.map(x => +x[0]), o: b.map(x => +x[1]), h: b.map(x => +x[2]), l: b.map(x => +x[3]), c: b.map(x => +x[4]), v: b.map(x => +x[5]) };
-    let ev = []; try { ev = peristiwa(d, atrArr(d.h, d.l, d.c)) || []; } catch (e) { continue; }
+    let ev = []; try { ev = peristiwa(d, atrArr(d.h, d.l, d.c), { elliott: true }) || []; } catch (e) { continue; }
     ev = ev.filter(e => !SEMBUNYI.has(e.kode));
     const n = d.c.length, vol = d.v.slice(-6).reduce((a, x, q) => a + x * d.c[n - 6 + q], 0);
     if (UJI) { const e = ev[ev.length - 1]; if (e && (!calonUji || d.t[e.i] > calonUji.t)) calonUji = { t: d.t[e.i], k, d, e, vol }; continue; }
