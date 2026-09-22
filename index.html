@@ -141,6 +141,7 @@ svg.sp{display:block;width:84px;height:22px}
 /* TAB AKUN BINANCE (2026-09-22) — hanya membaca, lewat Cloudflare Worker. */
 .ak-set{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;align-items:end;background:var(--bg1);border:1px solid var(--garis);border-radius:8px;padding:12px;margin-bottom:12px}
 .ak-set label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--label)}
+.ak-set select{font:13px var(--f-ui);color:var(--teks);background:var(--bg2);border:1px solid var(--garis);border-radius:4px;padding:7px 9px;min-width:0}
 .ak-set input{font:13px var(--f-num);color:var(--teks);background:var(--bg2);border:1px solid var(--garis);border-radius:4px;padding:7px 9px;min-width:0}
 .ak-set .tb{display:flex;gap:6px}
 @media (max-width:640px){.ak-set{grid-template-columns:1fr}}
@@ -240,7 +241,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
         <th tabindex="-1" style="cursor:default">TP1</th>
         <th tabindex="-1" style="cursor:default">TP2</th>
         <th data-k="pnl" tabindex="0">PnL 1000 USDT</th>
-        <th tabindex="-1" style="cursor:default" title="Ukuran posisi agar rugi bila kena SL = risiko % modal (atur di tab Akun)">Ukuran risiko</th>
+        <th tabindex="-1" style="cursor:default" title="Ukuran posisi per trade (atur caranya di tab Akun)">Ukuran posisi</th>
       </tr></thead>
       <tbody id="tb"><tr><td colspan="14" class="kosong">Mengambil lilin 4H dari Binance…</td></tr></tbody>
     </table>
@@ -287,7 +288,9 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
     <form class="ak-set" id="akForm" autocomplete="off">
       <label for="akUrl">Alamat perantara (Cloudflare Worker)<input id="akUrl" type="url" placeholder="https://amonk-binance.NAMAMU.workers.dev" inputmode="url"></label>
       <label for="akSandi">Sandi aplikasi<input id="akSandi" type="password" placeholder="sandi yang kamu isi di Cloudflare"></label>
-      <label for="akRisiko">Risiko per trade (%)<input id="akRisiko" type="number" step="0.1" min="0.1" max="5" inputmode="decimal"></label>
+      <label for="akCara">Cara ukuran posisi<select id="akCara"><option value="bagi">Bagi saldo jadi N bagian</option><option value="risiko">Risiko % per trade</option></select></label>
+      <label for="akBagi" id="lbBagi">Saldo dibagi jadi (bagian)<input id="akBagi" type="number" step="1" min="1" max="20" inputmode="numeric"></label>
+      <label for="akRisiko" id="lbRisiko">Risiko per trade (%)<input id="akRisiko" type="number" step="0.1" min="0.1" max="5" inputmode="decimal"></label>
       <label for="akModal">Modal untuk ukuran (USDT)<input id="akModal" type="number" step="1" min="0" inputmode="decimal" placeholder="kosong = saldo Binance"></label>
       <div class="tb"><button class="btn" type="submit">Sambungkan</button><button class="btn" type="button" id="akLupa">Lupakan</button></div>
     </form>
@@ -928,7 +931,7 @@ function gambarHP(rs) {
            `<span>TP1 <b>${fHarga(P.tp1)}${P.kenaTp1 ? " ✓" : ""}</b></span>` +
            `<span>TP2 <b>${fHarga(P.tp2)}</b></span>` +
            `<span>Umur <b>${P.umur} bar</b></span>` +
-           `<span style="grid-column:1/-1">Ukuran risiko ${risikoPct()}% <b>${ukuranTeks(P, false)}</b></span>` : "") +
+           `<span style="grid-column:1/-1">Ukuran ${labelUkuran()} <b>${ukuranTeks(P, false)}</b></span>` : "") +
       `<span>24j <b class="${kls(r.ch)}">${fPct(r.ch)}</b></span>` +
       `<span>RSI 4H <b>${r.rsi == null ? "—" : r.rsi.toFixed(0)}</b></span>` +
       `<span>Likuid <b>${fUsd(r.q)}</b></span>` +
@@ -948,20 +951,31 @@ function modalUkuran() {
   const m = +baca("modalManual", 0); if (m > 0) return { modal: m, sumber: "manual" };
   const a = +baca("modalAkun", 0); return a > 0 ? { modal: a, sumber: "saldo Binance" } : null;
 }
+// CARA UKURAN (2026-09-22, user: "setiap aku trade selalu membagi modal menjadi 3"):
+//   "bagi"   -> nilai posisi = modal ÷ N (bawaan N = 3), rugi bila SL mengikuti jarak SL
+//   "risiko" -> rugi bila SL = risiko % modal, nilai posisi mengikuti jarak SL
+function caraUkuran() { return baca("caraUkuran", "bagi") === "risiko" ? "risiko" : "bagi"; }
+function bagiModal() { const n = Math.round(+baca("bagiModal", 3)); return n >= 1 && n <= 20 ? n : 3; }
+function labelUkuran() { return caraUkuran() === "bagi" ? `1/${bagiModal()} saldo` : `risiko ${risikoPct()}%`; }
 function ukuran(P) {
   const M = modalUkuran(); if (!M || !P || !(P.entry > P.sl)) return null;
+  if (caraUkuran() === "bagi") {
+    const nilai = M.modal / bagiModal(), qty = nilai / P.entry, rugi = qty * (P.entry - P.sl);
+    return { qty, nilai, rugi, rugiPct: rugi / M.modal * 100, batas: false, M };
+  }
   const risiko = M.modal * risikoPct() / 100;
   let qty = risiko / (P.entry - P.sl), nilai = qty * P.entry, batas = false;
   if (nilai > M.modal) { qty = M.modal / P.entry; nilai = M.modal; batas = true; }
-  return { qty, nilai, rugi: qty * (P.entry - P.sl), batas, M };
+  const rugi = qty * (P.entry - P.sl);
+  return { qty, nilai, rugi, rugiPct: rugi / M.modal * 100, batas, M };
 }
 function ukuranTeks(P, pendek) {
   const u = ukuran(P);
   if (!u) return pendek ? `<span class="redup" title="Sambungkan tab Akun atau isi modal manual">—</span>` : "sambungkan Akun / isi modal di tab Akun";
   const q = u.qty.toLocaleString("en-US", { maximumFractionDigits: u.qty < 10 ? 4 : 0 });
   return pendek ? `${Math.round(u.nilai).toLocaleString("en-US")} <span class="redup">USDT</span>` +
-      `<span class="rp">rugi maks ${u.rugi.toFixed(0)}</span>`
-    : `${q} koin ≈ ${Math.round(u.nilai).toLocaleString("en-US")} USDT · rugi maks bila SL ≈ ${u.rugi.toFixed(2)} USDT${u.batas ? " · dibatasi modal" : ""}`;
+      `<span class="rp">rugi bila SL ${u.rugi.toFixed(0)} (${u.rugiPct.toFixed(1)}%)</span>`
+    : `${q} koin ≈ ${Math.round(u.nilai).toLocaleString("en-US")} USDT · rugi bila SL ≈ ${u.rugi.toFixed(2)} USDT (${u.rugiPct.toFixed(1)}% saldo)${u.batas ? " · dibatasi modal" : ""}`;
 }
 function selPola(r) {
   const P = r.p;
@@ -1324,6 +1338,11 @@ function gambarAkun(baris, akun) {
 setInterval(() => { if (halAktif === "Akun" && akCfg().url) window.muatAkun(); }, 60e3);
 // isian risiko % & modal manual (tab Akun) -> ukuran posisi di Terminal
 $("akRisiko").value = risikoPct();
+$("akCara").value = caraUkuran(); $("akBagi").value = bagiModal();
+const tampilCara = () => { $("lbBagi").hidden = caraUkuran() !== "bagi"; $("lbRisiko").hidden = caraUkuran() !== "risiko"; };
+tampilCara();
+$("akCara").addEventListener("change", () => { simpan("caraUkuran", $("akCara").value); tampilCara(); gambar(); });
+$("akBagi").addEventListener("change", () => { const v = Math.round(+$("akBagi").value); if (v >= 1 && v <= 20) simpan("bagiModal", v); $("akBagi").value = bagiModal(); gambar(); });
 $("akModal").value = +baca("modalManual", 0) || "";
 $("akRisiko").addEventListener("change", () => { const v = +$("akRisiko").value; if (v > 0 && v <= 5) simpan("risikoPct", v); $("akRisiko").value = risikoPct(); gambar(); });
 $("akModal").addEventListener("change", () => { const v = +$("akModal").value; simpan("modalManual", v > 0 ? v : 0); gambar(); });
