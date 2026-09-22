@@ -68,7 +68,11 @@ function keadaan(B) {
     const K = keadaan(B);
     if (!K.setup && !K.relevan) continue;
     const n = B.c.length;
-    koin.push({ sym: k + "USDT", setup: K.setup, bars: [n - 3, n - 2, n - 1].map(i => ({ t: B.t[i], c: B.c[i], e: B.e200[i] })) });
+    // likuiditas = nilai USDT diperdagangkan 168 lilin (7 hari) terakhir di pasar ASLI; bot memakai ini
+    // untuk memilih satu FIB (keputusan user 2026-09-22 — kriteria terbaik di research/uji_pilih_fib1h.cjs,
+    // tapi TIDAK lolos pra-daftar; volume testnet tidak bisa dipakai karena tidak mencerminkan pasar)
+    const likuid = Math.round(b.slice(-168).reduce((s, x) => s + +x[7], 0));
+    koin.push({ sym: k + "USDT", setup: K.setup, likuid, bars: [n - 3, n - 2, n - 1].map(i => ({ t: B.t[i], c: B.c[i], e: B.e200[i] })) });
   }
   const isi = { t: sekarang, aturan: { fib: F.fib, ayunanMin: F.minLeg, maksEma: F.maksEma, slAtr: F.slAtr, tpR: F.tpR, batasLilin: V.batas }, dicek, koin };
   const nSetup = koin.filter(x => x.setup).length;
