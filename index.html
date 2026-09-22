@@ -1779,7 +1779,7 @@ function gambarBot(s) {
   document.querySelectorAll(".bt-pola input:not(#btFib)").forEach(c => { c.checked = (PG.polaBoleh || []).includes(c.value); });
   if (document.activeElement !== $("btFib")) $("btFib").checked = !!PG.fib;
   $("btRing").innerHTML = `<div class="jr-kotak"><h3>Bot <small>${s.testnet ? "Binance TESTNET" : "?"}</small></h3>` +
-    `<div class="jr-angka"><div><span>Status</span><b class="${s.aktif ? "naik" : "kng"}">${s.aktif ? "AKTIF" : "KERING"}</b><span class="rp">${s.aktif ? "membeli di testnet" : "hanya mencatat rencana"}</span></div>` +
+    `<div class="jr-angka"><div><span>Status</span><b class="${s.aktif ? "naik" : "kng"}">${s.aktif ? "AKTIF" : "KERING"}</b><span class="rp">${s.aktif ? "membeli di testnet" : "hanya mencatat rencana"} · kode ${String(s.versi || "lama (belum ada versi)").replace(/[<>&"]/g, "")}</span></div>` +
     `<div><span>Modal bot kini</span><b>${maks ? Math.round(maks).toLocaleString("en-US") + " USDT" : "seluruh saldo"}</b><span class="rp">terpakai ${Math.round(pakai).toLocaleString("en-US")} USDT${maks ? ` (${Math.round(pakai / maks * 100)}%)` : ""}</span></div>` +
     `<div><span>Posisi terbuka</span><b>${P.length} / ${(s.pengaturan && s.pengaturan.maksPosisi) || "?"}</b><span class="rp">pola ${((s.pengaturan && s.pengaturan.polaBoleh) || []).join(", ")}</span></div></div>` +
     (MO.awal > 0 ? `<div class="jr-angka"><div><span>Modal awal</span><b>${Math.round(MO.awal).toLocaleString("en-US")} USDT</b><span class="rp">sejak ${MO.sejak ? new Date(MO.sejak + 7 * 3600e3).toISOString().slice(0, 10).split("-").reverse().join("/") : "—"}</span></div>` +
