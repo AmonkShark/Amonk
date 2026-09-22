@@ -413,7 +413,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
     <div class="jr-list" id="akList"></div>
     <div class="jn-kepala" id="akOrderJudul" hidden><h3>Order terbuka <small class="redup" id="akOrderN"></small></h3><button class="btn" type="button" id="akOrderToggle" aria-controls="akOrder" aria-expanded="true">Sembunyikan</button></div>
     <div class="jr-list" id="akOrder"></div>
-    <div class="jn-kepala"><h3>Bot trading otomatis <small class="redup">TESTNET · saldo latihan</small></h3><button class="btn" type="button" id="btMuat">Perbarui</button></div>
+    <div class="jn-kepala"><h3>Bot trading otomatis <small class="redup" id="btJaringan">TESTNET · saldo latihan</small></h3><button class="btn" type="button" id="btMuat">Perbarui</button></div>
     <div class="ak-bar"><button class="btn" type="button" id="btToggle" aria-expanded="true" aria-controls="btForm">⚙ Sembunyikan pengaturan bot</button><span class="ak-pesan" id="btPesanBar"></span></div>
     <p class="ak-pesan kng" id="btKunci" hidden>🔒 Mode lihat — perangkat ini belum memasukkan sandi bot, jadi pengaturan hanya bisa dilihat. Isi <b>Sandi bot</b> lalu tekan <b>Buka kunci</b> untuk mengubah.</p>
     <form class="ak-set" id="btForm" autocomplete="off">
@@ -1962,7 +1962,11 @@ function kotakBanding(s) {
   if (!isFinite(awal)) return `<div class="jr-kotak"><h3>Anda vs bot</h3><p class="jr-ket">Belum ada trade bot. Perbandingan muncul setelah bot membuka posisi pertamanya.</p></div>`;
   if (!JN) return `<div class="jr-kotak"><h3>Anda vs bot</h3><p class="jr-ket">Tekan <b>Muat dari Binance</b> di Jurnal trade nyata di bawah supaya trade Anda bisa dibandingkan dengan bot.</p></div>`;
   const eps = []; for (const [k, tr] of Object.entries(JN.trade)) eps.push(...susunTrade(k, tr));
-  const A = eps.filter(e => e.tutup && e.mulai >= awal - 48 * 3600e3 && e.beliU > 0).map(e => ({ koin: e.koin, t: e.mulai, pct: e.pnl / e.beliU * 100 }));
+  // MODE ASLI: trade bot ada di akun asli yang sama -> jangan dihitung sebagai trade Anda. Episode yang mulai
+  // <= 15 menit dari entry bot di koin yang sama dianggap milik bot (bot melewati koin yang sedang Anda pegang).
+  const milikBot = e => s && s.jaringan === "asli" && [...R.map(r => ({ k: r.sym, t: r.masukT })), ...P.map(p => ({ k: p.sym, t: p.t }))]
+    .some(b => b.k.replace(/USDT$/, "") === e.koin && Math.abs(e.mulai - b.t) <= 15 * 60e3);
+  const A = eps.filter(e => e.tutup && e.mulai >= awal - 48 * 3600e3 && e.beliU > 0 && !milikBot(e)).map(e => ({ koin: e.koin, t: e.mulai, pct: e.pnl / e.beliU * 100 }));
   const Bt = R.map(r => ({ koin: r.sym.replace(/USDT$/, ""), t: r.masukT, pct: r.hasilPct, pola: r.kode }));
   const ring = a => { const n = a.length, rata = n ? a.reduce((x, y) => x + y.pct, 0) / n : null;
     return { n, wr: n ? Math.round(a.filter(x => x.pct > 0).length / n * 100) : 0, rata, per1000: rata == null ? null : rata * 10 }; };
@@ -1991,6 +1995,9 @@ function kotakBanding(s) {
 function rBot(r) { if (!(r && r.isi > r.sl && r.sl > 0 && r.beliUsdt > 0)) return null; const risk = r.beliUsdt * (r.isi - r.sl) / r.isi; return risk > 0 ? r.hasil / risk : null; }
 function gambarBot(s) {
   BT_S = s;
+  const asli = s.jaringan === "asli";                                  // bot memakai AKUN ASLI (uang sungguhan)
+  $("btJaringan").innerHTML = asli ? "<b class='turun'>AKUN ASLI · uang sungguhan</b>" : "TESTNET · saldo latihan";
+  $("btModal").placeholder = asli ? `0 = pagu ${s.modalAsliMaks || "?"} USDT dari Cloudflare` : "0 = seluruh saldo testnet";
   const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
   const MO = s.modal || { awal: +s.modalMaks || 0, laba: 0, kini: +s.modalMaks || 0, sejak: 0 };
   const maks = +MO.kini || 0, pakai = +s.terpakai || 0, R = s.riwayat || [], P = s.posisi || [];
@@ -2010,7 +2017,10 @@ function gambarBot(s) {
   const blnBot = R.length ? (Date.now() - Math.min(...R.map(r => r.masukT))) / (30.44 * 864e5) : 0;
   const versi = String(s.versi || "lama (belum ada versi)").replace(/[<>&"]/g, "");
   $("btRing").innerHTML = `<div class="jr-kotak bt-kartu"><h3><span>Bot <span class="lencana ${s.aktif ? "on" : "off"}">${s.aktif ? "● AKTIF" : "○ KERING"}</span></span>` +
-    `<small>${s.testnet ? "Binance Testnet" : "?"} · kode ${versi}</small></h3>` +
+    `<small>${asli ? "<b class='turun'>BINANCE ASLI · uang sungguhan</b>" : "Binance Testnet"} · kode ${versi}</small></h3>` +
+    (asli && s.hentiAsli ? `<p class="jr-ket turun">⛔ Bot asli BERHENTI (tidak membeli): ${String(s.hentiAsli).replace(/[<>&]/g, "")}.</p>` : "") +
+    (asli && s.kunciGalat ? `<p class="jr-ket turun">⛔ ${String(s.kunciGalat).replace(/[<>&]/g, "")}.</p>` : "") +
+    (asli ? `<p class="jr-ket kng">Uang sungguhan. Modal awal dipagu ${s.modalAsliMaks || "?"} USDT oleh pengaturan Cloudflare. Koin yang sedang Anda pegang atau punya order Anda dilewati bot — jangan jual manual koin yang sedang dipegang bot.</p>` : "") +
     (s.aktif ? "" : `<p class="jr-ket kng">Mode kering: bot hanya mencatat rencana, tidak membeli. Isi BOT_AKTIF = ya di Cloudflare untuk mengaktifkan.</p>`) +
     `<div class="jr-angka"><div><span>Modal bot kini</span><b>${maks ? usd(maks) : "seluruh saldo"}</b><span class="rp">awal ${MO.awal > 0 ? usd(MO.awal) : "—"}${MO.sejak ? " · sejak " + tglLokal(MO.sejak) : ""}</span></div>` +
     `<div><span>Laba bot</span><b class="${kl(MO.laba)}">${f2(MO.laba)} USDT</b><span class="rp">${MO.awal > 0 ? f2(MO.laba / MO.awal * 100) + "% modal · " : ""}${R.length} trade tutup · WR ${wr}%</span></div>` +
@@ -2021,7 +2031,8 @@ function gambarBot(s) {
     `<div class="rw-maju"><div class="pb"><span>trade</span><div><i style="width:${Math.min(1, R.length / AMBANG_N) * 100}%"></i></div><span>${R.length}/${AMBANG_N}</span></div>` +
     `<div class="pb"><span>waktu</span><div><i style="width:${Math.min(1, blnBot / AMBANG_BULAN) * 100}%"></i></div><span>${blnBot.toFixed(1)}/${AMBANG_BULAN} bln</span></div>` +
     `<span class="rw-vonis" style="color:var(--label)">${R.length >= AMBANG_N && blnBot >= AMBANG_BULAN ? "Cukup data untuk dinilai" : "Belum cukup data untuk menilai bot"}</span></div>` +
-    `<p class="jr-ket">Saldo testnet adalah uang latihan dan harganya bisa berbeda dari pasar asli. Hasil di sini menguji mekanisme (order, TP/SL, SL ke entry), bukan biaya eksekusi nyata.</p></div>` + kotakBanding(s);
+    (asli ? `<p class="jr-ket">Akun ASLI: hasil di sini uang sungguhan, termasuk komisi & selip nyata. Trade bot di akun asli TIDAK dihitung sebagai trade Anda di "Anda vs bot".</p></div>`
+      : `<p class="jr-ket">Saldo testnet adalah uang latihan dan harganya bisa berbeda dari pasar asli. Hasil di sini menguji mekanisme (order, TP/SL, SL ke entry), bukan biaya eksekusi nyata.</p></div>`) + kotakBanding(s);
   const baris = [];
   // POSISI TERBUKA: harga kini diambil dari harga pasar asli yang sudah dimuat Terminal (bukan testnet),
   // jadi PnL berjalan di sini perkiraan. R = PnL ÷ rugi bila kena SL di SL awal.
