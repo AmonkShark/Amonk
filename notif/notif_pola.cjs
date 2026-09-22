@@ -1,21 +1,24 @@
 /**
- * NOTIFIKASI TELEGRAM — pola 4H baru di watchlist AMONK.
- * Dijalankan GitHub Actions tiap 4 jam (.github/workflows/notif.yml) di repo AmonkShark/Amonk,
- * jadi tidak butuh laptop maupun Claude. Aturan pola = pola_dc_peristiwa.cjs (sama dengan chart
- * dan aplikasi); level & keluar = aturan aplikasi (50% TP1, SL sisa -> entry, 50% TP2).
+ * NOTIFIKASI TELEGRAM — pola 4H di watchlist AMONK. Dijalankan GitHub Actions
+ * (.github/workflows/notif.yml, sumber notif/notif.yml) tanpa laptop maupun Claude.
+ * Aturan pola = pola_dc_peristiwa.cjs (sama dengan chart & aplikasi); level & keluar =
+ * aturan aplikasi (50% TP1, SL sisa -> entry, 50% TP2, tanpa batas waktu).
  *
- * User 2026-09-22: "ya lakukan" (notifikasi pola baru + rekam jejak koin×pola sebagai INFO).
- * Rekam jejak TIDAK diberi label prioritas: uji 2026-09-22 (research/uji_rekam_jejak_koin_pola.cjs)
- * membuktikan rekam jejak koin×pola tidak meramalkan trade berikutnya.
+ * Isi (permintaan user 2026-09-22):
+ *   1. POLA BARU — kartu "AMONK SINYAL". Tujuan PRIBADI (chat id angka positif) juga dapat
+ *      UKURAN POSISI untuk risiko RISIKO_PCT% dari saldo Binance (dibaca lewat perantara
+ *      Cloudflare). Channel/grup TIDAK mendapat baris itu supaya saldo tidak tersebar.
+ *   2. EXIT — pesan saat TP1 kena (ambil 50%, pindahkan SL ke entry), TP2 kena, SL kena,
+ *      atau sisa keluar di entry. Dinilai di lilin 4H tutup, jadi bisa telat s.d. ~4 jam:
+ *      pasang TP/SL di Binance sendiri, pesan ini konfirmasi & pengingat pindah SL.
+ *   5. REKAP MINGGUAN (MODE rekap, Minggu 20:00 WIB) dari notif/maju.json — catatan maju
+ *      semua pola sejak 22-09-2026 (tidak hilang walau lewat jendela 600 lilin).
+ * Rekam jejak TIDAK diberi label prioritas (research/uji_rekam_jejak_koin_pola.cjs: tidak meramalkan).
  *
- * Rahasia (GitHub -> Settings -> Secrets and variables -> Actions), diisi USER sendiri:
- *   TELEGRAM_TOKEN  token bot dari @BotFather
- *   TELEGRAM_CHAT   chat id. Kalau belum ada, skrip mengirim chat id ke obrolan bot itu
- *                   sendiri (tidak ke log publik) supaya user bisa menyimpannya.
- * Tanpa TELEGRAM_TOKEN / dengan DRY=1: hanya mencetak pesan (uji kering).
- *
- * Status "sudah dikirim" disimpan di notif/terkirim.json (di-commit balik oleh workflow),
- * jadi jalan yang terlambat/diulang tidak mengirim dobel.
+ * Rahasia GitHub Actions (diisi USER): TELEGRAM_TOKEN, TELEGRAM_CHAT ("id,@channel"),
+ *   AKUN_URL (alamat Worker Binance), SANDI_APP (sandi Worker); opsional MODAL_USDT (cadangan
+ *   bila Worker gagal), RISIKO_PCT (bawaan 0.5).
+ * DRY=1 atau tanpa token: hanya mencetak (uji kering). UJI=true: 1 pesan contoh. REKAP=true: rekap sekarang.
  */
 const fs = require("fs"), path = require("path");
 const { peristiwa } = require("./pola_dc_peristiwa.cjs");
@@ -23,13 +26,19 @@ const { peristiwa } = require("./pola_dc_peristiwa.cjs");
 const U = require("./universe_gabungan.json");
 const KOIN = (U.koin || U).map(s => String(s).toUpperCase());
 const SEMBUNYI = new Set(["DB", "RC", "BF"]);          // sama dengan bawaan chart & aplikasi
-const MODAL = 1000, BIAYA = 0.002, MAKS = 120;
-const JENDELA_BAR = +(process.env.JENDELA_BAR || 2);    // pola valid di N lilin 4H tutup terakhir (2 = aman kalau jadwal GitHub telat)
+const NOMINAL = 1000, BIAYA = 0.002;
+const JENDELA_BAR = +(process.env.JENDELA_BAR || 2);    // pola baru = valid di N lilin 4H tutup terakhir
 const TOKEN = process.env.TELEGRAM_TOKEN || "", CHAT = process.env.TELEGRAM_CHAT || "";
 const DRY = process.env.DRY === "1" || !TOKEN;
-const UJI = process.env.UJI === "true";   // tombol "pesan uji" di workflow: kirim 1 pola valid terbaru, status tidak disentuh
-const F_STATUS = path.join(__dirname, "terkirim.json");
+const UJI = process.env.UJI === "true";
+const REKAP = process.env.REKAP === "true" || process.env.JADWAL === "0 13 * * 0";
+const RISIKO_PCT = +(process.env.RISIKO_PCT || 0.5);
+const AKUN_URL = (process.env.AKUN_URL || "").replace(/\/+$/, ""), SANDI = process.env.SANDI_APP || "";
+const MODAL_CADANGAN = +(process.env.MODAL_USDT || 0);
+const F_STATUS = path.join(__dirname, "terkirim.json"), F_MAJU = path.join(__dirname, "maju.json");
+const MAJU_MULAI = Date.UTC(2026, 8, 22, 0, 0);          // sama dengan mode "Maju" di aplikasi
 const HOSTS = ["https://data-api.binance.vision", "https://api.binance.com", "https://api-gcp.binance.com"];
+const STABIL = new Set(["USDT", "USDC", "FDUSD", "BUSD", "TUSD", "DAI"]);
 
 async function getJ(p) {
   for (const h of HOSTS) {
@@ -50,38 +59,60 @@ function level(d, e) {
   let tp1 = entry + 0.75 * (entry - sl); if (tp1 >= tp2) tp1 = entry + 0.5 * (tp2 - entry);
   return { entry, sl, tp1, tp2 };
 }
-// hasil trade dengan aturan aplikasi; null kalau belum tutup
-function hasilA(d, i, L) {
-  const n = d.c.length, akhir = Math.min(n - 1, i + MAKS);
-  let sisa = 1, real = 0, fase = 0;
-  const tutup = (w, px) => { real += w * MODAL * (px / L.entry - 1); sisa -= w; };
-  for (let k = i + 1; k <= akhir && sisa > 1e-9; k++) {
-    const o = d.o[k], h = d.h[k], l = d.l[k];
-    if (fase === 0) {
-      if (o <= L.sl) { tutup(sisa, o); break; } if (l <= L.sl) { tutup(sisa, L.sl); break; }
-      if (h >= L.tp1) { fase = 1; tutup(0.5, L.tp1); if (h >= L.tp2) { tutup(sisa, L.tp2); break; } }
-    } else {
-      if (o <= L.entry) { tutup(sisa, o); break; } if (l <= L.entry) { tutup(sisa, L.entry); break; }
-      if (h >= L.tp2) { tutup(sisa, L.tp2); break; }
-    }
+// Simulasi aturan aplikasi sampai lilin terakhir; sama dengan simTrade() di aplikasi.
+function simTahap(d, i, L) {
+  const n = d.c.length;
+  let st = "jalan", kenaTp1 = false, sisa = 1, real = 0, tTp1 = null, keluarT = null;
+  const tutup = (w, px) => { real += w * NOMINAL * (px / L.entry - 1); sisa -= w; };
+  for (let k = i + 1; k < n && st === "jalan"; k++) {
+    if (!kenaTp1) {
+      if (d.l[k] <= L.sl) { tutup(1, L.sl); st = "SL"; keluarT = d.t[k]; }
+      else if (d.h[k] >= L.tp1) {
+        tutup(0.5, L.tp1); kenaTp1 = true; tTp1 = d.t[k];
+        if (d.h[k] >= L.tp2) { tutup(sisa, L.tp2); st = "TP2"; keluarT = d.t[k]; }
+      }
+    } else if (d.l[k] <= L.entry) { tutup(sisa, L.entry); st = "BE"; keluarT = d.t[k]; }
+    else if (d.h[k] >= L.tp2) { tutup(sisa, L.tp2); st = "TP2"; keluarT = d.t[k]; }
   }
-  if (sisa > 1e-9) { if (akhir === i + MAKS) tutup(sisa, d.c[akhir]); else return null; }
-  return real - MODAL * BIAYA;
+  if (Math.abs(sisa) < 1e-9) sisa = 0;
+  return { st, kenaTp1, tTp1, keluarT, sisa, real, usdt: sisa === 0 ? real - NOMINAL * BIAYA : null };
 }
 const fx = p => { const a = Math.abs(p); const dp = a >= 1000 ? 1 : a >= 10 ? 3 : a >= 1 ? 4 : a >= 0.01 ? 5 : a >= 0.0001 ? 7 : 9; return p.toFixed(dp); };
 const pc = (x, e) => ((x / e - 1) * 100 >= 0 ? "+" : "") + ((x / e - 1) * 100).toFixed(1) + "%";
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-// FORMAT PESAN — permintaan user 2026-09-22:
-//   ADA/USDT TF 4H / <peringkat> <nama pola> / Entry / SL / TP1 ambil 50% SL naik ke entry / TP2
-// Angka peringkat SAMA dengan label di chart (fungsi `peringkat` di Pine & PERINGKAT di
-// pola_dc_peristiwa.cjs: FW 1, ST 2, PEN 3, IHS 4, AT 5, TB 6, CH 7, RC 8, DB 9, lainnya 10).
-// Peringkat itu urutan hasil uji lama, BUKAN jaminan: tidak ada pola yang lolos uji profit.
+const angka = (x, dp = 0) => x.toLocaleString("en-US", { maximumFractionDigits: dp });
 const PERINGKAT = k => ({ FW: 1, ST: 2, PEN: 3, IHS: 4, AT: 5, TB: 6, CH: 7, RC: 8, DB: 9 }[k] || 10);
 const wib = t => new Date(t + 7 * 3600e3).toISOString().slice(5, 16).replace(/(\d\d)-(\d\d)T/, "$2/$1 ") + " WIB";
-function pesan(k, e, L, d, vol, uji) {
-  const tutupT = d.t[e.i] + 4 * 3600e3;
-  // Gaya "kartu sinyal" (contoh gambar user 2026-09-22): judul, baris kotak, satu baris per data dengan emoji.
+const tautan = k => `<a href="https://www.tradingview.com/chart/?symbol=BINANCE:${esc(k)}USDT&interval=240">Chart 4H</a> · <a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`;
+
+// ---------- 1. ukuran posisi berdasar risiko (hanya untuk tujuan pribadi) ----------
+async function ambilModal() {
+  if (AKUN_URL && SANDI) {
+    try {
+      const r = await fetch(AKUN_URL + "/akun", { headers: { "X-Sandi": SANDI } });
+      const j = await r.json();
+      if (r.ok && Array.isArray(j.saldo)) {
+        const harga = {}; const t = await getJ("/api/v3/ticker/price");
+        if (Array.isArray(t)) for (const x of t) if (x.symbol.endsWith("USDT")) harga[x.symbol.slice(0, -4)] = +x.price;
+        let total = 0;
+        for (const b of j.saldo) { const px = STABIL.has(b.aset) ? 1 : harga[b.aset]; if (px) total += (b.bebas + b.terkunci) * px; }
+        if (total > 0) return { modal: total, sumber: "saldo Binance" };
+      } else console.log("Worker akun menolak: HTTP " + r.status);
+    } catch (e) { console.log("Worker akun gagal dihubungi"); }
+  }
+  return MODAL_CADANGAN > 0 ? { modal: MODAL_CADANGAN, sumber: "MODAL_USDT" } : null;
+}
+function ukuranTeks(L, M) {
+  if (!M) return `📏 Ukuran: isi secret AKUN_URL + SANDI_APP (atau MODAL_USDT) untuk ukuran posisi otomatis\n`;
+  const risiko = M.modal * RISIKO_PCT / 100;
+  let qty = risiko / (L.entry - L.sl), nilai = qty * L.entry, batas = false;
+  if (nilai > M.modal) { qty = M.modal / L.entry; nilai = M.modal; batas = true; }
+  return `📏 Ukuran (risiko ${RISIKO_PCT}%): <b>${angka(qty, qty < 10 ? 4 : 0)}</b> koin ≈ <b>${angka(nilai)} USDT</b>\n` +
+    `     rugi maks bila SL ≈ ${angka(qty * (L.entry - L.sl), 2)} USDT · saldo ${angka(M.modal)} USDT${batas ? " · dibatasi saldo" : ""}\n`;
+}
+
+// ---------- pesan ----------
+function pesanBaru(k, e, L, d, vol, uji, ukuran) {
   return (uji ? "🧪 <b>PESAN UJI</b> — contoh, bukan pola baru\n\n" : "") +
     `<b>AMONK SINYAL</b>\n` +
     `◻️◻️◻️◻️◻️\n` +
@@ -93,70 +124,144 @@ function pesan(k, e, L, d, vol, uji) {
     `🎯 TP1: ${fx(L.tp1)}  (${pc(L.tp1, L.entry)})  ambil 50%, SL naik ke entry\n` +
     `🎯 TP2: ${fx(L.tp2)}  (${pc(L.tp2, L.entry)})\n` +
     `‼️ SL: ${fx(L.sl)}  (${pc(L.sl, L.entry)})\n` +
-    `🕒 valid ${wib(tutupT)}${vol != null && vol < 1e6 ? "\n⚠️ likuiditas tipis (< $1jt/hari)" : ""}\n\n` +
-    `<a href="https://www.tradingview.com/chart/?symbol=BINANCE:${esc(k)}USDT&interval=240">Chart 4H</a> · <a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`;
+    (ukuran || "") +
+    `🕒 valid ${wib(d.t[e.i] + 4 * 3600e3)}${vol != null && vol < 1e6 ? "\n⚠️ likuiditas tipis (< $1jt/hari)" : ""}\n\n` + tautan(k);
+}
+function pesanExit(k, nama, kode, L, s, jenis, validT) {
+  const kepala = `<b>AMONK SINYAL · UPDATE</b>\n💰 <b>${esc(k)}/USDT</b> · 4H · ${PERINGKAT(kode)} ${esc(nama)}\n`;
+  const hasil = s.usdt != null ? `\n📊 Hasil trade: <b>${(s.usdt >= 0 ? "+" : "") + (s.usdt / NOMINAL * 100).toFixed(2)}%</b> (${(s.usdt >= 0 ? "+" : "") + s.usdt.toFixed(2)} USDT per 1000, sesudah biaya)` : "";
+  const isi = {
+    TP1: `🎯 <b>TP1 TERCAPAI</b> di ${fx(L.tp1)} (${pc(L.tp1, L.entry)})\n👉 Ambil 50%, <b>pindahkan SL sisa ke entry ${fx(L.entry)}</b>\n🎯 Sisa menunggu TP2 ${fx(L.tp2)}`,
+    TP2: `🏁 <b>TP2 TERCAPAI</b> di ${fx(L.tp2)} (${pc(L.tp2, L.entry)}) — trade selesai`,
+    TP1TP2: `🎯🏁 <b>TP1 & TP2 TERCAPAI</b> — trade selesai\nTP1 ${fx(L.tp1)} · TP2 ${fx(L.tp2)}`,
+    BE: `↩️ <b>Sisa 50% keluar di entry</b> ${fx(L.entry)} (impas) — trade selesai`,
+    TP1BE: `🎯 TP1 ${fx(L.tp1)} tercapai lalu ↩️ <b>sisa keluar di entry</b> ${fx(L.entry)} — trade selesai`,
+    SL: `‼️ <b>SL KENA</b> di ${fx(L.sl)} (${pc(L.sl, L.entry)}) — trade selesai`,
+  }[jenis];
+  return kepala + isi + hasil + `\n🕒 pola valid ${wib(validT)} · dinilai di lilin 4H tutup\n\n` + tautan(k);
 }
 
-// TELEGRAM_CHAT boleh berisi BEBERAPA tujuan dipisah koma (2026-09-22, user ingin channel publik):
-// mis. "123456789,@amonk_sinyal" -> pesan pribadi + channel. Channel: bot wajib jadi ADMIN channel.
+// ---------- kirim ----------
+// TELEGRAM_CHAT boleh "id,@channel". Tujuan PRIBADI = angka positif (chat orang), selain itu publik.
 const TUJUAN = CHAT.split(",").map(x => x.trim()).filter(Boolean);
-async function kirim(teks, chat) {
-  if (DRY) { console.log("---- (uji kering) ----\n" + teks.replace(/<[^>]+>/g, "") + "\n"); return true; }
+const pribadi = tj => /^\d+$/.test(tj);
+async function kirim(teksUmum, teksPribadi, chat) {
+  const daftar = chat ? [chat] : TUJUAN.length ? TUJUAN : ["(uji)"];
   let ok = false;
-  for (const tj of chat ? [chat] : TUJUAN) {
+  for (const tj of daftar) {
+    const teks = teksPribadi && (pribadi(tj) || tj === "(uji)") ? teksPribadi : teksUmum;
+    if (DRY) { console.log(`---- (uji kering → ${tj === "(uji)" ? "pribadi" : pribadi(tj) ? "pribadi" : "publik"}) ----\n` + teks.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&") + "\n"); ok = true; continue; }
     const r = await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ chat_id: tj, text: teks, parse_mode: "HTML", disable_web_page_preview: true }) });
     if (r.ok) ok = true;
-    else console.log(`Telegram menolak tujuan ke-${TUJUAN.indexOf(tj) + 1}: HTTP ${r.status}` + (r.status === 400 || r.status === 403 ? " (bot belum admin channel / nama channel salah?)" : ""));
+    else console.log(`Telegram menolak tujuan ke-${TUJUAN.indexOf(tj) + 1}: HTTP ${r.status}` + (r.status === 400 || r.status === 403 ? " (bot belum admin channel / id salah?)" : ""));
   }
   return ok;
 }
 
+// ---------- 5. rekap mingguan ----------
+async function rekap() {
+  let maju = {}; try { maju = JSON.parse(fs.readFileSync(F_MAJU, "utf8")); } catch (e) {}
+  const semua = Object.values(maju), skr = Date.now(), awal = skr - 7 * 864e5;
+  const f2 = v => (v >= 0 ? "+" : "") + v.toFixed(2);
+  const baru = semua.filter(t => t.masukT >= awal);
+  const tutupMinggu = semua.filter(t => t.st !== "jalan" && t.keluarT >= awal);
+  const tutupSemua = semua.filter(t => t.st !== "jalan");
+  const jalan = semua.filter(t => t.st === "jalan");
+  const hit = arr => ({ tp2: arr.filter(t => t.st === "TP2").length, be: arr.filter(t => t.st === "BE").length, sl: arr.filter(t => t.st === "SL").length });
+  const tot = arr => arr.reduce((a, t) => a + t.usdt, 0);
+  const h = hit(tutupMinggu), hs = hit(tutupSemua);
+  const bulan = tutupSemua.length ? (skr - Math.min(...semua.map(t => t.masukT))) / (30.44 * 864e5) : 0;
+  const per = {};
+  for (const t of tutupSemua) { const x = per[t.nama] = per[t.nama] || { n: 0, u: 0, kode: t.kode }; x.n++; x.u += t.usdt; }
+  const baris = Object.entries(per).sort((a, b) => b[1].u - a[1].u).slice(0, 6)
+    .map(([nm, x]) => `   ${PERINGKAT(x.kode)} ${esc(nm)}: ${x.n}× · ${f2(x.u)} USDT`).join("\n");
+  const teks =
+    `<b>AMONK SINYAL · REKAP MINGGUAN</b>\n◻️◻️◻️◻️◻️\n` +
+    `📅 ${wib(awal).slice(0, 5)} – ${wib(skr).slice(0, 5)}\n\n` +
+    `🆕 Pola baru minggu ini: <b>${baru.length}</b>\n` +
+    `✅ Tutup minggu ini: <b>${tutupMinggu.length}</b> (TP1+TP2 ${h.tp2} · TP1+BE ${h.be} · SL ${h.sl})\n` +
+    `💵 Hasil tutup minggu ini: <b>${f2(tot(tutupMinggu))} USDT</b> (1000 USDT/trade, sesudah biaya)\n` +
+    `⏳ Masih jalan: ${jalan.length}\n\n` +
+    `📈 <b>Sejak 22/09 (pemantauan maju)</b>\n` +
+    `   ${tutupSemua.length} tutup · WR ${tutupSemua.length ? Math.round(tutupSemua.filter(t => t.usdt > 0).length / tutupSemua.length * 100) : 0}% · total <b>${f2(tot(tutupSemua))} USDT</b>` +
+    (tutupSemua.length ? ` · rata ${f2(tot(tutupSemua) / tutupSemua.length)}/trade` : "") + `\n` +
+    `   (TP1+TP2 ${hs.tp2} · TP1+BE ${hs.be} · SL ${hs.sl})\n` +
+    `   progres bukti: ${tutupSemua.length}/30 trade · ${bulan.toFixed(1)}/6 bulan — ${tutupSemua.length >= 30 && bulan >= 6 ? "cukup data" : "<i>belum cukup data untuk disimpulkan</i>"}\n` +
+    (baris ? `\n🏷 Per pola (maju):\n${baris}\n` : "") +
+    `\n<a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`;
+  const ok = await kirim(teks);
+  console.log(`REKAP: ${ok ? "terkirim" : "GAGAL"} (${semua.length} trade maju tercatat)`);
+}
+
 (async () => {
-  // Langkah pasang: belum ada chat id -> cari dari pesan terakhir ke bot, kirim ke obrolan itu sendiri.
+  // Pasang pertama: belum ada chat id -> kirim chat id ke obrolan bot sendiri (tidak ke log).
   if (!DRY && !CHAT) {
     const u = await (await fetch(`https://api.telegram.org/bot${TOKEN}/getUpdates`)).json().catch(() => ({}));
     const m = (u.result || []).map(x => x.message || x.channel_post).filter(Boolean).pop();
     if (!m) { console.log("TELEGRAM_CHAT belum diisi dan bot belum menerima pesan. Kirim /start ke bot dulu, lalu jalankan ulang."); return; }
-    await kirim(`✅ Bot AMONK tersambung.\nChat ID kamu: <code>${m.chat.id}</code>\nSimpan angka ini sebagai secret <b>TELEGRAM_CHAT</b> di GitHub, lalu jalankan workflow sekali lagi.`, m.chat.id);
+    await kirim(`✅ Bot AMONK tersambung.\nChat ID kamu: <code>${m.chat.id}</code>\nSimpan angka ini sebagai secret <b>TELEGRAM_CHAT</b> di GitHub, lalu jalankan workflow sekali lagi.`, null, m.chat.id);
     console.log("Chat id dikirim ke obrolan bot (tidak dicetak di log).");
     return;
   }
+  if (REKAP) return rekap();
 
   let status = {}; try { status = JSON.parse(fs.readFileSync(F_STATUS, "utf8")); } catch (e) {}
+  for (const [kk, v] of Object.entries(status)) if (typeof v === "number") status[kk] = { t: v, tahap: "baru" };   // format lama
+  let maju = {}; try { maju = JSON.parse(fs.readFileSync(F_MAJU, "utf8")); } catch (e) {}
+  const M = TUJUAN.some(pribadi) || DRY ? await ambilModal() : null;
   const sekarang = Date.now();
-  let baru = 0, dicek = 0, calonUji = null;
+  let baru = 0, keluar = 0, dicek = 0, calonUji = null;
+
   for (const k of KOIN) {
     const j = await getJ(`/api/v3/klines?symbol=${k}USDT&interval=4h&limit=600`);
     if (!Array.isArray(j) || j.length < 250) continue;
-    const b = j.filter(x => +x[6] < sekarang);                           // buang lilin berjalan
-    if (!b.length || sekarang - +b[b.length - 1][6] > 12 * 3600e3) continue;   // koin basi/delisting
+    const b = j.filter(x => +x[6] < sekarang);                                    // buang lilin berjalan
+    if (!b.length || sekarang - +b[b.length - 1][6] > 12 * 3600e3) continue;       // koin basi/delisting
     dicek++;
     const d = { t: b.map(x => +x[0]), o: b.map(x => +x[1]), h: b.map(x => +x[2]), l: b.map(x => +x[3]), c: b.map(x => +x[4]), v: b.map(x => +x[5]) };
     let ev = []; try { ev = peristiwa(d, atrArr(d.h, d.l, d.c)) || []; } catch (e) { continue; }
     ev = ev.filter(e => !SEMBUNYI.has(e.kode));
-    const n = d.c.length;
-    if (UJI) { const e = ev[ev.length - 1]; if (e && (!calonUji || d.t[e.i] > calonUji.t)) calonUji = { t: d.t[e.i], k, d, e, ev }; continue; }
-    for (const e of ev.filter(e => e.i >= n - JENDELA_BAR)) {
-      const kunci = `${k}|${e.nama}|${d.t[e.i]}`;
-      if (status[kunci]) continue;
+    const n = d.c.length, vol = d.v.slice(-6).reduce((a, x, q) => a + x * d.c[n - 6 + q], 0);
+    if (UJI) { const e = ev[ev.length - 1]; if (e && (!calonUji || d.t[e.i] > calonUji.t)) calonUji = { t: d.t[e.i], k, d, e, vol }; continue; }
+
+    for (const e of ev) {
       const L = level(d, e); if (!L) continue;
-      const vol = d.v.slice(-6).reduce((a, x, q) => a + x * d.c[n - 6 + q], 0);   // nilai USDT 24 jam
-      const teks = pesan(k, e, L, d, vol, false);
-      if (await kirim(teks)) { status[kunci] = sekarang; baru++; }
+      const kunci = `${k}|${e.nama}|${d.t[e.i]}`, validT = d.t[e.i] + 4 * 3600e3;
+      const s = simTahap(d, e.i, L);
+      // catatan maju (untuk rekap): semua pola sejak MAJU_MULAI; yang sudah tutup dibekukan
+      if (d.t[e.i] >= MAJU_MULAI && !(maju[kunci] && maju[kunci].st !== "jalan"))
+        maju[kunci] = { koin: k, nama: e.nama, kode: e.kode, masukT: d.t[e.i], entry: L.entry, sl: L.sl, tp1: L.tp1, tp2: L.tp2,
+          st: s.st, kenaTp1: s.kenaTp1, keluarT: s.keluarT, usdt: s.usdt };
+      // 1. pola baru
+      if (e.i >= n - JENDELA_BAR && !status[kunci]) {
+        if (await kirim(pesanBaru(k, e, L, d, vol, false, null), pesanBaru(k, e, L, d, vol, false, ukuranTeks(L, M)))) {
+          status[kunci] = { t: sekarang, tahap: "baru" }; baru++;
+        }
+        continue;
+      }
+      // 2. exit untuk pola yang pernah dikirim
+      const S = status[kunci];
+      if (!S || S.tahap === "tutup") continue;
+      let jenis = null, tahapBaru = S.tahap;
+      if (s.st === "SL") { jenis = "SL"; tahapBaru = "tutup"; }
+      else if (s.st === "TP2") { jenis = S.tahap === "tp1" ? "TP2" : "TP1TP2"; tahapBaru = "tutup"; }
+      else if (s.st === "BE") { jenis = S.tahap === "tp1" ? "BE" : "TP1BE"; tahapBaru = "tutup"; }
+      else if (s.kenaTp1 && S.tahap === "baru") { jenis = "TP1"; tahapBaru = "tp1"; }
+      if (jenis && await kirim(pesanExit(k, e.nama, e.kode, L, s, jenis, validT))) { S.tahap = tahapBaru; S.u = sekarang; keluar++; }
     }
   }
+
   if (UJI) {
     if (!calonUji) { console.log("UJI: tidak ada pola valid di jendela data"); return; }
-    const { k, d, e, ev } = calonUji, L = level(d, e), n = d.c.length;
-    const vol = d.v.slice(-6).reduce((a, x, q) => a + x * d.c[n - 6 + q], 0);
-    const ok = await kirim(pesan(k, e, L, d, vol, true));
-    console.log(`UJI: pesan ${ok ? "terkirim" : "GAGAL"} (${dicek} koin dicek)`);
+    const { k, d, e, vol } = calonUji, L = level(d, e);
+    const ok = await kirim(pesanBaru(k, e, L, d, vol, true, null), pesanBaru(k, e, L, d, vol, true, ukuranTeks(L, M)));
+    console.log(`UJI: pesan ${ok ? "terkirim" : "GAGAL"} (${dicek} koin dicek, ukuran posisi: ${M ? M.sumber : "tidak ada modal"})`);
     return;
   }
-  // bersihkan status lebih dari 30 hari
-  for (const [kk, t] of Object.entries(status)) if (sekarang - t > 30 * 864e5) delete status[kk];
-  if (!DRY) fs.writeFileSync(F_STATUS, JSON.stringify(status, null, 0));
-  console.log(`selesai: ${dicek} koin dicek, ${baru} notifikasi ${DRY ? "(uji kering, tidak dikirim)" : "terkirim"}`);
+  // bersihkan: status > 60 hari, catatan maju tetap (itu buku)
+  for (const [kk, v] of Object.entries(status)) if (sekarang - v.t > 60 * 864e5) delete status[kk];
+  if (!DRY) { fs.writeFileSync(F_STATUS, JSON.stringify(status)); fs.writeFileSync(F_MAJU, JSON.stringify(maju)); }
+  console.log(`selesai: ${dicek} koin dicek, ${baru} pola baru, ${keluar} update exit ${DRY ? "(uji kering, tidak dikirim)" : "terkirim"} · catatan maju ${Object.keys(maju).length} · ukuran posisi: ${M ? M.sumber : "tanpa modal"}`);
 })();
