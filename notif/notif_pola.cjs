@@ -218,9 +218,22 @@ async function kirim(teksUmum, teksPribadi, chat) {
   for (const tj of daftar) {
     const teks = teksPribadi && (pribadi(tj) || tj === "(uji)") ? teksPribadi : teksUmum;
     if (DRY) { console.log(`---- (uji kering → ${tj === "(uji)" ? "pribadi" : pribadi(tj) ? "pribadi" : "publik"}) ----\n` + teks.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&") + "\n"); ok = true; continue; }
-    const r = await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: tj, text: teks, parse_mode: "HTML", disable_web_page_preview: true }) });
+    // 2026-09-23: koneksi GitHub -> Telegram pernah ETIMEDOUT dan melempar galat yang MENGHENTIKAN seluruh
+    // skrip (status tidak tersimpan). Sekarang: coba 3x (jeda 3/6 dtk, batas 15 dtk per coba); tetap gagal ->
+    // dicatat & dilanjutkan; pesan itu tidak ditandai terkirim sehingga dicoba lagi di jalan berikutnya.
+    let r = null;
+    for (let coba = 1; coba <= 3 && !r; coba++) {
+      try {
+        r = await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+          method: "POST", headers: { "Content-Type": "application/json" }, signal: AbortSignal.timeout(15000),
+          body: JSON.stringify({ chat_id: tj, text: teks, parse_mode: "HTML", disable_web_page_preview: true }) });
+        if (r.status === 429 || r.status >= 500) { r = null; throw new Error("HTTP sibuk"); }
+      } catch (e) {
+        console.log(`Telegram tujuan ke-${TUJUAN.indexOf(tj) + 1} gagal (coba ${coba}/3): ${e.cause ? e.cause.code || e.message : e.message}`);
+        if (coba < 3) await new Promise(res => setTimeout(res, 3000 * coba));
+      }
+    }
+    if (!r) continue;
     if (r.ok) ok = true;
     else console.log(`Telegram menolak tujuan ke-${TUJUAN.indexOf(tj) + 1}: HTTP ${r.status}` + (r.status === 400 || r.status === 403 ? " (bot belum admin channel / id salah?)" : ""));
   }
