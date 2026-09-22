@@ -1,13 +1,21 @@
-# Notifikasi Telegram pola 4H baru — AMONK. Jalan tiap 4 jam, 7 menit sesudah lilin 4H tutup (UTC).
-# Tidak butuh laptop/Claude. Rahasia: TELEGRAM_TOKEN, TELEGRAM_CHAT (Settings -> Secrets -> Actions).
+# Notifikasi Telegram AMONK SINYAL — tanpa laptop/Claude.
+#  - tiap 4 jam, 7 menit sesudah lilin 4H tutup (UTC): pola baru + update exit (TP1/TP2/SL/BE)
+#  - Minggu 13:00 UTC (20:00 WIB): rekap mingguan
+# Rahasia (Settings -> Secrets -> Actions): TELEGRAM_TOKEN, TELEGRAM_CHAT, AKUN_URL, SANDI_APP
+#   (opsional MODAL_USDT, RISIKO_PCT).
 name: notif-pola-4h
 on:
   schedule:
     - cron: "7 0,4,8,12,16,20 * * *"
+    - cron: "0 13 * * 0"
   workflow_dispatch:
     inputs:
       uji:
         description: "Kirim 1 pesan UJI (pola valid terbaru dari semua koin), tidak mengubah status"
+        type: boolean
+        default: false
+      rekap:
+        description: "Kirim REKAP mingguan sekarang"
         type: boolean
         default: false
 permissions:
@@ -24,18 +32,24 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
-      - name: Cek pola & kirim Telegram
+      - name: Cek pola, exit, rekap & kirim Telegram
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT: ${{ secrets.TELEGRAM_CHAT }}
+          AKUN_URL: ${{ secrets.AKUN_URL }}
+          SANDI_APP: ${{ secrets.SANDI_APP }}
+          MODAL_USDT: ${{ secrets.MODAL_USDT }}
+          RISIKO_PCT: ${{ secrets.RISIKO_PCT }}
           UJI: ${{ inputs.uji }}
+          REKAP: ${{ inputs.rekap }}
+          JADWAL: ${{ github.event.schedule }}
         run: node notif/notif_pola.cjs
-      - name: Simpan status terkirim
+      - name: Simpan status & catatan maju
         run: |
           git config user.name "amonk-notif"
           git config user.email "amonk-notif@users.noreply.github.com"
-          git add notif/terkirim.json 2>/dev/null || true
+          git add notif/terkirim.json notif/maju.json 2>/dev/null || true
           if ! git diff --cached --quiet; then
-            git commit -m "notif: status terkirim"
+            git commit -m "notif: status & catatan maju"
             for i in 1 2 3; do git pull --rebase && git push && break; sleep 5; done
           fi
