@@ -189,6 +189,18 @@ svg.sp{display:block;width:84px;height:22px}
 #akOrderJudul[hidden],#akOrder[hidden],#btKunci[hidden]{display:none!important}
 #rwPeriode[hidden],#rwKetAI[hidden],#rwKetPola[hidden]{display:none!important}
 /* JURNAL RINCI */
+/* POP-UP */
+.popup{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.popup[hidden]{display:none!important}
+.popup-isi{background:var(--bg1);border:1px solid var(--garis);border-radius:12px;width:min(640px,100%);max-height:min(86vh,900px);display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.4)}
+.popup-kepala{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--garis)}
+.popup-kepala h3{margin:0;font:600 16px var(--f-ui)} .popup-kepala h3 small{font-weight:400;color:var(--label);font-size:12px;margin-left:6px}
+.popup-badan{overflow-y:auto;padding:12px 14px 16px;display:flex;flex-direction:column;gap:6px;overscroll-behavior:contain}
+.popup-baris{grid-template-columns:minmax(0,1fr) auto!important;padding:7px 10px}
+.popup-rinci{border-top:0;padding-top:4px}
+.rw-baris{cursor:pointer}
+body.popup-buka{overflow:hidden}
+@media (max-width:640px){.popup{align-items:flex-end;padding:0}.popup-isi{width:100%;max-height:88vh;border-radius:14px 14px 0 0}}
 .jr-angka span.rp{text-transform:none;letter-spacing:0;font:11px var(--f-ui)}
 .jn-alat{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
 .jn-alat select,.jn-alat input{font:13px var(--f-ui);color:var(--teks);background:var(--bg2);border:1px solid var(--garis);border-radius:4px;padding:6px 9px}
@@ -462,6 +474,14 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
       <li>Angka "jalan" belum terkunci — bisa berbalik seluruhnya sebelum trade tutup.</li>
       <li>Banyak pola lahir bersamaan saat pasar naik serentak; untung bersama itu lebih banyak mencerminkan pasar daripada polanya.</li>
     </ul></section>
+  </div>
+</div>
+
+<!-- POP-UP RIWAYAT (2026-09-22, user: "ketika aku klik koin informasinya pop up biar tidak geser ke bawah") -->
+<div class="popup" id="popup" hidden>
+  <div class="popup-isi" role="dialog" aria-modal="true" aria-labelledby="popupJudul">
+    <div class="popup-kepala"><h3 id="popupJudul"></h3><button type="button" class="btn" id="popupTutup" aria-label="Tutup">✕</button></div>
+    <div class="popup-badan" id="popupBadan"></div>
   </div>
 </div>
 
@@ -1432,7 +1452,7 @@ function jnStatHtml(rows) {
     `<div><span>Profit factor</span><b class="${H.pf == null ? "" : H.pf >= 1 ? "naik" : "turun"}">${H.pf == null ? "—" : isFinite(H.pf) ? H.pf.toFixed(2) : "∞"}</b><span class="rp">untung ÷ rugi</span></div></div>` +
     `<div class="jr-angka"><div><span>Rata untung</span><b class="naik">${f2(H.avgW)}</b></div><div><span>Rata rugi</span><b class="turun">${f2(H.avgL)}</b></div>` +
     `<div><span>Drawdown maks</span><b class="${H.dd < 0 ? "turun" : ""}">${H.n ? f2(H.dd) : "—"}</b><span class="rp">USDT, dari puncak</span></div></div>` +
-    `<div class="jr-angka"><div><span>Terbaik</span><b class="naik">${f2(H.best)}</b></div><div><span>Terburuk</span><b class="turun">${f2(H.worst)}</b></div>` +
+    `<div class="jr-angka"><div><span>Terbaik</span><b class="${kl(H.best)}">${f2(H.best)}</b></div><div><span>Terburuk</span><b class="${kl(H.worst)}">${f2(H.worst)}</b></div>` +
     `<div><span>Rata lama tahan</span><b>${jnLama(H.jam)}</b><span class="rp">beruntun: menang ${H.mW} · kalah ${H.mL}</span></div></div>` +
     bar + kurvaJ(tutup.map(t => ({ usdt: t.us || 0, keluar: t.keluar || t.masuk, masuk: t.masuk }))) +
     (H.n < AMBANG_N ? `<p class="jr-ket kng">Baru ${H.n} trade tutup di saringan ini. Di bawah ${AMBANG_N} trade, angka di atas belum bisa disimpulkan.</p>` : "") + `</div>`;
@@ -2208,7 +2228,7 @@ function gambarRiwayatAI() {
       `<div class="d"><span><em>${h.n}</em> tutup</span><span>WR <em>${h.n ? Math.round(h.wr) : 0}%</em></span><span>rata <em class="${kl(h.rata)}">${f2(h.rata)}</em></span>${x.jalan ? `<span>jalan <em>${x.jalan}</em></span>` : ""}</div>` +
       `<div class="d"><span>rata R <em class="${kl(h.rR)}">${h.rR == null ? "—" : f2(h.rR)}</em></span><span>terbaik <em class="naik">${f2(h.best)}</em></span><span>terburuk <em class="turun">${f2(h.worst)}</em></span></div></button>`;
   }).join("");
-  document.querySelectorAll("#rwPola .rw-pola").forEach(b => b.addEventListener("click", () => { rwPola = rwPola === b.dataset.p ? null : b.dataset.p; window.gambarRiwayat(); }));
+  RW_TAMPIL = { sumber: "AI", semua };                               // dipakai pop-up
   let rows = semua.slice();
   if (rwPola) rows = rows.filter(t => t.koin === rwPola);
   if (rwPilih === "jalan") rows = rows.filter(t => t.terbuka); else if (rwPilih === "tutup") rows = rows.filter(t => !t.terbuka);
@@ -2216,7 +2236,7 @@ function gambarRiwayatAI() {
   rows.sort((a, b) => b.mT - a.mT);
   $("rwList").innerHTML = rows.map(t => {
     const st = t.terbuka ? `<span class="chip jalan">Jalan</span>` : `<span class="chip ${t.us > 0 ? "tp" : "sl"}">${t.sebab || "tutup"}</span>`;
-    return `<div class="jr-tr${t.terbuka ? " buka" : ""}${klsSt(t.terbuka, t.us)}"><div style="min-width:0"><div class="nm">${t.koin}</div><div class="sub">masuk ${jamLokal(t.mT)}${t.kT ? " · keluar " + jamLokal(t.kT) : ""} · ${jnLama(t.jam)}</div></div>` +
+    return `<div class="jr-tr rw-baris${t.terbuka ? " buka" : ""}${klsSt(t.terbuka, t.us)}" data-k="${t.koin}|${t.masuk}" tabindex="0" role="button"><div style="min-width:0"><div class="nm">${t.koin}</div><div class="sub">masuk ${jamLokal(t.mT)}${t.kT ? " · keluar " + jamLokal(t.kT) : ""} · ${jnLama(t.jam)}</div></div>` +
       `<div class="lv">E ${fHarga(t.entry)}${t.terbuka ? " · kini " + fHarga(t.px) : " → " + fHarga(t.exit)}<br>SL ${fHarga(t.sl)} · TP ${fHarga(t.tp)}${t.rr ? " · R:R 1:" + t.rr.toFixed(1) : ""}</div>` +
       `<div class="ha"><b class="${kl(t.us)}">${f2(t.us)}</b><span class="rp">${t.R == null ? "" : f2(t.R) + " R"}</span>${st}</div></div>`;
   }).join("") || `<div class="kosong">Tidak ada trade di sini.</div>`;
@@ -2270,8 +2290,7 @@ window.gambarRiwayat = function () {
       `<div class="d"><span>rata untung <em class="naik">${f2(avgW)}</em></span><span>rata rugi <em class="turun">${f2(avgL)}</em></span></div>` +
       (rwMode === "maju" ? majuHtml(nm, x, semua) : (x.n < 30 ? `<div class="kecil2">sampel kecil (&lt;30 trade) — belum bisa disimpulkan</div>` : "")) + `</button>`;
   }).join("");
-  document.querySelectorAll("#rwPola .rw-pola").forEach(b => b.addEventListener("click", () => {
-    rwPola = rwPola === b.dataset.p ? null : b.dataset.p; window.gambarRiwayat(); }));
+  RW_TAMPIL = { sumber: "POLA", semua };                             // dipakai pop-up
   let rows = semua.slice();
   if (rwPola) rows = rows.filter(t => t.nama === rwPola);
   if (rwPilih === "jalan") rows = rows.filter(t => t.st === "jalan" && !t.luar); else if (rwPilih === "tutup") rows = rows.filter(t => t.st !== "jalan");
@@ -2280,8 +2299,7 @@ window.gambarRiwayat = function () {
   const tampil = rows.slice(0, 300);
   $("rwList").innerHTML = tampil.map(t => {
     const p = t.pnl === undefined ? pnlTrade(t) : t.pnl;
-    const tg = new Date(t.masukT).toISOString().slice(5, 16).replace("-", "/").replace("T", " ");
-    return `<div class="jr-tr${t.st === "jalan" ? " buka" : ""}${klsSt(t.st === "jalan", p)}"><div style="min-width:0"><div class="nm">${t.koin}</div><div class="sub">${t.nama} · ${tg} UTC</div></div>` +
+    return `<div class="jr-tr rw-baris${t.st === "jalan" ? " buka" : ""}${klsSt(t.st === "jalan", p)}" data-k="${t.koin}|${t.masukT}" tabindex="0" role="button"><div style="min-width:0"><div class="nm">${t.koin}</div><div class="sub">${t.nama} · ${jamLokal(t.masukT)}</div></div>` +
       `<div class="lv">E ${fHarga(t.entry)} · SL ${fHarga(t.sl)}<br>TP1 ${fHarga(t.tp1)}${t.kenaTp1 ? " ✓" : ""} · TP2 ${fHarga(t.tp2)}</div>` +
       `<div class="ha"><b class="${kl(p)}">${f2(p)}</b>${chipRw(t)}</div></div>`;
   }).join("") + (rows.length > 300 ? `<div class="kosong">+${rows.length - 300} trade lebih lama tidak ditampilkan.</div>` : "") ||
@@ -2292,6 +2310,76 @@ document.querySelectorAll("#halRiwayat .jr-pilih button[data-r]").forEach(b => {
   b.addEventListener("click", () => { rwPilih = b.dataset.r; simpan("rwPilih", rwPilih);
     document.querySelectorAll("#halRiwayat .jr-pilih button[data-r]").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false")); window.gambarRiwayat(); });
 });
+// ---------- POP-UP RIWAYAT ----------
+// Ketuk kartu (pola / koin) -> ringkasan + semua trade-nya; ketuk trade -> detail. Tidak perlu gulir ke bawah.
+let RW_TAMPIL = { sumber: "POLA", semua: [] }, POPUP_TUMPUK = [];
+// satu bentuk untuk dua sumber (POLA = trade level chart 50/50, AI = buku jurnal)
+function rwNorm(t, sumber) {
+  if (sumber === "AI") return { ...t, k: t.koin + "|" + t.masuk, grupPola: t.koin };
+  const jalan = t.st === "jalan", us = t.pnl === undefined ? pnlTrade(t) : t.pnl;
+  const risk = t.entry > t.sl && t.sl > 0 ? MODAL_POLA * (t.entry - t.sl) / t.entry : null;
+  return { koin: t.koin, jenis: t.nama, k: t.koin + "|" + t.masukT, grupPola: t.nama, entry: t.entry, sl: t.sl, tp1: t.tp1, tp: t.tp2, kenaTp1: t.kenaTp1,
+    exit: jalan ? null : t.st === "TP2" ? t.tp2 : t.st === "BE" ? t.entry : t.sl,   // sisa posisi keluar di sini
+    mT: t.masukT, kT: jalan ? null : t.keluarT, terbuka: jalan, luar: t.luar, us, R: us != null && risk ? us / risk : null, px: jalan ? hargaKini(t.koin) : null,
+    sebab: jalan ? null : t.st === "TP2" ? "TP1+TP2" : t.st === "BE" ? "TP1+BE" : "SL", jam: ((jalan ? Date.now() : t.keluarT || Date.now()) - t.masukT) / 3600e3,
+    rr: t.entry > t.sl && t.tp2 > t.entry ? (t.tp2 - t.entry) / (t.entry - t.sl) : null, slPct: t.entry > 0 ? (t.entry - t.sl) / t.entry * 100 : null };
+}
+function popupTampil(judul, html, simpanRiwayat) {
+  if (simpanRiwayat && !$("popup").hidden) POPUP_TUMPUK.push({ judul: $("popupJudul").innerHTML, html: $("popupBadan").innerHTML, gulir: $("popupBadan").scrollTop });
+  $("popupJudul").innerHTML = judul; $("popupBadan").innerHTML = html; $("popupBadan").scrollTop = 0;
+  if ($("popup").hidden) { $("popup").hidden = false; document.body.classList.add("popup-buka"); $("popupTutup").focus(); }
+}
+function popupTutup() { $("popup").hidden = true; POPUP_TUMPUK = []; document.body.classList.remove("popup-buka"); }
+function popupKembali() { const p = POPUP_TUMPUK.pop(); if (!p) return popupTutup(); $("popupJudul").innerHTML = p.judul; $("popupBadan").innerHTML = p.html; $("popupBadan").scrollTop = p.gulir; }
+function rwPopupGrup(nilai) {
+  const f2 = v => v == null || !isFinite(v) ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
+  const S = RW_TAMPIL.sumber, T = RW_TAMPIL.semua.map(t => rwNorm(t, S)).filter(t => t.grupPola === nilai && !t.luar).sort((a, b) => b.mT - a.mT);
+  const tutup = T.filter(t => !t.terbuka), jalan = T.filter(t => t.terbuka), H = jnHitung(tutup), uJ = jalan.reduce((a, t) => a + (t.us || 0), 0);
+  const seb = {}; for (const t of tutup) seb[t.sebab || "lain"] = (seb[t.sebab || "lain"] || 0) + 1;
+  const warna = { TP: "var(--hijau)", "TP1+TP2": "var(--hijau)", "TP1+BE": "rgba(38,166,154,.45)", SL: "var(--merah)", WAKTU: "var(--kuning)" };
+  const koinUnik = new Set(T.map(t => t.koin)).size;
+  const html = `<div class="jr-angka"><div><span>Trade tutup</span><b>${H.n}</b><span class="rp">${jalan.length} jalan${S === "POLA" ? ` · ${koinUnik} koin` : ""}</span></div>` +
+    `<div><span>Win rate</span><b>${H.n ? Math.round(H.wr) + "%" : "—"}</b><span class="rp">${H.m} untung · ${H.n - H.m} rugi</span></div>` +
+    `<div><span>Total USDT</span><b class="${kl(H.tot)}">${H.n ? f2(H.tot) : "—"}</b><span class="rp">jalan ${jalan.length ? f2(uJ) : "—"}</span></div></div>` +
+    `<div class="jr-angka"><div><span>Rata / trade</span><b class="${kl(H.rata)}">${f2(H.rata)}</b></div><div><span>Rata R</span><b class="${kl(H.rR)}">${H.rR == null ? "—" : f2(H.rR) + " R"}</b></div>` +
+    `<div><span>Profit factor</span><b>${H.pf == null ? "—" : isFinite(H.pf) ? H.pf.toFixed(2) : "∞"}</b></div></div>` +
+    `<div class="jr-angka"><div><span>Terbaik</span><b class="${kl(H.best)}">${f2(H.best)}</b></div><div><span>Terburuk</span><b class="${kl(H.worst)}">${f2(H.worst)}</b></div><div><span>Rata lama tahan</span><b>${jnLama(H.jam)}</b></div></div>` +
+    (H.n ? `<div class="jn-bar" style="margin-top:8px">${Object.entries(seb).map(([k, v]) => `<i style="width:${v / H.n * 100}%;background:${warna[k] || "var(--label)"}"></i>`).join("")}</div>` +
+      `<div class="jr-ket">${Object.entries(seb).map(([k, v]) => `${k} ${v}`).join(" · ")}</div>` : "") +
+    kurvaJ(tutup.map(t => ({ usdt: t.us || 0, keluar: new Date(t.kT || t.mT).toISOString(), masuk: "" }))) +
+    (H.n < AMBANG_N ? `<p class="jr-ket kng">Baru ${H.n} trade tutup — di bawah ${AMBANG_N}, belum bisa disimpulkan.</p>` : "") +
+    `<h4 class="bt-sub">Semua trade (${T.length}) <small class="redup">· ketuk untuk detail</small></h4>` +
+    T.map(t => `<div class="jr-tr rw-baris popup-baris${t.terbuka ? " buka" : ""}${klsSt(t.terbuka, t.us)}" data-k="${t.k}" tabindex="0" role="button">` +
+      `<div style="min-width:0"><div class="nm">${S === "POLA" ? t.koin : jamLokal(t.mT)}</div><div class="sub">${S === "POLA" ? jamLokal(t.mT) + " · " : ""}${t.terbuka ? "jalan" : t.sebab} · ${jnLama(t.jam)}</div></div>` +
+      `<div class="ha"><b class="${kl(t.us)}">${f2(t.us)}</b><span class="rp">${t.R == null ? "" : f2(t.R) + " R"}</span></div></div>`).join("");
+  popupTampil(`${nilai} <small>${S === "AI" ? "AI 4H" : "POLA 4H"}</small>`, html, false);
+}
+function rwPopupTrade(kunci, dariGrup) {
+  const S = RW_TAMPIL.sumber, t = RW_TAMPIL.semua.map(x => rwNorm(x, S)).find(x => x.k === kunci);
+  if (!t) return;
+  const f2 = v => v == null || !isFinite(v) ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
+  const pc = t.us == null ? null : t.us / MODAL_POLA * 100;
+  const html = (dariGrup ? `<button type="button" class="btn kecil" id="popupBalik">← kembali</button>` : "") +
+    `<div class="jr-angka" style="margin-top:8px"><div><span>Hasil</span><b class="${kl(t.us)}">${f2(t.us)} USDT</b><span class="rp">${f2(pc)}% · ${t.R == null ? "—" : f2(t.R) + " R"}</span></div>` +
+    `<div><span>Status</span><b>${t.terbuka ? (t.kenaTp1 ? "Jalan 50%" : "Jalan") : t.sebab}</b><span class="rp">${t.terbuka ? "dinilai harga hidup" : "sudah tutup"}</span></div>` +
+    `<div><span>Lama tahan</span><b>${jnLama(t.jam)}</b></div></div>` +
+    `<div class="jr-rinci popup-rinci"><span>Masuk <b>${jamLokal(t.mT)} ${ZONA}</b></span><span>${t.terbuka ? "Masih jalan" : "Keluar <b>" + (t.kT ? jamLokal(t.kT) + " " + ZONA : "—") + "</b>"}</span>` +
+    `<span>Entry <b>${fHarga(t.entry)}</b></span><span>SL <b>${fHarga(t.sl)}</b> (−${t.slPct == null ? "—" : t.slPct.toFixed(2)}%)</span>` +
+    (t.tp1 ? `<span>TP1 <b>${fHarga(t.tp1)}</b>${t.kenaTp1 ? " ✓ kena" : ""}</span><span>TP2 <b>${fHarga(t.tp)}</b></span>` : `<span>TP <b>${fHarga(t.tp)}</b></span>`) +
+    `<span>${t.terbuka ? "Harga kini" : "Keluar di"} <b>${fHarga(t.terbuka ? t.px : t.exit)}</b></span><span>R:R rencana <b>${t.rr == null ? "—" : "1 : " + t.rr.toFixed(2)}</b></span>` +
+    `<span>${S === "AI" ? "Sinyal" : "Pola"} <b>${S === "AI" ? "AI 4H" : t.jenis}</b></span></div>` +
+    `<p class="jr-ket">${S === "AI" ? "Buku AI 4H: 1000 USDT, keluar penuh di SL, TP, atau batas waktu. R = hasil ÷ jarak entry→SL." : "Aturan Terminal: 1000 USDT, 50% di TP1, SL sisa ke entry, 50% di TP2, biaya 0,2%. R = hasil ÷ rugi bila kena SL."}</p>`;
+  popupTampil(`${t.koin} <small>${S === "AI" ? "AI 4H" : t.jenis} · ${jamLokal(t.mT)}</small>`, html, dariGrup);
+}
+$("rwPola").addEventListener("click", e => { const b = e.target.closest(".rw-pola"); if (b) rwPopupGrup(b.dataset.p); });
+$("rwList").addEventListener("click", e => { const r = e.target.closest(".rw-baris"); if (r) rwPopupTrade(r.dataset.k, false); });
+$("rwList").addEventListener("keydown", e => { const r = e.target.closest(".rw-baris"); if (r && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); rwPopupTrade(r.dataset.k, false); } });
+$("popupBadan").addEventListener("click", e => {
+  if (e.target.id === "popupBalik") return popupKembali();
+  const r = e.target.closest(".popup-baris"); if (r) rwPopupTrade(r.dataset.k, true); });
+$("popupTutup").addEventListener("click", popupTutup);
+$("popup").addEventListener("click", e => { if (e.target === $("popup")) popupTutup(); });   // ketuk luar kotak
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("popup").hidden) popupTutup(); });
 setInterval(() => { if (halAktif === "Riwayat") window.gambarRiwayat(); }, 5000);
 
 pindahHal(["Terminal", "Riwayat", "Jurnal", "Akun", "Info"].includes(halAktif) ? halAktif : "Terminal");
