@@ -277,6 +277,19 @@ async function cekAudit(maju) {
   if (!DRY) fs.writeFileSync(F_AUDIT, JSON.stringify(audit));
 }
 
+// ATURAN JEDA di rekap (2026-09-22, disetujui user). Trade NYATA tidak dibaca di sini (pesan ini juga ke
+// channel publik), jadi dipakai keadaan pasar dari SEMUA sinyal minggu ini: bila >= JEDA_MIN_N tutup dan
+// pecahan SL >= JEDA_SL_PCT% -> pasar tidak searah dengan long, saran jeda / ukuran setengah. Bukan sinyal.
+// Aturan jeda dari trade nyata (rugi berturut, rugi 7 hari) ada di aplikasi, tab Akun.
+const JEDA_SL_PCT = +(process.env.JEDA_SL_PCT || 60), JEDA_MIN_N = +(process.env.JEDA_MIN_N || 5);
+function teksJeda(tutupMinggu, h) {
+  if (tutupMinggu.length < JEDA_MIN_N) return `\n⏸ Disiplin: baru ${tutupMinggu.length} sinyal tutup minggu ini (kurang dari ${JEDA_MIN_N}) — belum bisa dinilai searah/tidak.\n`;
+  const pctSl = Math.round(h.sl / tutupMinggu.length * 100);
+  return pctSl >= JEDA_SL_PCT
+    ? `\n⏸ <b>Disiplin: ${pctSl}% sinyal minggu ini kena SL</b> (batas ${JEDA_SL_PCT}%) — pasar sedang tidak searah dengan long. Saran: jeda seminggu atau ukuran setengah. Ini bukan tanda pola rusak.\n`
+    : `\n▶ Disiplin: ${pctSl}% sinyal minggu ini kena SL (batas ${JEDA_SL_PCT}%) — tidak ada alasan jeda dari sisi pasar. Cek juga aturan jeda trade nyatamu di aplikasi (tab Akun).\n`;
+}
+
 async function rekap() {
   let maju = {}; try { maju = JSON.parse(fs.readFileSync(F_MAJU, "utf8")); } catch (e) {}
   const semua = Object.values(maju), skr = Date.now(), awal = skr - 7 * 864e5;
@@ -306,6 +319,7 @@ async function rekap() {
     `   (TP1+TP2 ${hs.tp2} · TP1+BE ${hs.be} · SL ${hs.sl})\n` +
     `   progres bukti: ${tutupSemua.length}/30 trade · ${bulan.toFixed(1)}/6 bulan — ${tutupSemua.length >= 30 && bulan >= 6 ? "cukup data" : "<i>belum cukup data untuk disimpulkan</i>"}\n` +
     (baris ? `\n🏷 Per pola (maju):\n${baris}\n` : "") +
+    teksJeda(tutupMinggu, h) +
     `\n<a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`;
   const ok = await kirim(teks);
   console.log(`REKAP: ${ok ? "terkirim" : "GAGAL"} (${semua.length} trade maju tercatat)`);
