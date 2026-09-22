@@ -1497,7 +1497,10 @@ setInterval(() => { if (JR) muatJurnal(); }, 30 * 60e3);   // ambil ulang jurnal
 // menolak kunci API yang bisa trading/tarik dana. Sandi dikirim di header, bukan URL.
 const STABIL = new Set(["USDT", "USDC", "FDUSD", "BUSD", "TUSD", "DAI"]);
 let AK = null, akTrade = {}, akMuat = false, akGen = 0;   // akGen: buang hasil pemuatan lama
-const akCfg = () => ({ url: (baca("akUrl", "") || "").replace(/\/+$/, ""), sandi: baca("akSandi", "") });
+// MODE LIHAT AKUN (2026-09-22, keputusan user "tetap buat tanpa sandi"): alamat perantara punya bawaan, jadi
+// perangkat lain langsung melihat saldo & order TANPA sandi (worker melayani baca-saja dengan cache).
+const AK_BAWAAN = "https://amonk-binance.amonkpubg.workers.dev";
+const akCfg = () => ({ url: (baca("akUrl", "") || AK_BAWAAN).replace(/\/+$/, ""), sandi: baca("akSandi", "") });
 $("akUrl").value = akCfg().url; $("akSandi").value = akCfg().sandi;
 $("akForm").addEventListener("submit", e => { e.preventDefault();
   simpan("akUrl", $("akUrl").value.trim()); simpan("akSandi", $("akSandi").value); AK = null; akTrade = {}; akGen++; akMuat = false; window.muatAkun(true); });
@@ -1516,7 +1519,7 @@ $("akToggle").addEventListener("click", () => { const buka = $("akForm").hidden;
 pasangToggleAk(baca("akBuka", null) === null ? !(baca("akUrl", "") && baca("akSandi", "")) : !!baca("akBuka", true));
 async function panggil(jalur) {
   const c = akCfg();
-  const r = await fetch(c.url + jalur, { headers: { "X-Sandi": c.sandi }, cache: "no-store" });
+  const r = await fetch(c.url + jalur, { headers: c.sandi ? { "X-Sandi": c.sandi } : {}, cache: "no-store" });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j.galat || ("HTTP " + r.status));
   return j;
@@ -1554,7 +1557,7 @@ const fRp = v => v == null ? "—" : !KURS.idr ? (v >= 0 ? "+" : "") + v.toFixed
   : (v >= 0 ? "+" : "−") + "Rp " + Math.round(Math.abs(v) * KURS.idr).toLocaleString("id-ID");
 window.muatAkun = async function (paksa) {
   const c = akCfg();
-  if (!c.url || !c.sandi) { pesanAk("Isi alamat perantara & sandi lalu tekan Sambungkan."); return; }
+  if (!c.url) { pesanAk("Isi alamat perantara lalu tekan Sambungkan."); return; }
   if (akMuat) return; akMuat = true;
   const gen = akGen;
   try {
@@ -1580,7 +1583,7 @@ window.muatAkun = async function (paksa) {
     if (gen !== akGen) return;
     await ambilKurs();
     gambarAkun(baris, akun);
-    pesanAk(`Tersambung · diperbarui ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} · hanya membaca${akun.izinBaca ? "" : " (izin baca tidak terdeteksi)"}`);
+    pesanAk(`${akun.lihat ? "👁 Mode lihat (tanpa sandi)" : "Tersambung"} · diperbarui ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} · hanya membaca${akun.izinBaca ? "" : " (izin baca tidak terdeteksi)"}`);
   } catch (e) {
     if (gen !== akGen) return;
     pesanAk("Gagal: " + e.message + (/Failed to fetch/i.test(e.message) ? " — periksa alamat perantara." : ""), true);
@@ -1794,7 +1797,7 @@ function bandingPilihan(eps) {
 }
 async function muatJurnalNyata() {
   const c = akCfg();
-  if (!c.url || !c.sandi) { $("jnPesan").textContent = "Sambungkan Akun dulu (alamat perantara & sandi di atas)."; return; }
+  if (!c.url) { $("jnPesan").textContent = "Sambungkan Akun dulu (alamat perantara di atas)."; return; }
   const koin = [...new Set([...KOIN, ...((AK && AK.saldo) || []).map(b => b.aset)])].filter(k => !STABIL.has(k));
   const hasil = {}; let i = 0, selesai = 0, gagal = 0;
   $("jnMuat").disabled = true;
