@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Terminal AMONK</title>
+<title>AMONK MONITOR</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
@@ -185,8 +185,34 @@ svg.sp{display:block;width:84px;height:22px}
 .bt-jam{font:12px var(--f-num);color:var(--label);white-space:nowrap}
 .bt-isi{color:var(--label);min-width:0;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:640px){.bt-log{grid-template-columns:auto minmax(0,1fr)}.bt-isi{grid-column:1/-1}
-  .jr-tr.bt-baris{grid-template-columns:minmax(0,1fr) auto}.jr-tr.bt-baris .lv{grid-column:1/-1;grid-row:2}}
+  .jr-tr{grid-template-columns:minmax(0,1fr) auto}.jr-tr .lv{grid-column:1/-1;grid-row:2}}
 #akOrderJudul[hidden],#akOrder[hidden],#btKunci[hidden]{display:none!important}
+#rwPeriode[hidden],#rwKetAI[hidden],#rwKetPola[hidden]{display:none!important}
+/* JURNAL RINCI */
+.jr-angka span.rp{text-transform:none;letter-spacing:0;font:11px var(--f-ui)}
+.jn-alat{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.jn-alat select,.jn-alat input{font:13px var(--f-ui);color:var(--teks);background:var(--bg2);border:1px solid var(--garis);border-radius:4px;padding:6px 9px}
+.jn-alat input{width:130px}
+.jn-stat{margin-bottom:12px}
+.jn-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--bg2)}
+.jn-bar i{display:block;height:100%}
+.jn-tabel{display:flex;flex-direction:column;border:1px solid var(--garis);border-radius:8px;overflow:hidden;background:var(--bg1)}
+.jn-tr{display:grid;grid-template-columns:minmax(0,1.6fr) repeat(5,minmax(0,.8fr)) minmax(60px,1.2fr);gap:8px;align-items:center;padding:7px 12px;border:0;border-top:1px solid var(--garis);background:transparent;color:inherit;font:12px var(--f-num);text-align:right;cursor:pointer}
+.jn-tr:first-child{border-top:0}
+.jn-tr>span:first-child{text-align:left;font:600 13px var(--f-ui)}
+.jn-tr[aria-pressed="true"]{background:var(--bglbl)}
+.jn-tr:hover{background:var(--bg2)}
+.jn-kepala-t{cursor:default;font:600 11px var(--f-ui);color:var(--label);text-transform:uppercase;letter-spacing:.04em;background:var(--bg2)}
+.jn-kepala-t:hover{background:var(--bg2)}
+.jn-kepala-t>span:first-child{font:600 11px var(--f-ui)}
+.jn-batang{height:6px;background:var(--bg2);border-radius:3px;overflow:hidden;display:block}
+.jn-batang i{display:block;height:100%}
+.jn-baris{cursor:pointer}
+.jr-rinci{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px 14px;padding:8px 0 2px;border-top:1px dashed var(--garis);font-size:12px;color:var(--label)}
+.jr-rinci b{color:var(--teks);font-family:var(--f-num);font-weight:500}
+.btn.kecil{padding:2px 8px;font-size:11px}
+@media (max-width:640px){.jn-tr{grid-template-columns:minmax(0,1.4fr) repeat(3,minmax(0,.9fr));}
+  .jn-tr>span:nth-child(5),.jn-tr>span:nth-child(6),.jn-tr>span:nth-child(7){display:none}}
 #akOrderJudul{margin-top:16px}
 #btForm.terkunci input:disabled{opacity:.7;cursor:not-allowed}
 #akForm[hidden],#akPesan[hidden],#btForm[hidden],#btPesan[hidden],#btPesanBar[hidden]{display:none!important}
@@ -231,8 +257,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
 <body>
 <div class="wrap">
   <header>
-    <h1>Terminal <b>AMONK</b></h1>
-    <span class="s">109 koin · sinyal POLA 4H &amp; AI 4H · spot · hanya membaca</span>
+    <h1>AMONK <b>MONITOR</b></h1>
     <div class="status"><span class="dot" id="dot"></span><span id="stat">menyambung…</span>
       <button class="btn ikon" id="tema" type="button" title="Ganti tampilan terang / gelap" aria-label="Ganti tema"></button></div>
   </header>
@@ -310,12 +335,15 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
   </div>
 
   <div class="hal" id="halRiwayat" hidden>
+    <div class="seg" role="group" aria-label="Sumber riwayat" id="rwSumber" style="margin-bottom:10px">
+      <button data-v="POLA">POLA 4H · level chart</button><button data-v="AI">AI 4H · analisa Claude</button>
+    </div>
     <div class="jr-ring" id="rwRing"><div class="kosong">Riwayat muncul sesudah lilin 4H termuat…</div></div>
     <div class="jr-pilih seg" role="group" aria-label="Periode riwayat" id="rwPeriode">
       <button data-m="maju" aria-pressed="false">Maju sejak 22-09-2026</button>
       <button data-m="semua" aria-pressed="true">Semua (dihitung ulang ~100 hari)</button>
     </div>
-    <div class="rw-judul">Hasil per pola <small>ketuk pola untuk melihat trade-nya · urut dari total USDT terbesar</small></div>
+    <div class="rw-judul" id="rwJudulPer">Hasil per pola <small>ketuk pola untuk melihat trade-nya · urut dari total USDT terbesar</small></div>
     <div class="rw-tabel" id="rwPola"></div>
     <div class="jr-pilih seg" role="group" aria-label="Saring riwayat">
       <button data-r="semua" aria-pressed="true">Semua</button>
@@ -325,16 +353,30 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
       <button data-r="rugi" aria-pressed="false">Rugi</button>
     </div>
     <div class="jr-list" id="rwList"></div>
-    <p class="jr-ket" style="margin-top:10px">Riwayat = SEMUA pola 4H valid di 109 koin selama ~100 hari terakhir, dihitung di perangkat ini dengan aturan yang sama dengan Terminal (entry close bar valid, 50% di TP1, SL ke entry, 50% di TP2, biaya 0,2%, 1000 USDT). Trade lebih tua dari ~100 hari tetap disimpan di perangkat ini. Mode "Maju" memakai catatan yang sama untuk semua perangkat (berkas GitHub yang ditulis otomatis tiap 4 jam): trade tutup dari catatan itu, trade jalan dari hitungan perangkat ini. Beda dengan tab Jurnal (buku rutin: SL 2,5 ATR / TP 1R).</p>
+    <p class="jr-ket" id="rwKetAI" style="margin-top:10px" hidden>Riwayat AI 4H = semua entry dari analisa chart Claude tiap 4 jam (buku jurnal laptop, dikirim ke GitHub tiap 4 jam). Nominal 1000 USDT per sinyal, biaya 0,2%, keluar di SL, TP, atau batas waktu. Trade "Jalan" dinilai dengan harga hidup. R = hasil ÷ jarak entry→SL.</p>
+    <p class="jr-ket" id="rwKetPola" style="margin-top:10px">Riwayat = SEMUA pola 4H valid di 109 koin selama ~100 hari terakhir, dihitung di perangkat ini dengan aturan yang sama dengan Terminal (entry close bar valid, 50% di TP1, SL ke entry, 50% di TP2, biaya 0,2%, 1000 USDT). Trade lebih tua dari ~100 hari tetap disimpan di perangkat ini. Mode "Maju" memakai catatan yang sama untuk semua perangkat (berkas GitHub yang ditulis otomatis tiap 4 jam): trade tutup dari catatan itu, trade jalan dari hitungan perangkat ini. Beda dengan tab Jurnal (buku rutin: SL 2,5 ATR / TP 1R).</p>
   </div>
 
   <div class="hal" id="halJurnal" hidden>
     <div class="jr-ring" id="jrRing"><div class="kosong">Memuat jurnal…</div></div>
-    <div class="jr-pilih seg" role="group" aria-label="Pilih sinyal">
-      <button data-j="POLA 4H" aria-pressed="true">POLA 4H</button>
-      <button data-j="AI 4H" aria-pressed="false">AI 4H</button>
-      <button data-j="buka" aria-pressed="false">Masih jalan</button>
+    <div class="jn-alat">
+      <div class="seg" role="group" aria-label="Sinyal" id="jnSinyal">
+        <button data-v="semua">Semua sinyal</button><button data-v="POLA 4H">POLA 4H</button><button data-v="AI 4H">AI 4H</button>
+      </div>
+      <div class="seg" role="group" aria-label="Status" id="jnStatus">
+        <button data-v="semua">Semua</button><button data-v="jalan">Jalan</button><button data-v="tutup">Tutup</button><button data-v="untung">Untung</button><button data-v="rugi">Rugi</button>
+      </div>
+      <select id="jnPeriode" aria-label="Periode"><option value="7">7 hari</option><option value="30">30 hari</option><option value="90">90 hari</option><option value="0">Semua waktu</option></select>
+      <select id="jnUrut" aria-label="Urutkan"><option value="baru">Urut: terbaru</option><option value="usdtB">Urut: USDT terbesar</option><option value="usdtK">Urut: USDT terkecil</option><option value="r">Urut: R terbesar</option><option value="lama">Urut: tahan terlama</option></select>
+      <input id="jnCari" type="search" placeholder="Cari koin" autocomplete="off">
     </div>
+    <div id="jnStat"></div>
+    <div class="rw-judul">Rincian <small>ketuk baris untuk menyaring daftar trade</small></div>
+    <div class="seg" role="group" aria-label="Rincian" id="jnRinciPilih" style="margin-bottom:8px">
+      <button data-v="bulan">Per bulan</button><button data-v="minggu">Per minggu</button><button data-v="jenis">Per pola/jenis</button><button data-v="koin">Per koin</button><button data-v="sebab">Per cara keluar</button><button data-v="hari">Per hari masuk</button>
+    </div>
+    <div id="jnRinci"></div>
+    <div class="rw-judul" style="margin-top:12px">Daftar trade <small id="jnJumlah"></small></div>
     <div class="jr-list" id="jrList"></div>
     <p class="jr-ket" id="jrWaktu" style="margin-top:10px"></p>
   </div>
@@ -1133,10 +1175,12 @@ function jam() {
 // --- kontrol ---
 function setSaring(f) {
   st.saring = f; simpan("saring", f);
-  document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.f === f ? "true" : "false"));
+  // hanya tombol saring Terminal (data-f). Dulu ".seg button" ikut menangkap tombol Riwayat/Jurnal/Akun:
+  // klik di sana membuat st.saring = undefined dan menghapus tanda tombol aktif di halaman lain.
+  document.querySelectorAll(".seg button[data-f]").forEach(b => b.setAttribute("aria-pressed", b.dataset.f === f ? "true" : "false"));
   gambar();
 }
-document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => setSaring(b.dataset.f)));
+document.querySelectorAll(".seg button[data-f]").forEach(b => b.addEventListener("click", () => setSaring(b.dataset.f)));
 document.querySelectorAll("th[data-k]").forEach(th => {
   const klik = () => {
     const k = th.dataset.k;
@@ -1308,27 +1352,144 @@ function gambarJurnal() {
       `<div><span>Jalan</span><b>${buka.length}</b></div><div><span>USDT jalan</span><b class="${kl(jalan)}">${buka.length ? f2(jalan) : "—"}</b></div></div>` +
       kurvaJ(tutup) + `<p class="jr-ket">${sg.ket}</p></div>`;
   }).join("");
-  let rows = [];
-  for (const [nm, sg] of Object.entries(JR.sinyal)) for (const t of sg.trades) rows.push({ ...t, sinyal: nm });
-  rows = jrPilih === "buka" ? rows.filter(t => t.terbuka) : rows.filter(t => t.sinyal === jrPilih);
-  rows.sort((a, b) => (a.terbuka !== b.terbuka ? (a.terbuka ? -1 : 1) : ((b.masuk || "") < (a.masuk || "") ? -1 : 1)));
-  $("jrList").innerHTML = rows.length ? rows.map(t => {
-    const px = t.terbuka ? hargaKini(t.koin) : t.exit, us = t.terbuka ? uangJ(t.entry, px) : t.usdt;
-    const pc = us == null ? null : us / JR.nominal * 100;
+  // JURNAL RINCI (2026-09-22, user: "informasi lebih bervariasi agar aku bisa memilih dan melihat lebih detail").
+  // Saringan: sinyal · status · periode · cari koin; statistik lengkap himpunan tersaring; rincian per
+  // bulan/minggu/pola/koin/cara keluar/hari (ketuk baris = saring daftar); baris trade bisa dibuka untuk detail.
+  const semua = jnBaris(), rows = jnSaring(semua);
+  $("jnStat").innerHTML = jnStatHtml(rows);
+  $("jnRinci").innerHTML = jnRinciHtml(rows);
+  let daftar = JN_S.grup ? rows.filter(t => jnKunciGrup(t, JN_S.rinci) === JN_S.grup) : rows;
+  const urut = { baru: (a, b) => b.mT - a.mT, usdtB: (a, b) => (b.us ?? -1e9) - (a.us ?? -1e9), usdtK: (a, b) => (a.us ?? 1e9) - (b.us ?? 1e9),
+    r: (a, b) => (b.R ?? -1e9) - (a.R ?? -1e9), lama: (a, b) => b.jam - a.jam }[JN_S.urut] || ((a, b) => b.mT - a.mT);
+  daftar = daftar.slice().sort((a, b) => (a.terbuka !== b.terbuka && JN_S.urut === "baru" ? (a.terbuka ? -1 : 1) : urut(a, b)));
+  $("jnJumlah").innerHTML = `${daftar.length} trade${JN_S.grup ? ` · disaring: <b>${JN_S.grup}</b> <button type="button" class="btn kecil" id="jnHapusGrup">✕ hapus saring</button>` : ""}`;
+  $("jrList").innerHTML = daftar.length ? daftar.slice(0, 300).map(t => {
+    const kunci = t.sinyal + "|" + t.koin + "|" + t.masuk, buka = JN_BUKA.has(kunci);
     const st = t.terbuka ? `<span class="chip jalan">Jalan</span>` : `<span class="chip ${t.usdt > 0 ? "tp" : "sl"}">${t.sebab || "tutup"}</span>`;
-    const tgl = t.masuk ? t.masuk.slice(5, 10).replace("-", "/") + " " + t.masuk.slice(11, 16) : "—";
-    return `<div class="jr-tr${t.terbuka ? " buka" : ""}${klsSt(t.terbuka, us)}"><div style="min-width:0"><div class="nm">${t.koin}</div><div class="sub">${t.sinyal} · ${t.jenis || ""} · ${tgl} UTC</div></div>` +
-      `<div class="lv">E ${fHarga(t.entry)}<br>SL ${fHarga(t.sl)} · TP ${fHarga(t.tp)}</div>` +
-      `<div class="ha"><b class="${kl(us)}">${f2(us)}</b>${st}</div></div>`;
-  }).join("") : `<div class="kosong">Tidak ada trade di sini.</div>`;
+    return `<div class="jr-tr jn-baris${t.terbuka ? " buka" : ""}${klsSt(t.terbuka, t.us)}" data-k="${kunci}" tabindex="0" role="button" aria-expanded="${buka}">` +
+      `<div style="min-width:0"><div class="nm">${t.koin} <span class="jn-label${t.sinyal === "AI 4H" ? " sinyal" : ""}">${t.sinyal}</span></div><div class="sub">${t.jenis || ""} · ${jamLokal(t.mT)} · ${jnLama(t.jam)}</div></div>` +
+      `<div class="lv">E ${fHarga(t.entry)}${t.terbuka ? " · kini " + fHarga(t.px) : t.exit != null ? " → " + fHarga(t.exit) : ""}<br>SL ${fHarga(t.sl)} · TP ${fHarga(t.tp)}</div>` +
+      `<div class="ha"><b class="${kl(t.us)}">${f2(t.us)}</b><span class="rp">${t.R == null ? "" : f2(t.R) + " R"}</span>${st}</div>` +
+      (buka ? jnDetailHtml(t) : "") + `</div>`;
+  }).join("") + (daftar.length > 300 ? `<div class="kosong">+${daftar.length - 300} trade lebih lama tidak ditampilkan.</div>` : "") : `<div class="kosong">Tidak ada trade yang cocok dengan saringan ini.</div>`;
   const w = new Date(JR.waktu);
-  $("jrWaktu").textContent = `Jurnal dikirim dari laptop ${w.toISOString().slice(0, 16).replace("T", " ")} UTC · trade "Jalan" dinilai dengan harga hidup.`;
+  $("jrWaktu").textContent = `Jurnal dikirim dari laptop ${jamLokal(w)} ${ZONA} · trade "Jalan" dinilai dengan harga hidup · jam ditampilkan dalam zona perangkat ini.`;
 }
-document.querySelectorAll(".jr-pilih button").forEach(b => {
-  b.setAttribute("aria-pressed", b.dataset.j === jrPilih ? "true" : "false");
-  b.addEventListener("click", () => { jrPilih = b.dataset.j; simpan("jrPilih", jrPilih);
-    document.querySelectorAll(".jr-pilih button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false")); gambarJurnal(); });
-});
+// ---------- pembantu jurnal ----------
+const JN_S = Object.assign({ sinyal: "semua", status: "semua", periode: "0", urut: "baru", cari: "", rinci: "bulan", grup: null }, baca("jnS", {}));
+if (baca("jnS", null) === null && jrPilih) { if (jrPilih === "buka") JN_S.status = "jalan"; else JN_S.sinyal = jrPilih; }   // bawa pilihan lama
+JN_S.grup = null; JN_S.cari = "";
+const JN_BUKA = new Set();
+const tUtc = s => s ? Date.parse(/Z$|[+-]\d\d:?\d\d$/.test(s) ? s : s + "Z") : null;   // jurnal menulis jam UTC tanpa "Z"
+const jnLama = j => j == null || !isFinite(j) ? "—" : j < 48 ? Math.round(j) + " jam" : (j / 24).toFixed(1) + " hari";
+const HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+function jnBaris() {
+  const out = []; if (!JR) return out;
+  for (const [nm, sg] of Object.entries(JR.sinyal)) for (const t of sg.trades) {
+    const mT = tUtc(t.masuk), kT = t.keluar ? tUtc(t.keluar) : null;
+    const px = t.terbuka ? hargaKini(t.koin) : t.exit, us = t.terbuka ? uangJ(t.entry, px) : t.usdt;
+    const riskU = t.entry > t.sl && t.sl > 0 ? JR.nominal * (t.entry - t.sl) / t.entry : null;   // rugi bila kena SL (tanpa biaya)
+    out.push({ ...t, sinyal: nm, mT, kT, px, us, pc: us == null ? null : us / JR.nominal * 100, R: us != null && riskU ? us / riskU : null,
+      jam: ((kT || Date.now()) - mT) / 3600e3, rr: t.entry > t.sl && t.tp > t.entry ? (t.tp - t.entry) / (t.entry - t.sl) : null,
+      slPct: t.entry > 0 && t.sl > 0 ? (t.entry - t.sl) / t.entry * 100 : null });
+  }
+  return out;
+}
+function jnSaring(a) {
+  const batas = +JN_S.periode ? Date.now() - +JN_S.periode * 864e5 : 0, cari = JN_S.cari.trim().toUpperCase();
+  return a.filter(t => (JN_S.sinyal === "semua" || t.sinyal === JN_S.sinyal) && t.mT >= batas && (!cari || t.koin.toUpperCase().includes(cari)) &&
+    (JN_S.status === "semua" || (JN_S.status === "jalan" ? t.terbuka : JN_S.status === "tutup" ? !t.terbuka
+      : JN_S.status === "untung" ? !t.terbuka && t.us > 0 : !t.terbuka && t.us <= 0)));
+}
+function jnHitung(tutup) {
+  const n = tutup.length, u = tutup.map(t => t.us || 0), w = u.filter(x => x > 0), l = u.filter(x => x <= 0);
+  const tot = u.reduce((a, b) => a + b, 0), sw = w.reduce((a, b) => a + b, 0), sl = l.reduce((a, b) => a + b, 0);
+  const Rs = tutup.map(t => t.R).filter(v => v != null);
+  let c = 0, pk = 0, dd = 0, sW = 0, sL = 0, mW = 0, mL = 0;
+  for (const t of tutup.slice().sort((a, b) => (a.kT || a.mT) - (b.kT || b.mT))) {
+    c += t.us || 0; pk = Math.max(pk, c); dd = Math.min(dd, c - pk);
+    if ((t.us || 0) > 0) { sW++; sL = 0; mW = Math.max(mW, sW); } else { sL++; sW = 0; mL = Math.max(mL, sL); }
+  }
+  return { n, m: w.length, wr: n ? w.length / n * 100 : 0, tot, rata: n ? tot / n : null, avgW: w.length ? sw / w.length : null, avgL: l.length ? sl / l.length : null,
+    pf: sl < 0 ? sw / -sl : w.length ? Infinity : null, rR: Rs.length ? Rs.reduce((a, b) => a + b, 0) / Rs.length : null,
+    best: n ? Math.max(...u) : null, worst: n ? Math.min(...u) : null, dd, mW, mL,
+    jam: n ? tutup.reduce((a, t) => a + (t.jam || 0), 0) / n : null };
+}
+function jnStatHtml(rows) {
+  const f2 = v => v == null || !isFinite(v) ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
+  const tutup = rows.filter(t => !t.terbuka), jalan = rows.filter(t => t.terbuka), H = jnHitung(tutup);
+  const uJ = jalan.reduce((a, t) => a + (t.us || 0), 0);
+  const seb = {}; for (const t of tutup) seb[t.sebab || "lain"] = (seb[t.sebab || "lain"] || 0) + 1;
+  const warna = { TP: "var(--hijau)", SL: "var(--merah)", WAKTU: "var(--kuning)" };
+  const bar = H.n ? `<div class="bar jn-bar" title="cara keluar">${Object.entries(seb).map(([k, v]) => `<i style="width:${v / H.n * 100}%;background:${warna[k] || "var(--label)"}" title="${k} ${v}"></i>`).join("")}</div>` +
+    `<div class="jr-ket">${Object.entries(seb).map(([k, v]) => `${k} ${v} (${Math.round(v / H.n * 100)}%)`).join(" · ")}</div>` : "";
+  const judul = [JN_S.sinyal === "semua" ? "Semua sinyal" : JN_S.sinyal, { semua: "", jalan: "jalan", tutup: "tutup", untung: "untung", rugi: "rugi" }[JN_S.status],
+    +JN_S.periode ? JN_S.periode + " hari terakhir" : "semua waktu", JN_S.cari ? "koin " + JN_S.cari.toUpperCase() : ""].filter(Boolean).join(" · ");
+  return `<div class="jr-kotak jn-stat"><h3>Statistik <small>${judul}</small></h3>` +
+    `<div class="jr-angka"><div><span>Trade tutup</span><b>${H.n}</b><span class="rp">${jalan.length} masih jalan</span></div><div><span>Win rate</span><b>${H.n ? Math.round(H.wr) + "%" : "—"}</b><span class="rp">${H.m} untung · ${H.n - H.m} rugi</span></div>` +
+    `<div><span>Total USDT tutup</span><b class="${kl(H.tot)}">${f2(H.tot)}</b><span class="rp">jalan ${jalan.length ? f2(uJ) : "—"}</span></div></div>` +
+    `<div class="jr-angka"><div><span>Rata-rata per trade</span><b class="${kl(H.rata)}">${f2(H.rata)}</b><span class="rp">USDT per 1000</span></div><div><span>Rata-rata R</span><b class="${kl(H.rR)}">${H.rR == null ? "—" : f2(H.rR) + " R"}</b><span class="rp">hasil ÷ jarak SL</span></div>` +
+    `<div><span>Profit factor</span><b class="${H.pf == null ? "" : H.pf >= 1 ? "naik" : "turun"}">${H.pf == null ? "—" : isFinite(H.pf) ? H.pf.toFixed(2) : "∞"}</b><span class="rp">untung ÷ rugi</span></div></div>` +
+    `<div class="jr-angka"><div><span>Rata untung</span><b class="naik">${f2(H.avgW)}</b></div><div><span>Rata rugi</span><b class="turun">${f2(H.avgL)}</b></div>` +
+    `<div><span>Drawdown maks</span><b class="${H.dd < 0 ? "turun" : ""}">${H.n ? f2(H.dd) : "—"}</b><span class="rp">USDT, dari puncak</span></div></div>` +
+    `<div class="jr-angka"><div><span>Terbaik</span><b class="naik">${f2(H.best)}</b></div><div><span>Terburuk</span><b class="turun">${f2(H.worst)}</b></div>` +
+    `<div><span>Rata lama tahan</span><b>${jnLama(H.jam)}</b><span class="rp">beruntun: menang ${H.mW} · kalah ${H.mL}</span></div></div>` +
+    bar + kurvaJ(tutup.map(t => ({ usdt: t.us || 0, keluar: t.keluar || t.masuk, masuk: t.masuk }))) +
+    (H.n < AMBANG_N ? `<p class="jr-ket kng">Baru ${H.n} trade tutup di saringan ini. Di bawah ${AMBANG_N} trade, angka di atas belum bisa disimpulkan.</p>` : "") + `</div>`;
+}
+function jnKunciGrup(t, jenis) {
+  const d = new Date(t.mT);
+  if (jenis === "bulan") return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  if (jenis === "minggu") { const s = new Date(d); s.setHours(0, 0, 0, 0); s.setDate(s.getDate() - ((s.getDay() + 6) % 7)); return "mg " + tglLokal(s); }
+  if (jenis === "jenis") return t.jenis || "—";
+  if (jenis === "koin") return t.koin;
+  if (jenis === "sebab") return t.terbuka ? "Jalan" : (t.sebab || "lain");
+  if (jenis === "hari") return HARI[d.getDay()];
+  return "—";
+}
+function jnRinciHtml(rows) {
+  const f2 = v => v == null || !isFinite(v) ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
+  const g = {};
+  for (const t of rows) { const k = jnKunciGrup(t, JN_S.rinci); (g[k] = g[k] || []).push(t); }
+  let E = Object.entries(g).map(([k, a]) => { const tt = a.filter(t => !t.terbuka); return { k, a, jalan: a.length - tt.length, H: jnHitung(tt) }; });
+  const urutHari = HARI.slice(1).concat(HARI[0]);
+  E.sort(JN_S.rinci === "bulan" || JN_S.rinci === "minggu" ? (x, y) => (Math.max(...y.a.map(t => t.mT)) - Math.max(...x.a.map(t => t.mT)))
+    : JN_S.rinci === "hari" ? (x, y) => urutHari.indexOf(x.k) - urutHari.indexOf(y.k) : (x, y) => y.H.tot - x.H.tot);
+  if (!E.length) return `<div class="kosong">Tidak ada data.</div>`;
+  const maks = Math.max(...E.map(e => Math.abs(e.H.tot)), 1);
+  const tampil = JN_S.rinci === "koin" ? E.slice(0, 40) : E;
+  return `<div class="jn-tabel"><div class="jn-tr jn-kepala-t"><span>${{ bulan: "Bulan", minggu: "Minggu mulai", jenis: "Pola / jenis", koin: "Koin", sebab: "Cara keluar", hari: "Hari masuk" }[JN_S.rinci]}</span><span>Tutup</span><span>WR</span><span>Total USDT</span><span>Rata</span><span>Rata R</span><span></span></div>` +
+    tampil.map(e => `<button type="button" class="jn-tr" data-g="${String(e.k).replace(/"/g, "")}" aria-pressed="${JN_S.grup === e.k}"><span class="nm">${e.k}${e.jalan ? ` <small class="redup">+${e.jalan} jalan</small>` : ""}</span><span>${e.H.n}</span><span>${e.H.n ? Math.round(e.H.wr) + "%" : "—"}</span>` +
+      `<span class="${kl(e.H.tot)}">${e.H.n ? f2(e.H.tot) : "—"}</span><span class="${kl(e.H.rata)}">${f2(e.H.rata)}</span><span class="${kl(e.H.rR)}">${e.H.rR == null ? "—" : f2(e.H.rR)}</span>` +
+      `<span class="jn-batang"><i style="width:${Math.abs(e.H.tot) / maks * 100}%;background:${e.H.tot >= 0 ? "var(--hijau)" : "var(--merah)"}"></i></span></button>`).join("") +
+    (E.length > tampil.length ? `<div class="kosong">+${E.length - tampil.length} koin lain (cari koin di atas untuk melihatnya)</div>` : "") + `</div>`;
+}
+function jnDetailHtml(t) {
+  const f2 = v => v == null || !isFinite(v) ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2);
+  return `<div class="jr-rinci"><span>Masuk <b>${jamLokal(t.mT)} ${ZONA}</b></span><span>${t.terbuka ? "Masih jalan" : "Keluar <b>" + jamLokal(t.kT) + " " + ZONA + "</b>"}</span><span>Lama <b>${jnLama(t.jam)}</b></span>` +
+    `<span>Entry <b>${fHarga(t.entry)}</b></span><span>SL <b>${fHarga(t.sl)}</b> (−${t.slPct == null ? "—" : t.slPct.toFixed(2)}%)</span><span>TP <b>${fHarga(t.tp)}</b></span>` +
+    `<span>${t.terbuka ? "Harga kini" : "Keluar di"} <b>${fHarga(t.px)}</b>${t.sebab ? " · " + t.sebab : ""}</span><span>R:R rencana <b>${t.rr == null ? "—" : "1 : " + t.rr.toFixed(2)}</b></span>` +
+    `<span>Hasil <b>${f2(t.us)} USDT</b> · ${f2(t.pc)}% · ${t.R == null ? "—" : f2(t.R) + " R"}</span><span>Sinyal <b>${t.sinyal}</b> · ${t.jenis || "—"}</span></div>`;
+}
+// ---------- kontrol jurnal ----------
+function jnPasangSeg(id, kunci) {
+  document.querySelectorAll(`#${id} button`).forEach(b => {
+    b.setAttribute("aria-pressed", b.dataset.v === JN_S[kunci] ? "true" : "false");
+    b.addEventListener("click", () => { JN_S[kunci] = b.dataset.v; JN_S.grup = null; simpan("jnS", JN_S);
+      document.querySelectorAll(`#${id} button`).forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false")); gambarJurnal(); });
+  });
+}
+jnPasangSeg("jnSinyal", "sinyal"); jnPasangSeg("jnStatus", "status"); jnPasangSeg("jnRinciPilih", "rinci");
+$("jnPeriode").value = JN_S.periode; $("jnUrut").value = JN_S.urut;
+$("jnPeriode").addEventListener("change", () => { JN_S.periode = $("jnPeriode").value; JN_S.grup = null; simpan("jnS", JN_S); gambarJurnal(); });
+$("jnUrut").addEventListener("change", () => { JN_S.urut = $("jnUrut").value; simpan("jnS", JN_S); gambarJurnal(); });
+$("jnCari").addEventListener("input", () => { JN_S.cari = $("jnCari").value; JN_S.grup = null; gambarJurnal(); });
+$("jnRinci").addEventListener("click", e => { const b = e.target.closest("button[data-g]"); if (!b) return;
+  JN_S.grup = JN_S.grup === b.dataset.g ? null : b.dataset.g; gambarJurnal(); });
+$("jnJumlah").addEventListener("click", e => { if (e.target.id === "jnHapusGrup") { JN_S.grup = null; gambarJurnal(); } });
+const jnTogel = el => { const k = el.dataset.k; JN_BUKA.has(k) ? JN_BUKA.delete(k) : JN_BUKA.add(k); gambarJurnal(); };
+$("jrList").addEventListener("click", e => { const r = e.target.closest(".jn-baris"); if (r) jnTogel(r); });
+$("jrList").addEventListener("keydown", e => { const r = e.target.closest(".jn-baris"); if (r && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); jnTogel(r); } });
 setInterval(() => { if (halAktif === "Jurnal" && JR) gambarJurnal(); }, 5000);
 setInterval(() => { if (JR) muatJurnal(); }, 30 * 60e3);   // ambil ulang jurnal tiap 30 menit
 // ================= AKUN BINANCE (hanya membaca) =================
@@ -2009,7 +2170,60 @@ function majuHtml(nm, x, kolam) {
 }
 document.querySelectorAll("#rwPeriode button").forEach(b => b.addEventListener("click", () => {
   rwMode = b.dataset.m; simpan("rwMode", rwMode); rwPola = null; window.gambarRiwayat(); }));
+// RIWAYAT AI 4H (2026-09-22, permintaan user). Sumber: buku AI 4H di data_jurnal.json (sama dengan tab Jurnal).
+let rwSumber = baca("rwSumber", "POLA");
+document.querySelectorAll("#rwSumber button").forEach(b => {
+  b.setAttribute("aria-pressed", b.dataset.v === rwSumber ? "true" : "false");
+  b.addEventListener("click", () => { rwSumber = b.dataset.v; simpan("rwSumber", rwSumber); rwPola = null;
+    document.querySelectorAll("#rwSumber button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false")); window.gambarRiwayat(); });
+});
+function gambarRiwayatAI() {
+  if (!JR) { $("rwRing").innerHTML = `<div class="kosong">Memuat buku AI 4H…</div>`; $("rwPola").innerHTML = $("rwList").innerHTML = "";
+    muatJurnal().then(() => { if (halAktif !== "Riwayat" || rwSumber !== "AI") return;
+      if (JR) gambarRiwayatAI(); else $("rwRing").innerHTML = `<div class="kosong">Buku AI 4H belum tersedia di sini. Buku ini hanya ada di versi online (amonkshark.github.io/Amonk).</div>`; }); return; }
+  const f2 = v => v == null || !isFinite(v) ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
+  const semua = jnBaris().filter(t => t.sinyal === "AI 4H");
+  const tutup = semua.filter(t => !t.terbuka), jalan = semua.filter(t => t.terbuka), H = jnHitung(tutup);
+  const uJ = jalan.reduce((a, t) => a + (t.us || 0), 0);
+  const awal = semua.length ? Math.min(...semua.map(t => t.mT)) : null;
+  const bln = tutup.length ? (Date.now() - Math.min(...tutup.map(t => t.mT))) / (30.44 * 864e5) : 0;
+  $("rwRing").innerHTML = `<div class="jr-kotak"><h3>Riwayat trade AI 4H <small>sejak ${awal ? tglLokal(awal) : "—"} · analisa chart Claude</small></h3>` +
+    `<div class="jr-angka"><div><span>Tutup</span><b>${H.n}</b></div><div><span>WR</span><b>${H.n ? Math.round(H.wr) : 0}%</b></div><div><span>USDT tutup</span><b class="${kl(H.tot)}">${f2(H.tot)}</b></div></div>` +
+    `<div class="jr-angka"><div><span>Jalan</span><b>${jalan.length}</b></div><div><span>Rata/trade</span><b class="${kl(H.rata)}">${f2(H.rata)}</b></div><div><span>USDT jalan</span><b class="${kl(uJ)}">${jalan.length ? f2(uJ) : "—"}</b></div></div>` +
+    `<div class="jr-angka"><div><span>Rata R</span><b class="${kl(H.rR)}">${H.rR == null ? "—" : f2(H.rR) + " R"}</b></div><div><span>Profit factor</span><b>${H.pf == null ? "—" : isFinite(H.pf) ? H.pf.toFixed(2) : "∞"}</b></div><div><span>Drawdown maks</span><b class="${H.dd < 0 ? "turun" : ""}">${f2(H.dd)}</b></div></div>` +
+    kurvaJ(tutup.map(t => ({ usdt: t.us || 0, keluar: t.keluar || t.masuk, masuk: t.masuk }))) +
+    `<div class="rw-maju"><div class="pb"><span>trade</span><div><i style="width:${Math.min(1, H.n / AMBANG_N) * 100}%"></i></div><span>${H.n}/${AMBANG_N}</span></div>` +
+    `<div class="pb"><span>waktu</span><div><i style="width:${Math.min(1, bln / AMBANG_BULAN) * 100}%"></i></div><span>${bln.toFixed(1)}/${AMBANG_BULAN} bln</span></div>` +
+    `<span class="rw-vonis" style="color:var(--label)">${H.n >= AMBANG_N && bln >= AMBANG_BULAN ? "Cukup data untuk dinilai" : "Belum cukup data"}</span></div></div>`;
+  // per koin (kartu sama dengan per pola; ketuk = saring daftar)
+  const per = {};
+  for (const t of semua) { const x = per[t.koin] = per[t.koin] || { tt: [], jalan: 0 }; if (t.terbuka) x.jalan++; else x.tt.push(t); }
+  $("rwPola").innerHTML = Object.entries(per).map(([k, x]) => ({ k, x, H: jnHitung(x.tt) })).sort((a, b) => b.H.tot - a.H.tot).map(({ k, x, H: h }) => {
+    const seb = s => h.n ? (x.tt.filter(t => t.sebab === s).length / h.n * 100).toFixed(1) + "%" : "0";
+    return `<button type="button" class="rw-pola" data-p="${k}" aria-pressed="${rwPola === k}"><div class="j"><b>${k}</b><span class="${kl(h.tot)}">${h.n ? f2(h.tot) : "—"}</span></div>` +
+      `<div class="bar" title="TP / WAKTU / SL"><i style="width:${seb("TP")};background:var(--hijau)"></i><i style="width:${seb("WAKTU")};background:var(--kuning)"></i><i style="width:${seb("SL")};background:var(--merah)"></i></div>` +
+      `<div class="d"><span><em>${h.n}</em> tutup</span><span>WR <em>${h.n ? Math.round(h.wr) : 0}%</em></span><span>rata <em class="${kl(h.rata)}">${f2(h.rata)}</em></span>${x.jalan ? `<span>jalan <em>${x.jalan}</em></span>` : ""}</div>` +
+      `<div class="d"><span>rata R <em class="${kl(h.rR)}">${h.rR == null ? "—" : f2(h.rR)}</em></span><span>terbaik <em class="naik">${f2(h.best)}</em></span><span>terburuk <em class="turun">${f2(h.worst)}</em></span></div></button>`;
+  }).join("");
+  document.querySelectorAll("#rwPola .rw-pola").forEach(b => b.addEventListener("click", () => { rwPola = rwPola === b.dataset.p ? null : b.dataset.p; window.gambarRiwayat(); }));
+  let rows = semua.slice();
+  if (rwPola) rows = rows.filter(t => t.koin === rwPola);
+  if (rwPilih === "jalan") rows = rows.filter(t => t.terbuka); else if (rwPilih === "tutup") rows = rows.filter(t => !t.terbuka);
+  else if (rwPilih === "untung") rows = rows.filter(t => !t.terbuka && t.us > 0); else if (rwPilih === "rugi") rows = rows.filter(t => !t.terbuka && t.us <= 0);
+  rows.sort((a, b) => b.mT - a.mT);
+  $("rwList").innerHTML = rows.map(t => {
+    const st = t.terbuka ? `<span class="chip jalan">Jalan</span>` : `<span class="chip ${t.us > 0 ? "tp" : "sl"}">${t.sebab || "tutup"}</span>`;
+    return `<div class="jr-tr${t.terbuka ? " buka" : ""}${klsSt(t.terbuka, t.us)}"><div style="min-width:0"><div class="nm">${t.koin}</div><div class="sub">masuk ${jamLokal(t.mT)}${t.kT ? " · keluar " + jamLokal(t.kT) : ""} · ${jnLama(t.jam)}</div></div>` +
+      `<div class="lv">E ${fHarga(t.entry)}${t.terbuka ? " · kini " + fHarga(t.px) : " → " + fHarga(t.exit)}<br>SL ${fHarga(t.sl)} · TP ${fHarga(t.tp)}${t.rr ? " · R:R 1:" + t.rr.toFixed(1) : ""}</div>` +
+      `<div class="ha"><b class="${kl(t.us)}">${f2(t.us)}</b><span class="rp">${t.R == null ? "" : f2(t.R) + " R"}</span>${st}</div></div>`;
+  }).join("") || `<div class="kosong">Tidak ada trade di sini.</div>`;
+}
 window.gambarRiwayat = function () {
+  const ai = rwSumber === "AI";
+  $("rwPeriode").hidden = ai; $("rwKetAI").hidden = !ai; $("rwKetPola").hidden = ai;
+  $("rwJudulPer").innerHTML = ai ? `Hasil per koin <small>ketuk koin untuk melihat trade-nya · urut dari total USDT terbesar</small>`
+    : `Hasil per pola <small>ketuk pola untuk melihat trade-nya · urut dari total USDT terbesar</small>`;
+  if (ai) return gambarRiwayatAI();
   const semuaRw = Object.values(RW);
   if (rwMode === "maju" && !MAJU_GH.t) ambilMajuGH();
   if (!semuaRw.length && !(rwMode === "maju" && MAJU_GH.rec)) return;
@@ -2070,10 +2284,10 @@ window.gambarRiwayat = function () {
   }).join("") + (rows.length > 300 ? `<div class="kosong">+${rows.length - 300} trade lebih lama tidak ditampilkan.</div>` : "") ||
     `<div class="kosong">Tidak ada trade di sini.</div>`;
 };
-document.querySelectorAll("#halRiwayat .jr-pilih button").forEach(b => {
+document.querySelectorAll("#halRiwayat .jr-pilih button[data-r]").forEach(b => {
   b.setAttribute("aria-pressed", b.dataset.r === rwPilih ? "true" : "false");
   b.addEventListener("click", () => { rwPilih = b.dataset.r; simpan("rwPilih", rwPilih);
-    document.querySelectorAll("#halRiwayat .jr-pilih button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false")); window.gambarRiwayat(); });
+    document.querySelectorAll("#halRiwayat .jr-pilih button[data-r]").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false")); window.gambarRiwayat(); });
 });
 setInterval(() => { if (halAktif === "Riwayat") window.gambarRiwayat(); }, 5000);
 
