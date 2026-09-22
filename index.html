@@ -447,6 +447,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
       <li><b>Jurnal</b> — catatan forward-test <b>POLA 4H</b> dan <b>AI 4H</b>: tiap sinyal dianggap entry 1000 USDT. Dikirim dari laptop tiap 4 jam; trade yang masih jalan dinilai dengan harga hidup.</li>
       <li>Hanya dua sinyal: POLA 4H dan AI 4H. Timeframe 4H, spot, long saja.</li>
       <li><b>Akun</b> — saldo spot Binance, harga beli rata-rata, PnL koin, dan order terbuka, lewat perantara Cloudflare Worker milikmu. HANYA MEMBACA: perantara menolak kunci API yang bisa trading atau tarik dana, dan aplikasi tidak punya tombol order.</li>
+      <li><b>Bot trading otomatis</b> (tab Akun) — sejak 22-09-2026 trading di <b>akun Binance asli</b> dengan modal awal 221 USDT (dipagu di Cloudflare). Sinyal: alert POLA VALID 4H dari 100 koin di TradingView + FIB 1H dari GitHub. Aturan: ukuran = modal ÷ maks entry, SL & TP dari sinyal, 50% di TP1 lalu SL sisa ke entry, 50% di TP2. Kunci trading hanya ada di server perantara ber-IP tetap (Frankfurt) — tanpa izin tarik dana. Koin yang sedang Anda pegang dilewati bot; jangan jual manual koin yang dipegang bot. Tombol <b>🔌 Uji sambungan</b> memeriksa seluruh jalur. Bot ini <b>belum terbukti menguntungkan</b> — nilai setelah ≥ 30 trade dan ≥ 6 bulan.</li>
       <li><b>Risiko</b> (tab Akun) — <b>risiko serentak</b>: berapa % saldo hilang bila semua posisi terbuka kena SL bersamaan (batas bawaan 3%); <b>peringatan per trade</b> di kolom Ukuran posisi bila rugi-bila-SL melewati batas (bawaan 1% saldo); <b>aturan jeda</b> dari trade nyata: N rugi berturut (bawaan 3) atau rugi 7 hari ≥ 5% saldo → saran jeda seminggu. Semua batas bisa diubah di pengaturan Akun. Ini disiplin, bukan sinyal.</li>
       <li><b>Pengukur nyata</b> (tab Akun, jurnal trade nyata) — biaya nyatamu (selisih isi vs entry sinyal + komisi, dalam R) dan sinyal yang kamu ambil vs yang kamu lewati (simulasi yang sama untuk keduanya, dibanding pilihan acak).</li>
       <li><b>Riwayat mode Maju</b> — trade tutup diambil dari catatan GitHub yang ditulis otomatis tiap 4 jam, jadi sama di semua perangkat; trade jalan dihitung di perangkat ini.</li>
@@ -1987,9 +1988,11 @@ function kotakBanding(s) {
     `<div><span>Bot (testnet)</span><b class="${kl(rb.rata)}">${f2(rb.rata)}%</b><span class="rp">${rb.n} trade · WR ${rb.wr}% · ${f2(rb.per1000)} per 1000</span></div>` +
     `<div><span>Selisih rata/trade</span><b class="${kl(ra.rata != null && rb.rata != null ? ra.rata - rb.rata : null)}">${ra.rata != null && rb.rata != null ? f2(ra.rata - rb.rata) + "%" : "—"}</b><span class="rp">Anda − bot</span></div></div>` + rinci +
     (sama.length ? `<div class="ak-pola">${sama.slice(0, 12).map(x => `<span>${x.koin} ${x.pola}: Anda <b class="${kl(x.anda)}">${f2(x.anda)}%</b> · bot <b class="${kl(x.bot)}">${f2(x.bot)}%</b></span>`).join("")}</div>` : "") +
-    `<p class="jr-ket">Dihitung dalam % per trade, jadi beda ukuran posisi tidak memengaruhi. Semua trade di akun Binance asli adalah trade Anda; bot hanya bertrading di testnet. ` +
+    `<p class="jr-ket">Dihitung dalam % per trade, jadi beda ukuran posisi tidak memengaruhi. ` +
+    (s && s.jaringan === "asli" ? `Bot trading di akun Binance ASLI yang sama dengan Anda; trade yang dimulai ≤ 15 menit dari entry bot di koin yang sama dihitung milik bot, sisanya milik Anda. `
+      : `Semua trade di akun Binance asli adalah trade Anda; bot hanya bertrading di testnet. `) +
     `"Sama-sama diambil" = koin sama, masuk dalam 48 jam. Kalau bot mengambil SEMUA sinyal, "Hanya Anda" vs "Hanya bot" menjawab apakah pilihan Anda lebih baik dari tidak memilih. ` +
-    `Ingat: bot memakai harga TESTNET yang bisa berbeda dari pasar asli, dan vonis baru berarti setelah ≥ ${AMBANG_N} trade di masing-masing sisi.</p></div>`;
+    `Ingat: ${s && s.jaringan === "asli" ? "" : "bot memakai harga TESTNET yang bisa berbeda dari pasar asli, dan "}vonis baru berarti setelah ≥ ${AMBANG_N} trade di masing-masing sisi.</p></div>`;
 }
 // Hasil satu trade bot dalam R: hasil USDT ÷ rugi bila kena SL awal (ukuran × jarak isi→SL). null kalau SL tak sah.
 function rBot(r) { if (!(r && r.isi > r.sl && r.sl > 0 && r.beliUsdt > 0)) return null; const risk = r.beliUsdt * (r.isi - r.sl) / r.isi; return risk > 0 ? r.hasil / risk : null; }
