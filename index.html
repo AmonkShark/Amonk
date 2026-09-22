@@ -146,6 +146,9 @@ svg.sp{display:block;width:84px;height:22px}
 .ak-set .tb{display:flex;gap:6px}
 @media (max-width:640px){.ak-set{grid-template-columns:1fr}}
 .ak-pesan{font-size:13px;color:var(--label);margin:0 0 10px}
+.ak-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:10px}
+.ak-bar .ak-pesan{margin:0}
+#akForm[hidden],#akPesan[hidden]{display:none!important}
 .rp{display:block;font:12px var(--f-num);color:var(--label);margin-top:1px}
 .jn-kepala{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin:18px 0 8px}
 .jn-kepala h3{margin:0;font:600 14px var(--f-ui)}
@@ -285,6 +288,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
   </div>
 
   <div class="hal" id="halAkun" hidden>
+    <div class="ak-bar"><button class="btn" type="button" id="akToggle" aria-expanded="true" aria-controls="akForm">⚙ Sembunyikan pengaturan</button><span class="ak-pesan" id="akPesanBar"></span></div>
     <form class="ak-set" id="akForm" autocomplete="off">
       <label for="akUrl">Alamat perantara (Cloudflare Worker)<input id="akUrl" type="url" placeholder="https://amonk-binance.NAMAMU.workers.dev" inputmode="url"></label>
       <label for="akSandi">Sandi aplikasi<input id="akSandi" type="password" placeholder="sandi yang kamu isi di Cloudflare"></label>
@@ -1221,7 +1225,16 @@ $("akForm").addEventListener("submit", e => { e.preventDefault();
 $("akLupa").addEventListener("click", () => { simpan("akUrl", ""); simpan("akSandi", ""); $("akUrl").value = ""; $("akSandi").value = "";
   AK = null; akTrade = {}; akGen++; $("akRing").innerHTML = $("akList").innerHTML = $("akOrder").innerHTML = ""; $("akOrderJudul").hidden = true;
   pesanAk("Alamat & sandi dihapus dari perangkat ini."); });
-function pesanAk(t, galat) { const el = $("akPesan"); el.textContent = t; el.classList.toggle("galat", !!galat); }
+function pesanAk(t, galat) { for (const id of ["akPesan", "akPesanBar"]) { const el = $(id); el.textContent = t; el.classList.toggle("galat", !!galat); } }
+// SEMBUNYIKAN / MUNCULKAN pengaturan akun dengan satu klik (2026-09-22, permintaan user).
+// Bawaan: tersembunyi kalau akun sudah pernah disambungkan di perangkat ini; pilihan disimpan.
+function pasangToggleAk(buka) {
+  $("akForm").hidden = !buka; $("akPesan").hidden = !buka; $("akPesanBar").hidden = buka;
+  $("akToggle").textContent = buka ? "⚙ Sembunyikan pengaturan" : "⚙ Pengaturan akun";
+  $("akToggle").setAttribute("aria-expanded", buka ? "true" : "false");
+}
+$("akToggle").addEventListener("click", () => { const buka = $("akForm").hidden; simpan("akBuka", buka); pasangToggleAk(buka); });
+pasangToggleAk(baca("akBuka", null) === null ? !(baca("akUrl", "") && baca("akSandi", "")) : !!baca("akBuka", true));
 async function panggil(jalur) {
   const c = akCfg();
   const r = await fetch(c.url + jalur, { headers: { "X-Sandi": c.sandi }, cache: "no-store" });
