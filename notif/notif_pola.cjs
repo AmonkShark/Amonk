@@ -41,7 +41,9 @@ const AKUN_URL = (process.env.AKUN_URL || "").replace(/\/+$/, ""), SANDI = proce
 const MODAL_CADANGAN = +(process.env.MODAL_USDT || 0);
 const F_STATUS = path.join(__dirname, "terkirim.json"), F_MAJU = path.join(__dirname, "maju.json");
 const F_AUDIT = path.join(__dirname, "audit.json");   // saran #4: sekali kirim per ambang tercapai
-const MAJU_MULAI = Date.UTC(2026, 8, 22, 0, 0);          // sama dengan mode "Maju" di aplikasi
+// Uji kering saja: MAJU_MULAI_UJI (ms) memundurkan awal pemantauan, AUDIT_PAKSA=1 melewati ambang n/bulan.
+const MAJU_MULAI = DRY && +process.env.MAJU_MULAI_UJI ? +process.env.MAJU_MULAI_UJI : Date.UTC(2026, 8, 22, 0, 0);   // sama dengan mode "Maju" di aplikasi
+const AUDIT_PAKSA = DRY && process.env.AUDIT_PAKSA === "1";
 const HOSTS = ["https://data-api.binance.vision", "https://api.binance.com", "https://api-gcp.binance.com"];
 const STABIL = new Set(["USDT", "USDC", "FDUSD", "BUSD", "TUSD", "DAI"]);
 
@@ -174,22 +176,84 @@ async function kirim(teksUmum, teksPribadi, chat) {
 // Sama persis dengan ambang "progres bukti" di app & rekap mingguan — sekali per pola + sekali
 // keseluruhan, tidak diulang (ditandai di notif/audit.json). Lihat [[daya-statistik-30-trade]].
 const AMBANG_N = 30, AMBANG_BULAN = 6;
+
+// ---------- PEMBANDING PASIF untuk audit (saran #3 disetujui user, 2026-09-22) ----------
+// Tanpa pembanding, bulan naik terlihat seperti sistem bagus. Untuk trade yang sudah tutup dihitung,
+// dengan periode & lama pegang yang SAMA dan 1000 USDT sesudah biaya:
+//   (a) tahan koin yang sama dari entry sampai bar keluar;  (b) tahan BTC selama itu;
+//   (c) ENTRY ACAK di koin yang sama (200 set), jarak SL/TP1/TP2 & aturan keluar sama -> rata, p5, p95.
+// Butuh lilin sejak MAJU_MULAI (bisa > 600 bar), diambil berhalaman hanya saat audit terpicu.
+async function klSejak(k, sejak) {
+  const out = []; let mulai = sejak;
+  for (let p = 0; p < 6; p++) {
+    const j = await getJ(`/api/v3/klines?symbol=${k}USDT&interval=4h&startTime=${mulai}&limit=1000`);
+    if (!Array.isArray(j) || !j.length) break;
+    out.push(...j); if (j.length < 1000) break; mulai = +j[j.length - 1][0] + 4 * 3600e3;
+  }
+  const b = out.filter(x => +x[6] < Date.now());
+  return { t: b.map(x => +x[0]), o: b.map(x => +x[1]), h: b.map(x => +x[2]), l: b.map(x => +x[3]), c: b.map(x => +x[4]) };
+}
+const bawah = (d, t) => { let a = 0, b = d.t.length; while (a < b) { const m = (a + b) >> 1; if (d.t[m] < t) a = m + 1; else b = m; } return a; };
+async function pembanding(tutup, cache) {
+  const kl = async k => cache[k] || (cache[k] = await klSejak(k, MAJU_MULAI - 30 * 864e5));
+  const btc = await kl("BTC"); if (!btc.t.length) return null;
+  const idx = (d, t) => { const i = bawah(d, t); return i < d.t.length && d.t[i] === t ? i : -1; };
+  const tahan = (d, i, j) => NOMINAL * (d.c[j] / d.c[i] - 1) - NOMINAL * BIAYA;
+  const SET = 200, acak = new Array(SET).fill(0);
+  let n = 0, sPola = 0, sKoin = 0, sBtc = 0, nAcak = 0;
+  for (const tr of tutup) {
+    const d = await kl(tr.koin); if (!d.t.length) continue;
+    const i = idx(d, tr.masukT), j = idx(d, tr.keluarT), ib = idx(btc, tr.masukT), jb = idx(btc, tr.keluarT);
+    if (i < 0 || j <= i || ib < 0 || jb <= ib) continue;
+    n++; sPola += tr.usdt; sKoin += tahan(d, i, j); sBtc += tahan(btc, ib, jb);
+    const i0 = Math.max(1, bawah(d, MAJU_MULAI)), i1 = d.t.length - 2; if (i1 <= i0) continue;
+    nAcak++;
+    const rel = { sl: tr.sl / tr.entry, tp1: tr.tp1 / tr.entry, tp2: tr.tp2 / tr.entry };
+    for (let b = 0; b < SET; b++) {
+      const r = i0 + Math.floor(Math.random() * (i1 - i0 + 1)), E = d.c[r];
+      const s = simTahap(d, r, { entry: E, sl: E * rel.sl, tp1: E * rel.tp1, tp2: E * rel.tp2 });
+      acak[b] += s.usdt != null ? s.usdt : s.real + s.sisa * NOMINAL * (d.c[d.c.length - 1] / E - 1) - NOMINAL * BIAYA;   // masih jalan: nilai di lilin terakhir
+    }
+  }
+  if (n < 10 || !nAcak) return null;
+  const a = acak.map(x => x / nAcak).sort((x, y) => x - y);
+  return { n, pola: sPola / n, koin: sKoin / n, btc: sBtc / n, acak: a.reduce((x, y) => x + y, 0) / SET, p5: a[Math.floor(SET * .05)], p95: a[Math.floor(SET * .95)] };
+}
+function teksPembanding(P) {
+  if (!P) return `\n📊 Pembanding pasif belum bisa dihitung (data lilin kurang).\n`;
+  const f2 = v => (v >= 0 ? "+" : "") + v.toFixed(2);
+  const vonis = P.pola > P.p95 ? "pola DI ATAS 95% entry acak — ada yang lebih dari sekadar arah pasar"
+    : P.pola < P.p5 ? "pola DI BAWAH 95% entry acak — lebih buruk dari masuk sembarangan"
+    : "pola TIDAK BEDA dari entry acak — hasilnya arah pasar, bukan polanya";
+  return `\n📊 <b>Pembanding</b> (${P.n} trade, periode & lama pegang sama, 1000 USDT, sesudah biaya)\n` +
+    `   Pola: <b>${f2(P.pola)}</b>/trade\n` +
+    `   Tahan koin yang sama: ${f2(P.koin)}\n` +
+    `   Tahan BTC: ${f2(P.btc)}\n` +
+    `   Entry acak koin sama, SL/TP sama: rata ${f2(P.acak)} (p5 ${f2(P.p5)} · p95 ${f2(P.p95)})\n` +
+    `   → <b>${vonis}</b>\n`;
+}
+
 async function cekAudit(maju) {
   const tutup = Object.values(maju).filter(t => t.st !== "jalan");
   if (!tutup.length) return;
   let audit = {}; try { audit = JSON.parse(fs.readFileSync(F_AUDIT, "utf8")); } catch (e) {}
+  if (AUDIT_PAKSA) audit = {};
   const skr = Date.now(), f2 = v => (v >= 0 ? "+" : "") + v.toFixed(2);
   const bulanSejak = arr => (skr - Math.min(...arr.map(t => t.masukT))) / (30.44 * 864e5);
+  const cukup = arr => AUDIT_PAKSA || (arr.length >= AMBANG_N && bulanSejak(arr) >= AMBANG_BULAN);
+  const cache = {};
 
   // keseluruhan
   const bln = bulanSejak(tutup);
-  if (!audit.semua && tutup.length >= AMBANG_N && bln >= AMBANG_BULAN) {
+  if (!audit.semua && cukup(tutup)) {
     const u = tutup.reduce((a, t) => a + t.usdt, 0), wr = Math.round(tutup.filter(t => t.usdt > 0).length / tutup.length * 100);
+    const P = await pembanding(tutup, cache);
     await kirim(`<b>AMONK SINYAL · AUDIT</b>\n◻️◻️◻️◻️◻️\n` +
       `📐 Pemantauan maju SEMUA POLA kini <b>CUKUP DATA</b> (≥${AMBANG_N} trade & ≥${AMBANG_BULAN} bulan sejak 22/09/2026).\n\n` +
       `${tutup.length} trade tutup · ${bln.toFixed(1)} bulan · WR ${wr}%\n` +
-      `Total: <b>${f2(u)} USDT</b> · rata ${f2(u / tutup.length)}/trade\n\n` +
-      `<i>Ini pertama kali angka ini boleh dibaca sebagai kesimpulan, bukan sekadar pengamatan. Tetap bandingkan dengan uji panjang proyek (pola 4H historis ≈ impas) sebelum mengubah cara trading.</i>\n\n` +
+      `Total: <b>${f2(u)} USDT</b> · rata ${f2(u / tutup.length)}/trade\n` +
+      teksPembanding(P) +
+      `\n<i>Ini pertama kali angka ini boleh dibaca sebagai kesimpulan, bukan sekadar pengamatan. Tetap bandingkan dengan uji panjang proyek (pola 4H historis ≈ impas) sebelum mengubah cara trading.</i>\n\n` +
       `<a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`);
     audit.semua = true;
   }
@@ -199,13 +263,15 @@ async function cekAudit(maju) {
   for (const t of tutup) (per[t.nama] = per[t.nama] || { kode: t.kode, arr: [] }).arr.push(t);
   audit.pola = audit.pola || {};
   for (const [nm, x] of Object.entries(per)) {
-    if (audit.pola[nm] || x.arr.length < AMBANG_N || bulanSejak(x.arr) < AMBANG_BULAN) continue;
+    if (audit.pola[nm] || !cukup(x.arr) || x.arr.length < 10) continue;
     const u = x.arr.reduce((a, t) => a + t.usdt, 0), wr = Math.round(x.arr.filter(t => t.usdt > 0).length / x.arr.length * 100);
+    const P = await pembanding(x.arr, cache);
     await kirim(`<b>AMONK SINYAL · AUDIT</b>\n◻️◻️◻️◻️◻️\n` +
       `📐 Pola <b>${PERINGKAT(x.kode)} ${esc(nm)}</b> kini <b>CUKUP DATA</b> (≥${AMBANG_N} trade & ≥${AMBANG_BULAN} bulan).\n\n` +
       `${x.arr.length} trade tutup · ${bulanSejak(x.arr).toFixed(1)} bulan · WR ${wr}%\n` +
-      `Total: <b>${f2(u)} USDT</b> · rata ${f2(u / x.arr.length)}/trade\n\n` +
-      `<i>Baru sekarang pola ini boleh dinilai, bukan sebelumnya.</i>\n\n<a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`);
+      `Total: <b>${f2(u)} USDT</b> · rata ${f2(u / x.arr.length)}/trade\n` +
+      teksPembanding(P) +
+      `\n<i>Baru sekarang pola ini boleh dinilai, bukan sebelumnya.</i>\n\n<a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`);
     audit.pola[nm] = true;
   }
   if (!DRY) fs.writeFileSync(F_AUDIT, JSON.stringify(audit));
