@@ -343,6 +343,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
       <label for="btSandi">Sandi bot<input id="btSandi" type="password" placeholder="kosong = sama dengan sandi aplikasi"></label>
       <label for="btModal">Modal awal bot (USDT, laba ikut diputar)<input id="btModal" type="number" step="1" min="0" inputmode="decimal" placeholder="0 = seluruh saldo testnet"></label>
       <label for="btPosisi">Maks entry bersamaan (saldo dibagi ini)<input id="btPosisi" type="number" step="1" min="1" max="20" inputmode="numeric"></label>
+      <label for="btBatas">Batas rugi bot per trade (% modal · 100 = tidak dipangkas)<input id="btBatas" type="number" step="0.5" min="0.1" max="100" inputmode="decimal"></label>
       <label for="btKoin" style="grid-column:span 2">Koin yang diambil bot<input id="btKoin" type="text" autocapitalize="characters" placeholder="kosong = semua koin ber-webhook · contoh: XRP, ETH, SOL"></label>
       <div class="bt-pola" style="grid-column:1/-1"><span>Pola yang diambil bot:</span>
         <label><input type="checkbox" value="FW"> 1 Falling Wedge</label><label><input type="checkbox" value="ST"> 2 Symmetrical Triangle</label>
@@ -351,7 +352,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
         <label><input type="checkbox" value="CH"> 7 Cup &amp; Handle</label></div>
       <div class="tb"><button class="btn" type="submit">Simpan ke bot</button></div>
     </form>
-    <p class="ak-pesan" id="btPesan">Pengaturan ini disimpan DI BOT, jadi tetap berlaku walau aplikasi tertutup. Modal bot = modal awal + hasil semua trade bot yang sudah tutup (untung menambah, rugi mengurangi). Ukuran tiap posisi = modal bot ÷ maks entry (dipangkas batas rugi per trade), dan total posisi terbuka tidak pernah melewati modal bot. Mengganti angka modal awal = mulai hitungan baru.</p>
+    <p class="ak-pesan" id="btPesan">Pengaturan ini disimpan DI BOT, jadi tetap berlaku walau aplikasi tertutup. Modal bot = modal awal + hasil semua trade bot yang sudah tutup (untung menambah, rugi mengurangi). Ukuran tiap posisi = modal bot ÷ maks entry, lalu dipangkas kalau rugi bila kena SL melewati batas rugi bot. SL SELALU dari sinyal; batas rugi hanya mengubah ukuran. Total posisi terbuka tidak pernah melewati modal bot. Mengganti angka modal awal = mulai hitungan baru.</p>
     <div class="jr-ring" id="btRing"></div>
     <div class="jr-list" id="btList"></div>
     <div class="jn-kepala"><h3>Jurnal trade nyata</h3><button class="btn" type="button" id="jnMuat">Muat dari Binance</button></div>
@@ -1762,6 +1763,7 @@ function gambarBot(s) {
   const PG = s.pengaturan || {};
   if (document.activeElement !== $("btKoin")) $("btKoin").value = (PG.koin || []).map(k => k.replace(/USDT$/, "")).join(", ");
   if (document.activeElement !== $("btPosisi")) $("btPosisi").value = PG.maksPosisi || 3;
+  if (document.activeElement !== $("btBatas")) $("btBatas").value = PG.batasTrade || 1;
   document.querySelectorAll(".bt-pola input").forEach(c => { c.checked = (PG.polaBoleh || []).includes(c.value); });
   $("btRing").innerHTML = `<div class="jr-kotak"><h3>Bot <small>${s.testnet ? "Binance TESTNET" : "?"}</small></h3>` +
     `<div class="jr-angka"><div><span>Status</span><b class="${s.aktif ? "naik" : "kng"}">${s.aktif ? "AKTIF" : "KERING"}</b><span class="rp">${s.aktif ? "membeli di testnet" : "hanya mencatat rencana"}</span></div>` +
@@ -1802,7 +1804,9 @@ $("btForm").addEventListener("submit", async ev => {
   if (!pola.length) { btPesan("Centang minimal satu pola.", true); return; }
   const mp = Math.round(+$("btPosisi").value);
   if (!(mp >= 1 && mp <= 20)) { btPesan("Maks entry harus 1 sampai 20.", true); return; }
-  try { const j = await btPanggil("/atur", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modalMaks: v, koin, pola, maksPosisi: mp }) });
+  const bt = +$("btBatas").value;
+  if (!(bt >= 0.1 && bt <= 100)) { btPesan("Batas rugi bot harus 0.1 sampai 100 (% modal).", true); return; }
+  try { const j = await btPanggil("/atur", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modalMaks: v, koin, pola, maksPosisi: mp, batasTrade: bt }) });
     const kini = j.modal && j.modal.kini ? j.modal.kini : j.modalMaks;
     btPesan(`Tersimpan di bot: modal awal ${j.modalMaks ? Math.round(j.modalMaks).toLocaleString("en-US") + " USDT" : "seluruh saldo testnet"}${j.modal && j.modal.laba ? ` (kini ${Math.round(kini).toLocaleString("en-US")} dengan laba)` : ""} · maks ${j.maksPosisi} entry (±${kini ? Math.round(kini / j.maksPosisi).toLocaleString("en-US") + " USDT" : "saldo ÷ " + j.maksPosisi} per entry) · koin ${j.koin && j.koin.length ? j.koin.map(k => k.replace(/USDT$/, "")).join(", ") : "semua"} · pola ${(j.pola || []).join(", ")}.`); await muatBot(); }
   catch (e) { btPesan("Gagal menyimpan: " + e.message, true); }
