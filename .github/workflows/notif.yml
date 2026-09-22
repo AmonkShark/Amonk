@@ -11,6 +11,7 @@ on:
     - cron: "7 0,4,8,12,16,20 * * *"
     - cron: "37 0,4,8,12,16,20 * * *"
     - cron: "0 13 * * 0"
+    - cron: "17 0 * * *"     # SCAN HARIAN 4H & 1D, 07:17 WIB (sesudah lilin 1D tutup)
   workflow_dispatch:
     inputs:
       uji:
@@ -19,6 +20,10 @@ on:
         default: false
       rekap:
         description: "Kirim REKAP mingguan sekarang"
+        type: boolean
+        default: false
+      scan:
+        description: "Kirim SCAN HARIAN 4H & 1D sekarang (valid di area entry + hampir valid)"
         type: boolean
         default: false
 permissions:
@@ -47,6 +52,7 @@ jobs:
           BAGI_MODAL: ${{ secrets.BAGI_MODAL }}
           UJI: ${{ inputs.uji }}
           REKAP: ${{ inputs.rekap }}
+          SCAN: ${{ inputs.scan }}
           JADWAL: ${{ github.event.schedule }}
         run: node notif/notif_pola.cjs
       - name: Simpan status & catatan maju
