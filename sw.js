@@ -4,7 +4,7 @@
  *  - Ikon & manifest: CACHE DULU.
  *  - Permintaan ke domain lain (Binance, Cloudflare Worker, Telegram, TradingView) TIDAK disentuh sama sekali:
  *    harga, saldo, dan status bot selalu langsung dari sumbernya, tidak pernah dari cache. */
-const CACHE = "amonk-v1";
+const CACHE = "amonk-v2";   // v2 2026-09-23: ikon baru AS MONITOR (naga hitam)
 const INTI = ["./", "index.html", "manifest.webmanifest", "ikon-192.png", "ikon-512.png", "apple-touch-icon.png", "favicon-32.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(INTI)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => {
