@@ -641,6 +641,97 @@ function bentuk(P, i) {
   return out;
 }
 
+// ELLIOTT WAVE (kode EW) — DITAMBAHKAN 2026-09-23, permintaan user: "sinkronkan semua ke routine
+// dengan nama elliot seperti falling wedge ... masuk ke pola 4h, dan masukkan juga ke amonk monitor".
+// Replika SETIA blok "DC ENTRY (siklus bernomor)" di AMONK SINYAL - LOGIKA/GARIS (ew*), yang disalin
+// dari amonk_dc_fib_gz_rapi.pine. Urutan per bar SAMA dengan Pine:
+//   1. pembatal lembah 0 (low < L0 saat no>=1) -> siklus batal, limit dibuang
+//   2. low < L2 saat no 3/4 -> batal
+//   3. Directional Change mx x ATR/close; penomoran 0-5; gagal di 3 (P3<=P1) / 5 (P5<=P3)
+//   4. SETUP di titik 3: ayunan gel.3 >= 20% DAN titik 0 tidak sebelum titik 3 setup lalu;
+//      limit = P3 - dalam x (P3 - L2), dalam 0.90 (>=2H) / 0.57 (<=1H)
+//   5. isian di bar yang sama sudah boleh: open < limit = GAP (batal), low <= limit = TERISI
+//   6. tidak terisi > 60 bar = kedaluwarsa
+// Keluaran dibentuk SEPERTI pola supaya semua pemakai (aplikasi, Telegram, rutin) langsung bisa:
+//   VALID = limit TERISI: entry = limit (bukan close), batal = SL = entry - 2.5 ATR bar isian,
+//   level + tinggi = PUNCAK 3 (TP2 buku Elliott). TP1 dihitung pemakai dengan aturan aplikasi.
+// Hanya dijalankan bila opsi.elliott === true, supaya skrip riset lama tetap menghasilkan angka yang sama.
+const EW = { ayun: 20, tunggu: 60, slAtr: 2.5 };
+function elliott(d, A, mx) {
+  const n = d.c.length, dalam = mx >= 3 ? 0.57 : 0.90;   // Pine: <=1H m 3.5 & 0.57, >=2H m 2.5 & 0.90
+  const valid = [];
+  let naik = true, eks = null, eksB = 0, no = -1, batal = false;
+  let low0 = null, b0 = null, high1 = null, low2 = null, high3 = null, b3 = null;
+  let p3Lalu = -1e9, level = null, lahir = null, terisi = false, tpBuku = null, setupB0 = null, ayunS = null;
+  for (let i = 0; i < n; i++) {
+    const hi = d.h[i], lo = d.l[i];
+    if (eks === null) { eks = d.c[i]; eksB = i; }
+    // 1-2. pembatal tiap bar
+    if (no >= 1 && !batal && low0 !== null && lo < low0) { batal = true; level = null; lahir = null; terisi = false; }
+    if ((no === 3 || no === 4) && !batal && low2 !== null && lo < low2) batal = true;
+    // 3. detektor
+    const th = A[i] > 0 && d.c[i] > 0 ? mx * A[i] / d.c[i] : null;
+    let titik3 = false;
+    if (th !== null) {
+      if (naik) {
+        if (hi > eks) { eks = hi; eksB = i; }
+        else if (lo <= eks * (1 - th)) {
+          no = (batal || no < 0) ? -1 : no + 1;
+          const gagal = (no === 3 && high1 !== null && eks <= high1) || (no === 5 && high3 !== null && eks <= high3);
+          if (gagal) {
+            if (lahir !== null && !terisi) { level = null; lahir = null; }
+            batal = true; no = -1;
+          }
+          if (no === 3) { high3 = eks; b3 = eksB; titik3 = true; }
+          if (no === 1) high1 = eks;
+          naik = false; eks = lo; eksB = i;
+        }
+      } else {
+        if (lo < eks) { eks = lo; eksB = i; }
+        else if (hi >= eks * (1 + th)) {
+          let calon = (no < 0 || no >= 5 || batal) ? 0 : no + 1;
+          if (calon >= 2 && low0 !== null && eks < low0) calon = 0;
+          if (calon === 4 && low2 !== null && eks < low2) calon = 0;
+          no = calon;
+          if (no === 0) { batal = false; low0 = eks; b0 = eksB; low2 = null; high1 = null; high3 = null; }
+          if (no === 2) low2 = eks;
+          naik = true; eks = hi; eksB = i;
+        }
+      }
+    }
+    // 4. setup di titik 3
+    if (titik3 && low0 !== null && low2 !== null && high1 !== null && b0 !== null) {
+      const g3 = high3 - low2;
+      const ayunOk = g3 > 0 && low2 > 0 && g3 / low2 * 100 >= EW.ayun;
+      if (ayunOk && b0 >= p3Lalu) {
+        p3Lalu = b3; level = high3 - dalam * g3; tpBuku = high3; lahir = i; terisi = false;
+        setupB0 = b0; ayunS = g3 / low2 * 100;
+      } else batal = true;
+    }
+    // 5. isian
+    let gap = false;
+    if (level !== null && !terisi) {
+      if (d.o[i] < level) gap = true;
+      else if (lo <= level && A[i] > 0) {
+        terisi = true;
+        const sl = level - EW.slAtr * A[i], j = i + C.horizon;
+        valid.push({ i, nama: "Elliott Wave", kode: "EW", lewat: false, level, entry: level, batal: sl,
+          tinggi: tpBuku - level, mulaiB: setupB0, lahirB: lahir, ayun: ayunS,
+          awal: { hi: false, p: low0, b: setupB0 }, titikAwal: { hi: false, p: low0, b: setupB0 },
+          R24: j < n ? (d.c[j] - level) / A[i] : NaN });
+      }
+    }
+    // 6. batal karena gap / waktu
+    if (lahir !== null && !terisi && (gap || i - lahir > EW.tunggu)) { level = null; lahir = null; }
+  }
+  const i = n - 1;
+  const setup = level !== null && !terisi && lahir !== null && A[i] > 0
+    ? { nama: "Elliott Wave (limit beli)", kode: "EW", limit: true, level, batal: level - EW.slAtr * A[i],
+        lahirB: lahir, umur: i - lahir, sisa: EW.tunggu - (i - lahir), mulaiB: setupB0, tinggi: tpBuku - level, ayun: ayunS }
+    : null;
+  return { valid, setup };
+}
+
 // opsi.setupAkhir DITAMBAHKAN 2026-09-19: kalau true, larik hasil ikut membawa
 // properti `.setup` = pola berstatus SETUP (belum tembus) yang masih hidup di bar
 // terakhir. Default {} -> perilaku & isi larik PERSIS seperti sebelumnya.
@@ -792,10 +883,23 @@ function peristiwa(d, A, opsi = {}) {
       }
     }
   }
+  // ELLIOTT (opsi.elliott): VALID digabung urut bar (pola lain tetap berurutan seperti semula);
+  // limit yang masih menunggu ikut ke hasil.setup bila setupAkhir.
+  if (opsi.elliott) {
+    const ew = elliott(d, A, MX);
+    if (ew.valid.length) {
+      const setup = hasil.setup, calon = hasil.calon;
+      const gabung = hasil.concat(ew.valid).map((e, k) => [e, k]).sort((a, b) => a[0].i - b[0].i || a[1] - b[1]).map(x => x[0]);
+      hasil.length = 0; hasil.push(...gabung);
+      if (setup) hasil.setup = setup;
+      if (calon) hasil.calon = calon;
+    }
+    if (opsi.setupAkhir && ew.setup) hasil.setup.push(ew.setup);
+  }
   return hasil;
 }
 
-module.exports = { peristiwa, bentuk, C };
+module.exports = { peristiwa, bentuk, C, elliott, EW };
 
 return module.exports;
 })();
@@ -897,7 +1001,7 @@ function atrArr(h, l, c, n = 14) {
 // (~100 hari), bukan hanya yang terakhir. Yang terakhir = kolom Terminal; semuanya = tab Riwayat.
 function polaSemua(d) {
   if (!window.PolaDC) return [];
-  const ev = window.PolaDC.peristiwa(d, atrArr(d.h, d.l, d.c)) || [];
+  const ev = window.PolaDC.peristiwa(d, atrArr(d.h, d.l, d.c), { elliott: true }) || [];   // + Elliott Wave (EW), 2026-09-23
   return ev.filter(e => !SEMBUNYI_POLA.has(e.kode)).map(e => simTrade(d, e));
 }
 function polaTerakhir(d, semua) {
@@ -905,7 +1009,8 @@ function polaTerakhir(d, semua) {
   return a.length ? a[a.length - 1] : null;
 }
 function simTrade(d, e) {
-  const n = d.c.length, entry = d.c[e.i], sl = e.batal, tp2 = e.level + e.tinggi;
+  // Elliott (EW) masuk lewat LIMIT: entry = harga limit, bukan close bar isian
+  const n = d.c.length, entry = e.entry != null ? e.entry : d.c[e.i], sl = e.batal, tp2 = e.level + e.tinggi;
   let tp1 = null;
   if (entry > sl && tp2 > entry) { tp1 = entry + 0.75 * (entry - sl); if (tp1 >= tp2) tp1 = entry + 0.5 * (tp2 - entry); }
   // KELUAR BERTAHAP (permintaan user 2026-09-21): 50% ditutup di TP1, 50% di TP2;
