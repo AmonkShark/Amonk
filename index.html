@@ -501,6 +501,13 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
       <li>Biaya spot 0,2% pulang-pergi sudah dipotong. Pola Double Bottom, Rectangle, Bull Flag disembunyikan (sama dengan bawaan chart).</li>
       <li>Level sama dengan indikator AMONK di TradingView: 43 dari 44 koin cocok persis saat dicek 22-09 (beda: TRX).</li>
     </ul></section>
+    <section><h3>Pakai akun Binance Anda sendiri</h3><ul>
+      <li>Binance <b>memblokir</b> halaman web memanggil data akun langsung, jadi tiap orang perlu <b>perantara sendiri</b> (Cloudflare Worker gratis). Kunci API Anda tidak pernah melewati server pemilik aplikasi.</li>
+      <li><b>Langkahnya:</b> 1) buat kunci Binance dengan izin <b>Enable Reading saja</b>; 2) buat Worker gratis di Cloudflare lalu tempel berkas <code>worker_binance.js</code>; 3) isi <code>BINANCE_KEY</code>, <code>BINANCE_SECRET</code>, <code>SANDI_APP</code> sebagai Secret (tambah teks <code>MODE_LIHAT = tidak</code> bila saldo tidak boleh dilihat tanpa sandi); 4) cek <code>/cek</code> di alamat Worker; 5) isi alamat Worker + sandi di tab Akun.</li>
+      <li><b>Keamanan:</b> perantara ini HANYA membaca dan <b>menolak kunci</b> yang punya izin trading / tarik dana / transfer. Jangan pernah mengirim API Key ke siapa pun, termasuk pemilik aplikasi. Mau berhenti? Hapus kuncinya di Binance, akses langsung mati.</li>
+      <li><b>Indodax belum didukung</b> — API-nya tidak bisa dipanggil dari browser dan perlu perantara terpisah yang belum dibuat.</li>
+      <li>Panduan lengkap: berkas <code>PANDUAN_AKUN_BINANCE_SENDIRI.md</code> (minta ke pemilik aplikasi).</li>
+    </ul></section>
     <section><h3>Elliott Wave (EW) — pola ke-10</h3><ul>
       <li><b>Apa itu:</b> siklus 0-1-2-3 dari titik ayunan Directional Change 4H (label <b>10 Elliott Wave ✓</b> di chart, warna & huruf sama dengan pola lain). Ini penamaan struktur, bukan teori Elliott Wave lengkap.</li>
       <li><b>Setup</b> lahir saat puncak 3 sah, gelombang 3 naik ≥ 20% dan lebih tinggi dari puncak 1. <b>Entry = LIMIT BELI</b> di puncak 3 − 0,90 × gelombang 3 (menunggu harga TURUN, bukan tembus). Batal bila lilin dibuka di bawah limit, siklus patah, atau 60 lilin 4H (~10 hari) tak tersentuh.</li>
