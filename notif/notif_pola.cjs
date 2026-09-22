@@ -90,7 +90,7 @@ const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(
 const angka = (x, dp = 0) => x.toLocaleString("en-US", { maximumFractionDigits: dp });
 const PERINGKAT = k => ({ FW: 1, ST: 2, PEN: 3, IHS: 4, AT: 5, TB: 6, CH: 7, RC: 8, DB: 9 }[k] || 10);
 const wib = t => new Date(t + 7 * 3600e3).toISOString().slice(5, 16).replace(/(\d\d)-(\d\d)T/, "$2/$1 ") + " WIB";
-const tautan = k => `<a href="https://www.tradingview.com/chart/?symbol=BINANCE:${esc(k)}USDT&interval=240">Chart 4H</a> · <a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`;
+const tautan = (k, tf = "4H") => `<a href="https://www.tradingview.com/chart/?symbol=BINANCE:${esc(k)}USDT&interval=${tf === "1D" ? "D" : "240"}">Chart ${tf}</a> · <a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`;
 
 // ---------- 1. ukuran posisi berdasar risiko (hanya untuk tujuan pribadi) ----------
 async function ambilModal() {
@@ -123,20 +123,52 @@ function ukuranTeks(L, M) {
 }
 
 // ---------- pesan ----------
-function pesanBaru(k, e, L, d, vol, uji, ukuran) {
+function pesanBaru(k, e, L, d, vol, uji, ukuran, tf = "4H") {
   return (uji ? "🧪 <b>PESAN UJI</b> — contoh, bukan pola baru\n\n" : "") +
     `<b>AMONK SINYAL</b>\n` +
     `◻️◻️◻️◻️◻️\n` +
     `📊 EXCHANGE: BINANCE\n` +
     `💰 Coin: <b>${esc(k)}/USDT</b>\n` +
-    `⏱ Timeframe: <b>4H</b>\n` +
+    `⏱ Timeframe: <b>${tf}</b>\n` +
     `📐 Pola: <b>${PERINGKAT(e.kode)} ${esc(e.nama)}</b>\n` +
     `✅ Entry: <b>${fx(L.entry)}</b>\n` +
     `🎯 TP1: ${fx(L.tp1)}  (${pc(L.tp1, L.entry)})  ambil 50%, SL naik ke entry\n` +
     `🎯 TP2: ${fx(L.tp2)}  (${pc(L.tp2, L.entry)})\n` +
     `‼️ SL: ${fx(L.sl)}  (${pc(L.sl, L.entry)})\n` +
     (ukuran || "") +
-    `🕒 valid ${wib(d.t[e.i] + 4 * 3600e3)}${vol != null && vol < 1e6 ? "\n⚠️ likuiditas tipis (< $1jt/hari)" : ""}\n\n` + tautan(k);
+    `🕒 valid ${wib(d.t[e.i] + (tf === "1D" ? 864e5 : 4 * 3600e3))}${vol != null && vol < 1e6 ? "\n⚠️ likuiditas tipis (< $1jt/hari)" : ""}\n` +
+    (tf === "1D" ? `ℹ️ Pola 1D: di uji proyek tidak lebih baik dari entry acak, SL lebar — hitung ukuran dari rugi-bila-SL. Update TP/SL 1D tidak dikirim; pantau di scan harian.\n` : "") +
+    `\n` + tautan(k, tf);
+}
+// ---------- 1b. POLA 1D BARU (2026-09-22, disetujui user): kartu yang sama, Timeframe 1D ----------
+// Lilin 1D Binance tutup 00:00 UTC; run 00:07 UTC (10:07 Sydney AEST) langsung menangkapnya, run
+// cadangan 00:37 / 04:07 / 04:37 menangkapnya kalau yang pertama terlewat. Hanya pola yang valid di
+// lilin 1D TUTUP terakhir, dan hanya dalam 3 jam sesudah lilin itu tutup (run 00:07 + cadangan 00:37, toleransi telat GitHub) (supaya tidak ada kartu
+// basi berjam-jam). Dedupe di terkirim.json dengan kunci berawalan "1D|", tahap langsung "tutup"
+// (update exit 1D TIDAK dikirim). Tidak masuk maju.json: catatan maju hanya untuk 4H.
+const TF1D_AKTIF = process.env.TF1D !== "false", JENDELA_1D_JAM = +(process.env.JENDELA_1D_JAM || 3);
+async function cek1D(k, status, M, sekarang) {
+  const j = await getJ(`/api/v3/klines?symbol=${k}USDT&interval=1d&limit=1000`);
+  if (!Array.isArray(j) || j.length < 120) return 0;
+  const b = j.filter(x => +x[6] < sekarang);
+  if (!b.length) return 0;
+  const tutupT = +b[b.length - 1][6] + 1;
+  if (sekarang - tutupT > JENDELA_1D_JAM * 3600e3) return 0;
+  const d = { t: b.map(x => +x[0]), o: b.map(x => +x[1]), h: b.map(x => +x[2]), l: b.map(x => +x[3]), c: b.map(x => +x[4]), v: b.map(x => +x[5]) };
+  const n = d.c.length;
+  let ev = []; try { ev = peristiwa(d, atrArr(d.h, d.l, d.c)) || []; } catch (e) { return 0; }
+  let baru = 0;
+  for (const e of ev) {
+    if (SEMBUNYI.has(e.kode) || e.i !== n - 1) continue;
+    const L = level(d, e); if (!L || !(L.sl > 0)) continue;
+    const kunci = `1D|${k}|${e.nama}|${d.t[e.i]}`;
+    if (status[kunci]) continue;
+    const vol = +b[n - 1][7];
+    if (await kirim(pesanBaru(k, e, L, d, vol, false, null, "1D"), pesanBaru(k, e, L, d, vol, false, ukuranTeks(L, M), "1D"))) {
+      status[kunci] = { t: sekarang, tahap: "tutup" }; baru++;
+    }
+  }
+  return baru;
 }
 function pesanExit(k, nama, kode, L, s, jenis, validT) {
   const kepala = `<b>AMONK SINYAL · UPDATE</b>\n💰 <b>${esc(k)}/USDT</b> · 4H · ${PERINGKAT(kode)} ${esc(nama)}\n`;
@@ -434,9 +466,10 @@ async function rekap() {
   let maju = {}; try { maju = JSON.parse(fs.readFileSync(F_MAJU, "utf8")); } catch (e) {}
   const M = TUJUAN.some(pribadi) || DRY ? await ambilModal() : null;
   const sekarang = Date.now();
-  let baru = 0, keluar = 0, dicek = 0, calonUji = null;
+  let baru = 0, keluar = 0, dicek = 0, calonUji = null, baru1D = 0;
 
   for (const k of KOIN) {
+    if (!UJI && TF1D_AKTIF) baru1D += await cek1D(k, status, M, sekarang);
     const j = await getJ(`/api/v3/klines?symbol=${k}USDT&interval=4h&limit=600`);
     if (!Array.isArray(j) || j.length < 250) continue;
     const b = j.filter(x => +x[6] < sekarang);                                    // buang lilin berjalan
@@ -486,5 +519,5 @@ async function rekap() {
   for (const [kk, v] of Object.entries(status)) if (sekarang - v.t > 60 * 864e5) delete status[kk];
   await cekAudit(maju);
   if (!DRY) { fs.writeFileSync(F_STATUS, JSON.stringify(status)); fs.writeFileSync(F_MAJU, JSON.stringify(maju)); }
-  console.log(`selesai: ${dicek} koin dicek, ${baru} pola baru, ${keluar} update exit ${DRY ? "(uji kering, tidak dikirim)" : "terkirim"} · catatan maju ${Object.keys(maju).length} · ukuran posisi: ${M ? M.sumber : "tanpa modal"}`);
+  console.log(`selesai: ${dicek} koin dicek, ${baru} pola baru 4H, ${baru1D} pola baru 1D, ${keluar} update exit ${DRY ? "(uji kering, tidak dikirim)" : "terkirim"} · catatan maju ${Object.keys(maju).length} · ukuran posisi: ${M ? M.sumber : "tanpa modal"}`);
 })();
