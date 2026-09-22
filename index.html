@@ -1996,7 +1996,7 @@ function rBot(r) { if (!(r && r.isi > r.sl && r.sl > 0 && r.beliUsdt > 0)) retur
 function gambarBot(s) {
   BT_S = s;
   const asli = s.jaringan === "asli";                                  // bot memakai AKUN ASLI (uang sungguhan)
-  $("btJaringan").innerHTML = asli ? "<b class='turun'>AKUN ASLI · uang sungguhan</b>" : "TESTNET · saldo latihan";
+  $("btJaringan").innerHTML = asli ? "" : "TESTNET · saldo latihan";   // label merah akun asli dibuang (permintaan user 09-22)
   $("btModal").placeholder = asli ? `0 = pagu ${s.modalAsliMaks || "?"} USDT dari Cloudflare` : "0 = seluruh saldo testnet";
   const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
   const MO = s.modal || { awal: +s.modalMaks || 0, laba: 0, kini: +s.modalMaks || 0, sejak: 0 };
@@ -2017,7 +2017,7 @@ function gambarBot(s) {
   const blnBot = R.length ? (Date.now() - Math.min(...R.map(r => r.masukT))) / (30.44 * 864e5) : 0;
   const versi = String(s.versi || "lama (belum ada versi)").replace(/[<>&"]/g, "");
   $("btRing").innerHTML = `<div class="jr-kotak bt-kartu"><h3><span>Bot <span class="lencana ${s.aktif ? "on" : "off"}">${s.aktif ? "● AKTIF" : "○ KERING"}</span></span>` +
-    `<small>${asli ? "<b class='turun'>BINANCE ASLI · uang sungguhan</b>" : "Binance Testnet"} · kode ${versi}</small></h3>` +
+    `<small>${asli ? "Binance" : "Binance Testnet"} · kode ${versi}</small></h3>` +
     (asli && s.hentiAsli ? `<p class="jr-ket turun">⛔ Bot asli BERHENTI (tidak membeli): ${String(s.hentiAsli).replace(/[<>&]/g, "")}.</p>` : "") +
     (asli && s.kunciGalat ? `<p class="jr-ket turun">⛔ ${String(s.kunciGalat).replace(/[<>&]/g, "")}.</p>` : "") +
     (asli ? `<p class="jr-ket kng">Uang sungguhan. Modal awal dipagu ${s.modalAsliMaks || "?"} USDT oleh pengaturan Cloudflare. Koin yang sedang Anda pegang atau punya order Anda dilewati bot — jangan jual manual koin yang sedang dipegang bot.</p>` : "") +
