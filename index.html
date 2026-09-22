@@ -101,6 +101,7 @@ th.grup,td.grup{border-left:1px solid var(--garis)}
 .chip.jalan{color:var(--kuning);background:var(--kuning-bg);border-color:rgba(255,183,77,.35)}
 .chip.tp{color:var(--hijau);background:var(--hijau-bg);border-color:rgba(38,166,154,.35)}
 .chip.sl{color:var(--merah);background:var(--merah-bg)}
+.chip.ew{color:#9C6ADE;background:rgba(156,106,222,.12);border-color:rgba(156,106,222,.35);min-width:0;margin-left:6px;font-size:11px;padding:1px 6px;white-space:nowrap}
 .pnl{font-weight:500}
 .tp1{font-size:10px;color:var(--hijau);margin-left:4px;font-family:var(--f-ui)}
 th,td{padding:7px var(--px,10px);text-align:right;white-space:nowrap;border-bottom:1px solid var(--garis)}
@@ -487,7 +488,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
       <li><b>Jurnal</b> — catatan forward-test <b>POLA 4H</b> dan <b>AI 4H</b>: tiap sinyal dianggap entry 1000 USDT. Dikirim dari laptop tiap 4 jam; trade yang masih jalan dinilai dengan harga hidup.</li>
       <li>Hanya dua sinyal: POLA 4H dan AI 4H. Timeframe 4H, spot, long saja.</li>
       <li><b>Akun</b> — saldo spot Binance, harga beli rata-rata, PnL koin, dan order terbuka, lewat perantara Cloudflare Worker milikmu. HANYA MEMBACA: perantara menolak kunci API yang bisa trading atau tarik dana, dan aplikasi tidak punya tombol order.</li>
-      <li><b>Bot trading otomatis</b> (tab Akun) — sejak 22-09-2026 trading di <b>akun Binance asli</b> dengan modal awal 221 USDT (dipagu di Cloudflare). Sinyal: alert POLA VALID 4H dari 100 koin di TradingView + FIB 1H dari GitHub. Aturan: ukuran = modal ÷ maks entry, SL & TP dari sinyal, 50% di TP1 lalu SL sisa ke entry, 50% di TP2. Kunci trading hanya ada di server perantara ber-IP tetap (Frankfurt) — tanpa izin tarik dana. Koin yang sedang Anda pegang dilewati bot; jangan jual manual koin yang dipegang bot. Tombol <b>🔌 Uji sambungan</b> memeriksa seluruh jalur. Bot ini <b>belum terbukti menguntungkan</b> — nilai setelah ≥ 30 trade dan ≥ 6 bulan.</li>
+      <li><b>Bot trading otomatis</b> (tab Akun) — sejak 22-09-2026 trading di <b>akun Binance asli</b> dengan modal awal 221 USDT (dipagu di Cloudflare). Sinyal: alert POLA VALID 4H dari 100 koin di TradingView + FIB 1H dan limit Elliott Wave 4H dari GitHub (masing-masing hanya bila dicentang, maks 1 FIB dan 1 Elliott sekaligus). Aturan: ukuran = modal ÷ maks entry, SL & TP dari sinyal, 50% di TP1 lalu SL sisa ke entry, 50% di TP2. Kunci trading hanya ada di server perantara ber-IP tetap (Frankfurt) — tanpa izin tarik dana. Koin yang sedang Anda pegang dilewati bot; jangan jual manual koin yang dipegang bot. Tombol <b>🔌 Uji sambungan</b> memeriksa seluruh jalur. Bot ini <b>belum terbukti menguntungkan</b> — nilai setelah ≥ 30 trade dan ≥ 6 bulan.</li>
       <li><b>Risiko</b> (tab Akun) — <b>risiko serentak</b>: berapa % saldo hilang bila semua posisi terbuka kena SL bersamaan (batas bawaan 3%); <b>peringatan per trade</b> di kolom Ukuran posisi bila rugi-bila-SL melewati batas (bawaan 1% saldo); <b>aturan jeda</b> dari trade nyata: N rugi berturut (bawaan 3) atau rugi 7 hari ≥ 5% saldo → saran jeda seminggu. Semua batas bisa diubah di pengaturan Akun. Ini disiplin, bukan sinyal.</li>
       <li><b>Pengukur nyata</b> (tab Akun, jurnal trade nyata) — biaya nyatamu (selisih isi vs entry sinyal + komisi, dalam R) dan sinyal yang kamu ambil vs yang kamu lewati (simulasi yang sama untuk keduanya, dibanding pilihan acak).</li>
       <li><b>Riwayat mode Maju</b> — trade tutup diambil dari catatan GitHub yang ditulis otomatis tiap 4 jam, jadi sama di semua perangkat; trade jalan dihitung di perangkat ini.</li>
@@ -497,6 +498,13 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
       <li><b>Keluar bertahap:</b> 50% di TP1, lalu SL sisa naik ke entry (impas), 50% sisanya di TP2. Lilin yang menyentuh SL dan TP1 bersamaan dihitung SL.</li>
       <li>Biaya spot 0,2% pulang-pergi sudah dipotong. Pola Double Bottom, Rectangle, Bull Flag disembunyikan (sama dengan bawaan chart).</li>
       <li>Level sama dengan indikator AMONK di TradingView: 43 dari 44 koin cocok persis saat dicek 22-09 (beda: TRX).</li>
+    </ul></section>
+    <section><h3>Elliott Wave (EW) — pola ke-10</h3><ul>
+      <li><b>Apa itu:</b> siklus 0-1-2-3 dari titik ayunan Directional Change 4H (label <b>ELLIOTT ✓</b> di chart). Ini penamaan struktur, bukan teori Elliott Wave lengkap.</li>
+      <li><b>Setup</b> lahir saat puncak 3 sah, gelombang 3 naik ≥ 20% dan lebih tinggi dari puncak 1. <b>Entry = LIMIT BELI</b> di puncak 3 − 0,90 × gelombang 3 (menunggu harga TURUN, bukan tembus). Batal bila lilin dibuka di bawah limit, siklus patah, atau 60 lilin 4H (~10 hari) tak tersentuh.</li>
+      <li><b>Sesudah terisi</b> sama dengan pola lain: SL = limit − 2,5 × ATR, 50% di TP1 (0,75R), SL sisa ke entry, 50% di TP2 = puncak 3.</li>
+      <li><b>⏳ EW</b> di Terminal = limit yang masih menunggu (harga limit & jarak dari harga sekarang). Bot hanya memasang 1 Elliott sekaligus, dipilih yang <b>termuda</b> (terbaik dari 8 cara pilih, tapi tidak terbukti).</li>
+      <li><b>Bukti:</b> dengan TP/SL buku, Elliott <b>di bawah entry acak</b> di 4 dari 4 irisan uji (rata −0,12R) — peringkat 10, di atas Bull Flag saja. Hasil per trade 2023–2026 ≈ nol. Alat pantau, bukan sinyal yang terbukti.</li>
     </ul></section>
     <section><h3>Aturan buku di Jurnal</h3><ul>
       <li><b>POLA 4H</b> — buku rutin: SL 2,5 × ATR, TP 1R, keluar penuh. Jadi angkanya <b>berbeda</b> dari PnL di Terminal (yang memakai level chart & 50/50).</li>
@@ -660,7 +668,9 @@ function bentuk(P, i) {
 const EW = { ayun: 20, tunggu: 60, slAtr: 2.5 };
 function elliott(d, A, mx) {
   const n = d.c.length, dalam = mx >= 3 ? 0.57 : 0.90;   // Pine: <=1H m 3.5 & 0.57, >=2H m 2.5 & 0.90
-  const valid = [];
+  const valid = [], semua = [];        // semua = riwayat tiap limit (untuk uji pemilih; tidak dipakai app/bot)
+  let cur = null;                      // limit yang sedang hidup di riwayat
+  const tutupCur = i => { if (cur && cur.akhirB == null) cur.akhirB = i; cur = null; };
   let naik = true, eks = null, eksB = 0, no = -1, batal = false;
   let low0 = null, b0 = null, high1 = null, low2 = null, high3 = null, b3 = null;
   let p3Lalu = -1e9, level = null, lahir = null, terisi = false, tpBuku = null, setupB0 = null, ayunS = null;
@@ -668,7 +678,7 @@ function elliott(d, A, mx) {
     const hi = d.h[i], lo = d.l[i];
     if (eks === null) { eks = d.c[i]; eksB = i; }
     // 1-2. pembatal tiap bar
-    if (no >= 1 && !batal && low0 !== null && lo < low0) { batal = true; level = null; lahir = null; terisi = false; }
+    if (no >= 1 && !batal && low0 !== null && lo < low0) { if (!terisi) tutupCur(i); batal = true; level = null; lahir = null; terisi = false; }
     if ((no === 3 || no === 4) && !batal && low2 !== null && lo < low2) batal = true;
     // 3. detektor
     const th = A[i] > 0 && d.c[i] > 0 ? mx * A[i] / d.c[i] : null;
@@ -680,7 +690,7 @@ function elliott(d, A, mx) {
           no = (batal || no < 0) ? -1 : no + 1;
           const gagal = (no === 3 && high1 !== null && eks <= high1) || (no === 5 && high3 !== null && eks <= high3);
           if (gagal) {
-            if (lahir !== null && !terisi) { level = null; lahir = null; }
+            if (lahir !== null && !terisi) { level = null; lahir = null; tutupCur(i); }
             batal = true; no = -1;
           }
           if (no === 3) { high3 = eks; b3 = eksB; titik3 = true; }
@@ -705,8 +715,10 @@ function elliott(d, A, mx) {
       const g3 = high3 - low2;
       const ayunOk = g3 > 0 && low2 > 0 && g3 / low2 * 100 >= EW.ayun;
       if (ayunOk && b0 >= p3Lalu) {
+        if (!terisi) tutupCur(i); else cur = null;          // limit lama yang belum terisi diganti
         p3Lalu = b3; level = high3 - dalam * g3; tpBuku = high3; lahir = i; terisi = false;
         setupB0 = b0; ayunS = g3 / low2 * 100;
+        cur = { lahirB: i, level, tpBuku, ayun: ayunS, b0, akhirB: null, isiB: null }; semua.push(cur);
       } else batal = true;
     }
     // 5. isian
@@ -715,6 +727,7 @@ function elliott(d, A, mx) {
       if (d.o[i] < level) gap = true;
       else if (lo <= level && A[i] > 0) {
         terisi = true;
+        if (cur) { cur.isiB = i; cur.akhirB = i; cur = null; }
         const sl = level - EW.slAtr * A[i], j = i + C.horizon;
         valid.push({ i, nama: "Elliott Wave", kode: "EW", lewat: false, level, entry: level, batal: sl,
           tinggi: tpBuku - level, mulaiB: setupB0, lahirB: lahir, ayun: ayunS,
@@ -723,14 +736,14 @@ function elliott(d, A, mx) {
       }
     }
     // 6. batal karena gap / waktu
-    if (lahir !== null && !terisi && (gap || i - lahir > EW.tunggu)) { level = null; lahir = null; }
+    if (lahir !== null && !terisi && (gap || i - lahir > EW.tunggu)) { level = null; lahir = null; tutupCur(i); }
   }
   const i = n - 1;
   const setup = level !== null && !terisi && lahir !== null && A[i] > 0
     ? { nama: "Elliott Wave (limit beli)", kode: "EW", limit: true, level, batal: level - EW.slAtr * A[i],
         lahirB: lahir, umur: i - lahir, sisa: EW.tunggu - (i - lahir), mulaiB: setupB0, tinggi: tpBuku - level, ayun: ayunS }
     : null;
-  return { valid, setup };
+  return { valid, setup, semua };
 }
 
 // opsi.setupAkhir DITAMBAHKAN 2026-09-19: kalau true, larik hasil ikut membawa
@@ -982,6 +995,10 @@ async function muatKoin(k) {
   try {
     const dd = { t: b.map(x => +x[0]), o: b.map(x => +x[1]), h, l, c, v: b.map(x => +x[5]) };
     d.riwayat = polaSemua(dd); d.pola = polaTerakhir(dd, d.riwayat);
+    // LIMIT ELLIOTT MENUNGGU (2026-09-23): aturan sama dgn bot & Telegram (elliott(), 4H mx 2.5)
+    d.ew = null;
+    try { const S = window.PolaDC && window.PolaDC.elliott ? window.PolaDC.elliott(dd, atrArr(dd.h, dd.l, dd.c), 2.5).setup : null;
+      if (S && S.level > 0) d.ew = { level: S.level, sl: S.batal, tp2: S.level + S.tinggi, sisa: S.sisa, umur: S.umur, ayun: S.ayun }; } catch (e) { d.ew = null; }
   } catch (err) { d.pola = null; }
 }
 
@@ -1120,6 +1137,7 @@ function baris(k) {
     // bagian yang sudah tutup (real) + sisa posisi dinilai dengan harga hidup
     r.pnl = (P.sisa === 0 || d.harga) ? P.real + P.sisa * MODAL_POLA * ((d.harga || P.entry) / P.entry - 1) - MODAL_POLA * BIAYA_POLA : null;
   } else { r.p = null; r.polaNama = r.polaUmur = r.polaSt = r.pnl = null; }
+  r.ew = d.ew || null; r.ewJarak = r.ew && d.harga ? (r.ew.level / d.harga - 1) * 100 : null;
   return r;
 }
 const ZNAMA = { fib: "Pita FIB", dalam: "Dalam", bawah: "Di bawah", atas: "Di atas", nd: "—" };
@@ -1187,7 +1205,7 @@ function gambar() {
     const oKls = r.ongkos == null ? "redup" : r.ongkos > 0.10 ? "turun" : r.ongkos <= 0.05 ? "naik" : "";
     const qKls = r.q != null && r.q < LIKUID_MIN ? "turun" : "";
     const catatan = d.gagal ? "tidak ada di spot" : d.pendek ? "< 200 lilin 4H" : "";
-    return `<tr><td><a href="${url}" target="_blank" rel="noopener" title="Buka chart 4H di TradingView">${r.koin}</a></td>` +
+    return `<tr><td><a href="${url}" target="_blank" rel="noopener" title="Buka chart 4H di TradingView">${r.koin}</a>${chipEw(r)}</td>` +
       `<td class="${kl.trim()}">${fHarga(r.harga)}</td>` +
       `<td class="${r.ch == null ? "redup" : r.ch >= 0 ? "naik" : "turun"}">${fPct(r.ch)}</td>` +
       `<td class="${rKls}">${r.rsi == null ? "—" : r.rsi.toFixed(0)}</td>` +
@@ -1207,6 +1225,12 @@ function gambar() {
 let modeHP = false;
 const bukaHP = new Set();
 const URUT_HP = { pnl: ["pnl", -1], pnlNaik: ["pnl", 1], polaUmur: ["polaUmur", 1], koin: ["koin", 1], ch: ["ch", -1] };
+function chipEw(r) {
+  if (!r.ew) return "";
+  const E = r.ew, sisaH = Math.max(0, E.sisa) * 4 / 24;
+  const tip = `Limit beli Elliott 4H menunggu: ${fHarga(E.level)} · SL ${fHarga(E.sl)} · TP2 ${fHarga(E.tp2)} · batal bila ${E.sisa} lilin (~${sisaH.toFixed(1)} hari) tak tersentuh`;
+  return `<span class="chip ew" title="${tip}">⏳ EW ${fHarga(E.level)}${r.ewJarak == null ? "" : " (" + fPct(r.ewJarak, 1) + ")"}</span>`;
+}
 function chipPola(P) {
   return P.st === "jalan" ? (P.kenaTp1 ? `<span class="chip jalan">Jalan 50%</span>` : `<span class="chip jalan">Jalan</span>`)
     : P.st === "TP2" ? `<span class="chip tp">TP1+TP2</span>` : P.st === "BE" ? `<span class="chip tp">TP1+BE</span>` : `<span class="chip sl">Kena SL</span>`;
@@ -1235,10 +1259,11 @@ function gambarHP(rs) {
       `<span>24j <b class="${kls(r.ch)}">${fPct(r.ch)}</b></span>` +
       `<span>RSI 4H <b>${r.rsi == null ? "—" : r.rsi.toFixed(0)}</b></span>` +
       `<span>Likuid <b>${fUsd(r.q)}</b></span>` +
+      (r.ew ? `<span style="grid-column:1/-1">⏳ Limit Elliott <b>${fHarga(r.ew.level)}</b> · SL ${fHarga(r.ew.sl)} · TP2 ${fHarga(r.ew.tp2)} · sisa ${r.ew.sisa} lilin</span>` : "") +
       `<a href="${url}" target="_blank" rel="noopener">Buka chart 4H di TradingView →</a></div>`;
     const dK = data[r.koin] || {};
     return `<div class="kartu${P ? klsSt(P.st === "jalan", r.pnl) : ""}" data-k="${r.koin}">` +
-      `<div class="atas"><div style="min-width:0"><div class="nm">${r.koin}</div><div class="sub">${P ? P.nama : "tidak ada pola 4H"}</div><div class="sp-hp">${spark(dK)}</div></div>` +
+      `<div class="atas"><div style="min-width:0"><div class="nm">${r.koin}</div><div class="sub">${P ? P.nama : "tidak ada pola 4H"}${chipEw(r)}</div><div class="sp-hp">${spark(dK)}</div></div>` +
       `<div>${P ? chipPola(P) : ""}</div>` +
       `<div class="kanan2"><div class="pnlB ${kls(r.pnl)}">${pnl}</div><div class="kecil">${fHarga(r.harga)}</div></div></div>` +
       rinci + `</div>`;
@@ -2240,7 +2265,16 @@ function gambarBot(s) {
   if ((PG.polaBoleh || []).includes("EW") || (EWd.order || []).length) {
     const umurE = EWd.dataT ? Math.round((Date.now() - EWd.dataT) / 60e3) : null;
     baris.push(`<div class="jr-kotak"><h3>Elliott Wave 4H <small>${(PG.polaBoleh || []).includes("EW") ? "dicentang" : "tidak dicentang"} · maks ${EWd.maks || 1}</small></h3><div class="sub">Data dari GitHub: ${umurE == null ? "<b class='turun'>belum pernah diterima</b> — kode bot & GitHub perlu versi elliott" : umurE > 150 ? `<b class='turun'>${umurE} menit lalu (basi)</b>` : umurE + " menit lalu"} · ${EWd.setupAktif || 0} limit hidup · ${(EWd.order || []).length} order menunggu</div>` +
-      (EWd.order || []).map(o => `<div class="sub" style="padding:3px 0">${o.sym.replace(/USDT$/, "")} · limit beli ${fHarga(o.p)} · ${Math.round(o.nilai)} USDT · SL ${fHarga(o.sl)} · TP2 ${fHarga(o.tp2)}</div>`).join("") + `</div>`);
+      (EWd.order || []).map(o => {
+        // TP1 = aturan aplikasi/bot (0.75R, dipotong ke separuh jarak TP2); kedaluwarsa = lilin lahir + 61 lilin 4H
+        let tp1 = o.p + 0.75 * (o.p - o.sl); if (tp1 >= o.tp2) tp1 = o.p + 0.5 * (o.tp2 - o.p);
+        const px = hargaKini(o.sym.replace(/USDT$/, "")), jarak = px ? (o.p / px - 1) * 100 : null;
+        const habis = o.lahirT ? o.lahirT + 61 * 4 * 3600e3 : null, sisaJ = habis ? (habis - Date.now()) / 3600e3 : null;
+        const sisaT = sisaJ == null ? "—" : sisaJ <= 0 ? "segera batal" : sisaJ >= 48 ? (sisaJ / 24).toFixed(1) + " hari" : Math.round(sisaJ) + " jam";
+        return `<div class="sub" style="padding:4px 0;border-top:1px solid var(--garis)"><b>${o.sym.replace(/USDT$/, "")}</b> · limit beli <b>${fHarga(o.p)}</b>` +
+          `${jarak == null ? "" : ` <span class="${jarak <= 0 ? "naik" : "redup"}">(${fPct(jarak, 1)} dari harga ${fHarga(px)})</span>`} · ${Math.round(o.nilai)} USDT<br>` +
+          `SL ${fHarga(o.sl)} · TP1 ${fHarga(tp1)} · TP2 ${fHarga(o.tp2)} · batal otomatis dalam <b>${sisaT}</b> bila tak tersentuh</div>`;
+      }).join("") + `</div>`);
   }
   // CATATAN: entri kembar berurutan (jenis + koin + alasan sama) digabung jadi satu baris "×n";
   // tiap jenis diberi warna: beli hijau, jual/tutup menurut hasil, rencana biru, lewati abu, galat merah.
