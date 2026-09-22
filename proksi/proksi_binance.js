@@ -23,7 +23,14 @@
  *   GET  /cek       tanpa tanda tangan: Binance terjangkau dari server ini? (tidak memakai kunci)
  *   POST /panggil   {m, p, q, t, n} + header X-Tanda = hex(HMAC(PROKSI_KUNCI, isi mentah))
  */
-const http = require("http"), crypto = require("crypto");
+const http = require("http"), crypto = require("crypto"), dns = require("dns");
+// VPS tanpa IPv6: Node bisa mencoba alamat IPv6 Binance dulu lalu gagal "fetch failed" (terlihat 2026-09-22).
+dns.setDefaultResultOrder("ipv4first");
+// pesan galat lengkap: "fetch failed" dari Node menyembunyikan penyebab aslinya di e.cause
+// kunci Binance hanya huruf/angka: buang sisa tempel (CR dari Windows, kode bracketed-paste ESC[200~, spasi)
+const bersih = s => String(s || "").replace(/\x1b\[20[01]~/g, "").replace(/[^A-Za-z0-9]/g, "");
+const KUNCI = bersih(process.env.BINANCE_KEY), RAHASIA = bersih(process.env.BINANCE_SECRET);
+const galatLengkap = e => [e && e.message, e && e.cause && (e.cause.code || e.cause.message)].filter(Boolean).join(" — ");
 
 const JALUR = {                                   // metode -> jalur yang boleh diteruskan
   GET: ["/api/v3/account", "/api/v3/openOrders", "/api/v3/order", "/api/v3/orderList", "/api/v3/myTrades", "/sapi/v1/account/apiRestrictions"],
@@ -47,8 +54,8 @@ async function teruskan(m, p, q) {
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(q || {})) if (v !== undefined && v !== null && k !== "signature" && k !== "timestamp") qs.set(k, String(v));
   qs.set("recvWindow", "10000"); qs.set("timestamp", String(Date.now()));
-  qs.set("signature", crypto.createHmac("sha256", process.env.BINANCE_SECRET).update(qs.toString()).digest("hex"));
-  const r = await fetch(`${await cariHost()}${p}?${qs}`, { method: m, headers: { "X-MBX-APIKEY": process.env.BINANCE_KEY } });
+  qs.set("signature", crypto.createHmac("sha256", RAHASIA).update(qs.toString()).digest("hex"));
+  const r = await fetch(`${await cariHost()}${p}?${qs}`, { method: m, headers: { "X-MBX-APIKEY": KUNCI } });
   const teks = await r.text(); let isi; try { isi = JSON.parse(teks); } catch (e) { isi = { msg: teks.slice(0, 200) }; }
   return { status: r.status, isi };
 }
@@ -57,7 +64,7 @@ const server = http.createServer(async (req, res) => {
   try {
     if (req.method === "GET" && req.url === "/cek") {
       let binance = "gagal"; try { await cariHost(); binance = "ok " + hostOk; } catch (e) { binance = e.message; }
-      return kirim(res, 200, { proksi: "ok", binance, kunciTerisi: !!(process.env.BINANCE_KEY && process.env.BINANCE_SECRET), rahasiaTerisi: !!process.env.PROKSI_KUNCI });
+      return kirim(res, 200, { proksi: "ok", binance, kunciTerisi: KUNCI.length >= 32 && RAHASIA.length >= 32, panjangKunci: [KUNCI.length, RAHASIA.length], rahasiaTerisi: !!process.env.PROKSI_KUNCI });
     }
     if (!(req.method === "POST" && req.url === "/panggil")) return kirim(res, 404, { msg: "jalur tidak dikenal" });
     let mentah = ""; for await (const c of req) { mentah += c; if (mentah.length > 20000) return kirim(res, 413, { msg: "terlalu besar" }); }
@@ -70,10 +77,12 @@ const server = http.createServer(async (req, res) => {
     nonceTerpakai.set(b.n, skr);
     const m = String(b.m || "").toUpperCase();
     if (!(JALUR[m] || []).includes(b.p)) return kirim(res, 403, { msg: `jalur tidak diizinkan: ${m} ${b.p}` });
-    const hasil = await teruskan(m, b.p, b.q);
+    let hasil;
+    try { hasil = await teruskan(m, b.p, b.q); }
+    catch (e) { hostOk = null; console.error(new Date().toISOString(), "GAGAL", m, b.p, galatLengkap(e)); return kirim(res, 502, { msg: "ke Binance: " + galatLengkap(e) }); }
     console.log(new Date().toISOString(), m, b.p, (b.q && b.q.symbol) || "", hasil.status);
     return kirim(res, 200, hasil);
-  } catch (e) { return kirim(res, 500, { msg: String(e.message || e) }); }
+  } catch (e) { console.error(new Date().toISOString(), "GALAT", galatLengkap(e)); return kirim(res, 500, { msg: galatLengkap(e) }); }
 });
 server.listen(+(process.env.PORT || 8080), process.env.HOST || "127.0.0.1", () =>
   console.log(`proksi AMONK siap di ${process.env.HOST || "127.0.0.1"}:${process.env.PORT || 8080}`));
