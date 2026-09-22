@@ -91,7 +91,7 @@ const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(
 const angka = (x, dp = 0) => x.toLocaleString("en-US", { maximumFractionDigits: dp });
 const PERINGKAT = k => ({ FW: 1, ST: 2, PEN: 3, IHS: 4, AT: 5, TB: 6, CH: 7, RC: 8, DB: 9 }[k] || 10);
 const wib = t => new Date(t + 7 * 3600e3).toISOString().slice(5, 16).replace(/(\d\d)-(\d\d)T/, "$2/$1 ") + " WIB";
-const tautan = (k, tf = "4H") => `<a href="https://www.tradingview.com/chart/?symbol=BINANCE:${esc(k)}USDT&interval=${tf === "1D" ? "D" : "240"}">Chart ${tf}</a> · <a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`;
+const tautan = (k, tf = "4H") => `<a href="https://www.tradingview.com/chart/?symbol=BINANCE:${esc(k)}USDT&interval=${tf === "1D" ? "D" : "240"}">Chart ${tf}</a>`;   // link Aplikasi dibuang 2026-09-23 (permintaan user)
 
 // ---------- 1. ukuran posisi berdasar risiko (hanya untuk tujuan pribadi) ----------
 async function ambilModal() {
@@ -286,8 +286,7 @@ async function cekAudit(maju) {
       `${tutup.length} trade tutup · ${bln.toFixed(1)} bulan · WR ${wr}%\n` +
       `Total: <b>${f2(u)} USDT</b> · rata ${f2(u / tutup.length)}/trade\n` +
       teksPembanding(P) +
-      `\n<i>Ini pertama kali angka ini boleh dibaca sebagai kesimpulan, bukan sekadar pengamatan. Tetap bandingkan dengan uji panjang proyek (pola 4H historis ≈ impas) sebelum mengubah cara trading.</i>\n\n` +
-      `<a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`);
+      `\n<i>Ini pertama kali angka ini boleh dibaca sebagai kesimpulan, bukan sekadar pengamatan. Tetap bandingkan dengan uji panjang proyek (pola 4H historis ≈ impas) sebelum mengubah cara trading.</i>`);
     audit.semua = true;
   }
 
@@ -304,7 +303,7 @@ async function cekAudit(maju) {
       `${x.arr.length} trade tutup · ${bulanSejak(x.arr).toFixed(1)} bulan · WR ${wr}%\n` +
       `Total: <b>${f2(u)} USDT</b> · rata ${f2(u / x.arr.length)}/trade\n` +
       teksPembanding(P) +
-      `\n<i>Baru sekarang pola ini boleh dinilai, bukan sebelumnya.</i>\n\n<a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`);
+      `\n<i>Baru sekarang pola ini boleh dinilai, bukan sebelumnya.</i>`);
     audit.pola[nm] = true;
   }
   if (!DRY) fs.writeFileSync(F_AUDIT, JSON.stringify(audit));
@@ -320,7 +319,7 @@ function teksJeda(tutupMinggu, h) {
   const pctSl = Math.round(h.sl / tutupMinggu.length * 100);
   return pctSl >= JEDA_SL_PCT
     ? `\n⏸ <b>Disiplin: ${pctSl}% sinyal minggu ini kena SL</b> (batas ${JEDA_SL_PCT}%) — pasar sedang tidak searah dengan long. Saran: jeda seminggu atau ukuran setengah. Ini bukan tanda pola rusak.\n`
-    : `\n▶ Disiplin: ${pctSl}% sinyal minggu ini kena SL (batas ${JEDA_SL_PCT}%) — tidak ada alasan jeda dari sisi pasar. Cek juga aturan jeda trade nyatamu di aplikasi (tab Akun).\n`;
+    : `\n▶ Disiplin: ${pctSl}% sinyal minggu ini kena SL (batas ${JEDA_SL_PCT}%) — tidak ada alasan jeda dari sisi pasar.\n`;
 }
 
 // ---------- 6. SCANNER HARIAN 4H & 1D (2026-09-22, permintaan user: "cara mencari koin yang akan
@@ -388,12 +387,11 @@ function pesanScan(tf, V, H, dicek) {
     `   SL ${fx(x.S)} (${pc(x.S, x.E)}) · TP2 ${fx(x.T2)} (${pc(x.T2, x.E)})${tipis(x)}`).join("\n");
   return `<b>AMONK SINYAL · SCAN HARIAN ${tfT}</b>\n◻️◻️◻️◻️◻️\n📅 ${lokal(Date.now()).teks} waktu ${esc(KOTA)} · ${dicek} koin\n\n` +
     `✅ <b>Valid, masih di area entry</b> (≤ +${SCAN_AREA_R}R, belum TP1/SL): ${V.length}\n${bV || "   — tidak ada"}` +
-    (V.length > SCAN_MAKS ? `\n   … +${V.length - SCAN_MAKS} lagi${tf === "1d" ? "" : " di aplikasi"}` : "") + `\n\n` +
+    (V.length > SCAN_MAKS ? `\n   … +${V.length - SCAN_MAKS} lagi` : "") + `\n\n` +
     `⏳ <b>Hampir valid</b> — menunggu lilin ${tfT} TUTUP di atas garis tembus: ${H.length}\n${bH || "   — tidak ada"}` +
     (H.length > SCAN_MAKS ? `\n   … +${H.length - SCAN_MAKS} lagi` : "") + `\n\n` +
     `<i>Hampir valid BELUM sinyal: entry hanya sesudah lilin tutup di atas garis tembus. Calon = lembah terakhir belum sah, bisa berubah. Elliott Wave = limit beli: entry saat harga TURUN menyentuh limit (batal bila 60 lilin tak tersentuh).` +
-    (tf === "1d" ? ` Pola 1D di uji proyek tidak lebih baik dari entry acak — info saja; SL 1D lebar, hitung ukuran dari rugi-bila-SL.` : ` Level = aturan aplikasi (50% TP1, SL ke entry, 50% TP2).`) + `</i>\n\n` +
-    `<a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`;
+    (tf === "1d" ? ` Pola 1D di uji proyek tidak lebih baik dari entry acak — info saja; SL 1D lebar, hitung ukuran dari rugi-bila-SL.` : ` Level: 50% TP1, SL ke entry, 50% TP2.`) + `</i>`;
 }
 async function scanHarian() {
   const L0 = lokal(Date.now());
@@ -445,8 +443,7 @@ async function rekap() {
     `   (TP1+TP2 ${hs.tp2} · TP1+BE ${hs.be} · SL ${hs.sl})\n` +
     `   progres bukti: ${tutupSemua.length}/30 trade · ${bulan.toFixed(1)}/6 bulan — ${tutupSemua.length >= 30 && bulan >= 6 ? "cukup data" : "<i>belum cukup data untuk disimpulkan</i>"}\n` +
     (baris ? `\n🏷 Per pola (maju):\n${baris}\n` : "") +
-    teksJeda(tutupMinggu, h) +
-    `\n<a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`;
+    teksJeda(tutupMinggu, h);
   const ok = await kirim(teks);
   console.log(`REKAP: ${ok ? "terkirim" : "GAGAL"} (${semua.length} trade maju tercatat)`);
 }
