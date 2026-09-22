@@ -127,7 +127,9 @@ function bentuk(P, i) {
 const EW = { ayun: 20, tunggu: 60, slAtr: 2.5 };
 function elliott(d, A, mx) {
   const n = d.c.length, dalam = mx >= 3 ? 0.57 : 0.90;   // Pine: <=1H m 3.5 & 0.57, >=2H m 2.5 & 0.90
-  const valid = [];
+  const valid = [], semua = [];        // semua = riwayat tiap limit (untuk uji pemilih; tidak dipakai app/bot)
+  let cur = null;                      // limit yang sedang hidup di riwayat
+  const tutupCur = i => { if (cur && cur.akhirB == null) cur.akhirB = i; cur = null; };
   let naik = true, eks = null, eksB = 0, no = -1, batal = false;
   let low0 = null, b0 = null, high1 = null, low2 = null, high3 = null, b3 = null;
   let p3Lalu = -1e9, level = null, lahir = null, terisi = false, tpBuku = null, setupB0 = null, ayunS = null;
@@ -135,7 +137,7 @@ function elliott(d, A, mx) {
     const hi = d.h[i], lo = d.l[i];
     if (eks === null) { eks = d.c[i]; eksB = i; }
     // 1-2. pembatal tiap bar
-    if (no >= 1 && !batal && low0 !== null && lo < low0) { batal = true; level = null; lahir = null; terisi = false; }
+    if (no >= 1 && !batal && low0 !== null && lo < low0) { if (!terisi) tutupCur(i); batal = true; level = null; lahir = null; terisi = false; }
     if ((no === 3 || no === 4) && !batal && low2 !== null && lo < low2) batal = true;
     // 3. detektor
     const th = A[i] > 0 && d.c[i] > 0 ? mx * A[i] / d.c[i] : null;
@@ -147,7 +149,7 @@ function elliott(d, A, mx) {
           no = (batal || no < 0) ? -1 : no + 1;
           const gagal = (no === 3 && high1 !== null && eks <= high1) || (no === 5 && high3 !== null && eks <= high3);
           if (gagal) {
-            if (lahir !== null && !terisi) { level = null; lahir = null; }
+            if (lahir !== null && !terisi) { level = null; lahir = null; tutupCur(i); }
             batal = true; no = -1;
           }
           if (no === 3) { high3 = eks; b3 = eksB; titik3 = true; }
@@ -172,8 +174,10 @@ function elliott(d, A, mx) {
       const g3 = high3 - low2;
       const ayunOk = g3 > 0 && low2 > 0 && g3 / low2 * 100 >= EW.ayun;
       if (ayunOk && b0 >= p3Lalu) {
+        if (!terisi) tutupCur(i); else cur = null;          // limit lama yang belum terisi diganti
         p3Lalu = b3; level = high3 - dalam * g3; tpBuku = high3; lahir = i; terisi = false;
         setupB0 = b0; ayunS = g3 / low2 * 100;
+        cur = { lahirB: i, level, tpBuku, ayun: ayunS, b0, akhirB: null, isiB: null }; semua.push(cur);
       } else batal = true;
     }
     // 5. isian
@@ -182,6 +186,7 @@ function elliott(d, A, mx) {
       if (d.o[i] < level) gap = true;
       else if (lo <= level && A[i] > 0) {
         terisi = true;
+        if (cur) { cur.isiB = i; cur.akhirB = i; cur = null; }
         const sl = level - EW.slAtr * A[i], j = i + C.horizon;
         valid.push({ i, nama: "Elliott Wave", kode: "EW", lewat: false, level, entry: level, batal: sl,
           tinggi: tpBuku - level, mulaiB: setupB0, lahirB: lahir, ayun: ayunS,
@@ -190,14 +195,14 @@ function elliott(d, A, mx) {
       }
     }
     // 6. batal karena gap / waktu
-    if (lahir !== null && !terisi && (gap || i - lahir > EW.tunggu)) { level = null; lahir = null; }
+    if (lahir !== null && !terisi && (gap || i - lahir > EW.tunggu)) { level = null; lahir = null; tutupCur(i); }
   }
   const i = n - 1;
   const setup = level !== null && !terisi && lahir !== null && A[i] > 0
     ? { nama: "Elliott Wave (limit beli)", kode: "EW", limit: true, level, batal: level - EW.slAtr * A[i],
         lahirB: lahir, umur: i - lahir, sisa: EW.tunggu - (i - lahir), mulaiB: setupB0, tinggi: tpBuku - level, ayun: ayunS }
     : null;
-  return { valid, setup };
+  return { valid, setup, semua };
 }
 
 // opsi.setupAkhir DITAMBAHKAN 2026-09-19: kalau true, larik hasil ikut membawa
