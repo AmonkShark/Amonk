@@ -290,6 +290,73 @@ function teksJeda(tutupMinggu, h) {
     : `\n▶ Disiplin: ${pctSl}% sinyal minggu ini kena SL (batas ${JEDA_SL_PCT}%) — tidak ada alasan jeda dari sisi pasar. Cek juga aturan jeda trade nyatamu di aplikasi (tab Akun).\n`;
 }
 
+// ---------- 6. SCANNER HARIAN 4H & 1D (2026-09-22, permintaan user: "cara mencari koin yang akan
+// terbentuk polanya setiap hari baik di tf 1 day maupun 4h ... kirim ke telegram") ----------
+// Sekali sehari 00:17 UTC (07:17 WIB), sesudah lilin 1D dan 4H tutup. Dua pesan, satu per TF:
+//   ✅ VALID yang harga-nya masih di area entry: <= +0.25R di atas entry, belum sentuh TP1/SL,
+//      umur <= 20 hari (120 lilin 4H / 20 lilin 1D) — sama dengan jendela aplikasi.
+//   ⏳ HAMPIR VALID: SETUP (pola terbentuk, menunggu lilin TUTUP di atas garis tembus) dan CALON
+//      (lembah terakhir belum sah), urut jarak ke garis tembus.
+// Aturan = pola_dc_peristiwa.cjs (sama dengan chart). Tidak menulis status/maju/audit apa pun.
+// 1D TIDAK teruji menguntungkan (memori pola-1d-tidak-lebih-valid) -> ditulis di pesannya.
+const SCAN = process.env.SCAN === "true" || process.env.JADWAL === "17 0 * * *";
+const SCAN_MAKS = Math.max(1, +(process.env.SCAN_MAKS || 8));
+const SCAN_AREA_R = 0.25;
+async function scanTF(k, tf) {
+  const barMs = tf === "1d" ? 864e5 : 4 * 3600e3, umurMaks = tf === "1d" ? 20 : 120;
+  const j = await getJ(`/api/v3/klines?symbol=${k}USDT&interval=${tf}&limit=${tf === "1d" ? 1000 : 600}`);
+  if (!Array.isArray(j) || j.length < 120) return null;
+  const skr = Date.now(), b = j.filter(x => +x[6] < skr);                        // buang lilin berjalan
+  if (!b.length || skr - +b[b.length - 1][6] > 3 * barMs) return null;           // basi / delisting
+  const d = { t: b.map(x => +x[0]), o: b.map(x => +x[1]), h: b.map(x => +x[2]), l: b.map(x => +x[3]), c: b.map(x => +x[4]), v: b.map(x => +x[5]) };
+  const n = d.c.length, px = d.c[n - 1], vol = +b[n - 1][7] * (tf === "1d" ? 1 : 6);
+  let ev; try { ev = peristiwa(d, atrArr(d.h, d.l, d.c), { setupAkhir: true, calonAkhir: true }) || []; } catch (e) { return null; }
+  const out = { valid: [], hampir: [] };
+  for (const e of ev) {
+    if (SEMBUNYI.has(e.kode) || n - 1 - e.i > umurMaks) continue;
+    const L = level(d, e); if (!L || !(L.sl > 0)) continue;
+    let kena = false; for (let q = e.i + 1; q < n; q++) if (d.l[q] <= L.sl || d.h[q] >= L.tp1) { kena = true; break; }
+    const r = (px - L.entry) / (L.entry - L.sl);
+    if (kena || px <= L.sl || r > SCAN_AREA_R) continue;
+    out.valid.push({ k, nama: e.nama, kode: e.kode, L, px, r, validT: d.t[e.i] + barMs, vol });
+  }
+  for (const [tahap, arr] of [["SETUP", ev.setup || []], ["CALON", ev.calon || []]]) for (const s of arr) {
+    if (SEMBUNYI.has(s.kode)) continue;
+    const E = s.level, S = s.batal, T2 = s.level + s.tinggi;
+    if (!(S > 0) || !(E > S) || !(T2 > E) || !(px < E)) continue;
+    out.hampir.push({ k, tahap, nama: s.nama, kode: s.kode, E, S, T2, px, jarak: (E / px - 1) * 100, sisa: s.sisa, vol });
+  }
+  return out;
+}
+function pesanScan(tf, V, H, dicek) {
+  const tfT = tf === "1d" ? "1D" : "4H", tipis = x => x.vol < 1e6 ? " ⚠️tipis" : "";
+  const bV = V.sort((a, b) => a.r - b.r).slice(0, SCAN_MAKS).map(x =>
+    `• <b>${esc(x.k)}</b> ${PERINGKAT(x.kode)} ${esc(x.nama)} · valid ${wib(x.validT).slice(0, 5)}\n` +
+    `   E ${fx(x.L.entry)} (kini ${pc(x.px, x.L.entry)}) · SL ${fx(x.L.sl)} (${pc(x.L.sl, x.L.entry)}) · TP1 ${fx(x.L.tp1)} · TP2 ${fx(x.L.tp2)}${tipis(x)}`).join("\n");
+  const bH = H.sort((a, b) => a.jarak - b.jarak).slice(0, SCAN_MAKS).map(x =>
+    `• <b>${esc(x.k)}</b> ${PERINGKAT(x.kode)} ${esc(x.nama)}${x.tahap === "CALON" ? " <i>(calon)</i>" : ""} · tembus ${fx(x.E)} (<b>+${x.jarak.toFixed(1)}%</b>)\n` +
+    `   SL ${fx(x.S)} (${pc(x.S, x.E)}) · TP2 ${fx(x.T2)} (${pc(x.T2, x.E)})${tipis(x)}`).join("\n");
+  return `<b>AMONK SINYAL · SCAN HARIAN ${tfT}</b>\n◻️◻️◻️◻️◻️\n📅 ${wib(Date.now())} · ${dicek} koin\n\n` +
+    `✅ <b>Valid, masih di area entry</b> (≤ +${SCAN_AREA_R}R, belum TP1/SL): ${V.length}\n${bV || "   — tidak ada"}` +
+    (V.length > SCAN_MAKS ? `\n   … +${V.length - SCAN_MAKS} lagi${tf === "1d" ? "" : " di aplikasi"}` : "") + `\n\n` +
+    `⏳ <b>Hampir valid</b> — menunggu lilin ${tfT} TUTUP di atas garis tembus: ${H.length}\n${bH || "   — tidak ada"}` +
+    (H.length > SCAN_MAKS ? `\n   … +${H.length - SCAN_MAKS} lagi` : "") + `\n\n` +
+    `<i>Hampir valid BELUM sinyal: entry hanya sesudah lilin tutup di atas garis tembus. Calon = lembah terakhir belum sah, bisa berubah.` +
+    (tf === "1d" ? ` Pola 1D di uji proyek tidak lebih baik dari entry acak — info saja; SL 1D lebar, hitung ukuran dari rugi-bila-SL.` : ` Level = aturan aplikasi (50% TP1, SL ke entry, 50% TP2).`) + `</i>\n\n` +
+    `<a href="https://amonkshark.github.io/Amonk/">Aplikasi</a>`;
+}
+async function scanHarian() {
+  const hasil = { "4h": { V: [], H: [], n: 0 }, "1d": { V: [], H: [], n: 0 } };
+  for (const k of KOIN) for (const tf of ["4h", "1d"]) {
+    const r = await scanTF(k, tf); if (!r) continue;
+    hasil[tf].n++; hasil[tf].V.push(...r.valid); hasil[tf].H.push(...r.hampir);
+  }
+  for (const tf of ["4h", "1d"]) {
+    const x = hasil[tf], ok = await kirim(pesanScan(tf, x.V, x.H, x.n));
+    console.log(`SCAN ${tf}: ${x.n} koin · valid di area entry ${x.V.length} · hampir valid ${x.H.length} · ${ok ? "terkirim" : "GAGAL"}`);
+  }
+}
+
 async function rekap() {
   let maju = {}; try { maju = JSON.parse(fs.readFileSync(F_MAJU, "utf8")); } catch (e) {}
   const semua = Object.values(maju), skr = Date.now(), awal = skr - 7 * 864e5;
@@ -336,6 +403,7 @@ async function rekap() {
     return;
   }
   if (REKAP) return rekap();
+  if (SCAN) return scanHarian();
 
   let status = {}; try { status = JSON.parse(fs.readFileSync(F_STATUS, "utf8")); } catch (e) {}
   for (const [kk, v] of Object.entries(status)) if (typeof v === "number") status[kk] = { t: v, tahap: "baru" };   // format lama
