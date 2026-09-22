@@ -33,6 +33,10 @@ const DRY = process.env.DRY === "1" || !TOKEN;
 const UJI = process.env.UJI === "true";
 const REKAP = process.env.REKAP === "true" || process.env.JADWAL === "0 13 * * 0";
 const RISIKO_PCT = +(process.env.RISIKO_PCT || 0.5);
+// Cara ukuran (2026-09-22, user "setiap aku trade selalu membagi modal menjadi 3"):
+// "bagi" (bawaan) = nilai posisi saldo ÷ BAGI_MODAL; "risiko" = rugi bila SL = RISIKO_PCT% saldo.
+const CARA_UKURAN = process.env.CARA_UKURAN === "risiko" ? "risiko" : "bagi";
+const BAGI_MODAL = Math.max(1, Math.round(+(process.env.BAGI_MODAL || 3)) || 3);
 const AKUN_URL = (process.env.AKUN_URL || "").replace(/\/+$/, ""), SANDI = process.env.SANDI_APP || "";
 const MODAL_CADANGAN = +(process.env.MODAL_USDT || 0);
 const F_STATUS = path.join(__dirname, "terkirim.json"), F_MAJU = path.join(__dirname, "maju.json");
@@ -104,11 +108,15 @@ async function ambilModal() {
 }
 function ukuranTeks(L, M) {
   if (!M) return `📏 Ukuran: isi secret AKUN_URL + SANDI_APP (atau MODAL_USDT) untuk ukuran posisi otomatis\n`;
-  const risiko = M.modal * RISIKO_PCT / 100;
-  let qty = risiko / (L.entry - L.sl), nilai = qty * L.entry, batas = false;
-  if (nilai > M.modal) { qty = M.modal / L.entry; nilai = M.modal; batas = true; }
-  return `📏 Ukuran (risiko ${RISIKO_PCT}%): <b>${angka(qty, qty < 10 ? 4 : 0)}</b> koin ≈ <b>${angka(nilai)} USDT</b>\n` +
-    `     rugi maks bila SL ≈ ${angka(qty * (L.entry - L.sl), 2)} USDT · saldo ${angka(M.modal)} USDT${batas ? " · dibatasi saldo" : ""}\n`;
+  let qty, nilai, batas = false;
+  if (CARA_UKURAN === "bagi") { nilai = M.modal / BAGI_MODAL; qty = nilai / L.entry; }
+  else {
+    qty = M.modal * RISIKO_PCT / 100 / (L.entry - L.sl); nilai = qty * L.entry;
+    if (nilai > M.modal) { qty = M.modal / L.entry; nilai = M.modal; batas = true; }
+  }
+  const rugi = qty * (L.entry - L.sl);
+  return `📏 Ukuran (${CARA_UKURAN === "bagi" ? `1/${BAGI_MODAL} saldo` : `risiko ${RISIKO_PCT}%`}): <b>${angka(qty, qty < 10 ? 4 : 0)}</b> koin ≈ <b>${angka(nilai)} USDT</b>\n` +
+    `     rugi bila SL ≈ ${angka(rugi, 2)} USDT (${(rugi / M.modal * 100).toFixed(1)}% saldo) · saldo ${angka(M.modal)} USDT${batas ? " · dibatasi saldo" : ""}\n`;
 }
 
 // ---------- pesan ----------
