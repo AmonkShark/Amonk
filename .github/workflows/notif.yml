@@ -40,6 +40,8 @@ jobs:
           SANDI_APP: ${{ secrets.SANDI_APP }}
           MODAL_USDT: ${{ secrets.MODAL_USDT }}
           RISIKO_PCT: ${{ secrets.RISIKO_PCT }}
+          CARA_UKURAN: ${{ secrets.CARA_UKURAN }}
+          BAGI_MODAL: ${{ secrets.BAGI_MODAL }}
           UJI: ${{ inputs.uji }}
           REKAP: ${{ inputs.rekap }}
           JADWAL: ${{ github.event.schedule }}
