@@ -175,6 +175,7 @@ svg.sp{display:block;width:84px;height:22px}
 .lencana.on{color:var(--hijau);background:var(--hijau-bg);border-color:rgba(38,166,154,.4)}
 .lencana.off{color:var(--kuning);background:var(--kuning-bg);border-color:rgba(255,183,77,.4)}
 .bt-sub{font:600 13px var(--f-ui);color:var(--label);margin:12px 0 2px}
+.bt-dana{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}.bt-dana label{flex:1 1 220px}.bt-dana .redup{font-size:12px}
 .bt-log{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:8px;align-items:baseline;padding:4px 0;border-top:1px solid var(--garis);font-size:12px}
 .bt-log:first-of-type{border-top:0}
 .bt-tag{font:600 11px var(--f-ui);padding:1px 7px;border-radius:3px;border:1px solid var(--garis);color:var(--label);white-space:nowrap}
@@ -422,6 +423,9 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
       <label for="btModal">Modal awal bot (USDT, laba ikut diputar)<input id="btModal" type="number" step="any" min="0" inputmode="decimal" placeholder="0 = seluruh saldo testnet"></label>
       <label for="btPosisi">Maks entry bersamaan (saldo dibagi ini)<input id="btPosisi" type="number" step="1" min="1" max="20" inputmode="numeric"></label>
       <label for="btBatas">Batas rugi bot per trade (% modal · 100 = tidak dipangkas)<input id="btBatas" type="number" step="any" min="0.1" max="100" inputmode="decimal"></label>
+      <div class="bt-dana" style="grid-column:1/-1"><label for="btDana">Tarik / tambah dana bot (USDT) — laba bot TIDAK diulang dari nol<input id="btDana" type="number" step="any" min="0" inputmode="decimal" placeholder="mis. 30"></label>
+        <button class="btn" type="button" id="btTarik">− Tarik dari bot</button><button class="btn" type="button" id="btTambah">+ Tambah ke bot</button>
+        <span class="redup" id="btDanaKet"></span></div>
       <label for="btKoin" style="grid-column:span 2">Koin yang diambil bot<input id="btKoin" type="text" autocapitalize="characters" placeholder="kosong = semua koin ber-webhook · contoh: XRP, ETH, SOL"></label>
       <div class="bt-pola" style="grid-column:1/-1"><span>Pola yang diambil bot:</span>
         <label><input type="checkbox" value="FW"> 1 Falling Wedge</label><label><input type="checkbox" value="ST"> 2 Symmetrical Triangle</label>
@@ -2025,7 +2029,7 @@ function gambarBot(s) {
     (asli && s.kunciGalat ? `<p class="jr-ket turun">⛔ ${String(s.kunciGalat).replace(/[<>&]/g, "")}.</p>` : "") +
     (asli ? `<p class="jr-ket kng">Uang sungguhan. Modal awal dipagu ${s.modalAsliMaks || "?"} USDT oleh pengaturan Cloudflare. Koin yang sedang Anda pegang atau punya order Anda dilewati bot — jangan jual manual koin yang sedang dipegang bot.</p>` : "") +
     (s.aktif ? "" : `<p class="jr-ket kng">Mode kering: bot hanya mencatat rencana, tidak membeli. Isi BOT_AKTIF = ya di Cloudflare untuk mengaktifkan.</p>`) +
-    `<div class="jr-angka"><div><span>Modal bot kini</span><b>${maks ? usd(maks) : "seluruh saldo"}</b><span class="rp">awal ${MO.awal > 0 ? usd(MO.awal) : "—"}${MO.sejak ? " · sejak " + tglLokal(MO.sejak) : ""}</span></div>` +
+    `<div class="jr-angka"><div><span>Modal bot kini</span><b>${maks ? usd(maks) : "seluruh saldo"}</b><span class="rp">awal ${MO.awal > 0 ? usd(MO.awal) : "—"}${MO.penyesuaian ? ` · ${MO.penyesuaian < 0 ? "ditarik" : "ditambah"} ${usd(Math.abs(MO.penyesuaian))}` : ""} · bebas ${usd(Math.max(0, maks - pakai - ((s.fib && s.fib.order) || []).reduce((a, o) => a + (+o.nilai || 0), 0)))}${MO.sejak ? " · sejak " + tglLokal(MO.sejak) : ""}</span></div>` +
     `<div><span>Laba bot</span><b class="${kl(MO.laba)}">${f2(MO.laba)} USDT</b><span class="rp">${MO.awal > 0 ? f2(MO.laba / MO.awal * 100) + "% modal · " : ""}${R.length} trade tutup · WR ${wr}%</span></div>` +
     `<div><span>Posisi terbuka</span><b>${P.length} / ${PG.maksPosisi || "?"}</b><span class="rp">terpakai ${usd(pakai)}${maks ? ` (${Math.round(pakai / maks * 100)}%)` : ""}</span></div></div>` +
     `<div class="jr-angka"><div><span>Rata-rata per trade</span><b class="${kl(rRata)}">${rRata == null ? "—" : f2(rRata) + " R"}</b><span class="rp">R = rugi bila kena SL</span></div>` +
@@ -2067,7 +2071,7 @@ function gambarBot(s) {
     if (kelompok.length > 10) { kelompok.pop(); break; }
   }
   const jenisKls = l => /galat|gagal|DARURAT|terlewati|tolak/.test(l.jenis) ? "merah" : /^masuk$|terisi/.test(l.jenis) ? "hijau"
-    : l.jenis === "tutup" ? (l.hasil >= 0 ? "hijau" : "merah") : /rencana|FIB order/.test(l.jenis) ? "biru" : /lewati|batal|ditahan/.test(l.jenis) ? "abu" : "";
+    : l.jenis === "tutup" ? (l.hasil >= 0 ? "hijau" : "merah") : /rencana|FIB order|dana bot/.test(l.jenis) ? "biru" : /lewati|batal|ditahan/.test(l.jenis) ? "abu" : "";
   if (kelompok.length) baris.push(`<div class="jr-kotak"><h3>Catatan bot terakhir <small>jam ${ZONA || "lokal"}</small></h3>` + kelompok.map(({ l, n, tAwal }) =>
     `<div class="bt-log"><span class="bt-tag ${jenisKls(l)}">${l.jenis}</span><span class="bt-jam">${jamLokal(l.t)}${n > 1 ? ` ×${n} sejak ${jamLokal(tAwal).slice(6)}` : ""}</span>` +
     `<span class="bt-isi">${[l.sym ? "<b>" + l.sym.replace(/USDT$/, "") + "</b>" : "", l.alasan || "", l.galat || "",
@@ -2093,9 +2097,28 @@ window.muatBotBilaAda = () => { if (btCfg().url) muatBot(); };
 function kunciBot(terkunci) {
   $("btForm").classList.toggle("terkunci", terkunci); $("btKunci").hidden = !terkunci;
   $("btForm").querySelectorAll("input").forEach(el => { if (el.id !== "btSandi" && el.id !== "btUrl") el.disabled = terkunci; });
+  $("btTarik").disabled = $("btTambah").disabled = terkunci;
   $("btSimpan").textContent = terkunci ? "🔓 Buka kunci" : "Simpan ke bot";
 }
 $("btMuat").addEventListener("click", muatBot);
+// TARIK / TAMBAH DANA BOT (2026-09-22, user). POST /atur {penyesuaian:{jumlah}}. Bot yang memeriksa batasnya:
+// tarik <= saldo bot yang tidak dipakai posisi/order; tambah (akun asli) <= pagu MODAL_ASLI_MAKS Cloudflare.
+// Ini hanya pembukuan bot — uangnya tetap di dompet Spot yang sama; aplikasi tidak memindahkan dana di Binance.
+async function ubahDana(tanda) {
+  const v = +$("btDana").value;
+  if (!(v > 0)) { btPesan("Isi jumlah USDT dulu.", true); return; }
+  const j = tanda * v;
+  if (!confirm(`${j < 0 ? "TARIK" : "TAMBAH"} ${v} USDT ${j < 0 ? "dari" : "ke"} saldo bot?\n\nLaba trading bot tetap dihitung, tidak diulang dari nol. ` +
+    `${j < 0 ? "Sesudah ditarik, bot tidak akan memakai " + v + " USDT itu lagi." : "Bot boleh memakai tambahan ini untuk entry berikutnya."}`)) return;
+  try {
+    btPesan("Menyimpan…");
+    await btPanggil("/atur", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ penyesuaian: { jumlah: j, catatan: j < 0 ? "tarik dari aplikasi" : "tambah dari aplikasi" } }) });
+    $("btDana").value = ""; await muatBot();
+    btPesan(`Tersimpan: ${j < 0 ? "ditarik" : "ditambah"} ${v} USDT. Modal bot kini ${Math.round((BT_S && BT_S.modal && BT_S.modal.kini) || 0)} USDT.`);
+  } catch (e) { btPesan("Gagal: " + e.message, true); }
+}
+$("btTarik").addEventListener("click", () => ubahDana(-1));
+$("btTambah").addEventListener("click", () => ubahDana(1));
 // UJI SAMBUNGAN (2026-09-22, user: "bagaimana cara cek jika sudah benar semua?"). GET /tes (wajib sandi):
 // bot membaca saldo USDT lewat jalurnya sendiri — di mode asli lewat perantara VPS dengan kunci asli.
 // Berhasil = aplikasi→bot→perantara→Binance tersambung DAN kunci sah. Tidak memasang order apa pun.
