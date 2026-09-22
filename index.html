@@ -1410,27 +1410,52 @@ function polaAkun(aset) {
 // berapa % saldo hilang. SL tiap koin = SL pola 4H terakhir yang masih jalan (atau entry bila TP1
 // sudah kena). Koin tanpa pola jalan tidak punya SL yang diketahui -> dihitung terpisah.
 // Tiga altcoin searah pada dasarnya satu taruhan; batas = pengaturan "Batas rugi serentak".
-function risikoSerentak(baris, total) {
+// PERBAIKAN 2026-09-22 (terlihat di akun user: 3 posisi ~3.900 USDT, kotak menulis "−0 USDT, di dalam
+// batas" karena posisinya bukan dari pola 4H). Sumber SL sekarang, berurutan:
+//   1. ORDER STOP ASLI di Binance (order jual terbuka yang punya stopPrice) untuk jumlah yang dilindunginya;
+//      rugi dihitung sampai harga LIMIT order itu (lebih rendah dari stop = perkiraan konservatif);
+//   2. sisa jumlah yang tak dilindungi order: SL pola 4H yang masih jalan (kalau ada);
+//   3. sisanya TANPA SL -> diberi peringatan, dan kotak TIDAK lagi menulis "di dalam batas".
+function risikoSerentak(baris, total, akun) {
   if (!(total > 0)) return "";
   const pos = baris.filter(b => !STABIL.has(b.aset) && (b.nilai || 0) > 5);
   if (!pos.length) return "";
-  const ada = [], tanpa = [];
+  const order = (akun && akun.order) || [];
+  const hasil = [];
+  let nilaiTanpa = 0, memuat = 0;
+  const tanpaNama = [];
   for (const b of pos) {
+    if (!b.px) { nilaiTanpa += b.nilai || 0; tanpaNama.push(b.aset); continue; }
+    let sisa = b.jml, rugi = 0, sumber = [];
+    const stops = order.filter(o => o.simbol === b.aset + "USDT" && o.sisi === "SELL" && o.stop > 0)
+      .map(o => ({ qty: Math.max(0, o.jumlah - (o.terisi || 0)), px: o.harga > 0 ? Math.min(o.harga, o.stop) : o.stop }))
+      .sort((a, c) => a.px - c.px);
+    for (const s of stops) { const q = Math.min(sisa, s.qty); if (q <= 0) continue; rugi += q * Math.max(0, b.px - s.px); sisa -= q; sumber.push(`stop ${fHarga(s.px)}`); }
     const P = data[b.aset] && data[b.aset].pola;
-    if (!P || P.umur > POLA_MAKS_UMUR || P.st !== "jalan" || !b.px) { tanpa.push(b); continue; }
-    const sl = P.kenaTp1 ? P.entry : P.sl, rugi = Math.max(0, b.nilai * (1 - sl / b.px));
-    ada.push({ aset: b.aset, nilai: b.nilai, sl, rugi, pct: rugi / total * 100, bawah: b.px <= sl });
+    if (sisa > b.jml * 0.02 && P && P.umur <= POLA_MAKS_UMUR && P.st === "jalan") {
+      const sl = P.kenaTp1 ? P.entry : P.sl; rugi += sisa * Math.max(0, b.px - sl); sumber.push(`SL pola 4H ${fHarga(sl)}`); sisa = 0;
+    }
+    if (sisa > b.jml * 0.02) {
+      nilaiTanpa += sisa * b.px; tanpaNama.push(b.aset);
+      if (data[b.aset] && !data[b.aset].ok) memuat++;
+    }
+    hasil.push({ aset: b.aset, rugi, pct: rugi / total * 100, sumber, tanpa: sisa > b.jml * 0.02 ? sisa * b.px : 0 });
   }
-  const rugi = ada.reduce((a, x) => a + x.rugi, 0), pct = rugi / total * 100, lewat = pct > batasSerentak();
-  const nilaiTanpa = tanpa.reduce((a, b) => a + (b.nilai || 0), 0);
-  const kl = lewat ? "turun" : pct > batasSerentak() * 0.7 ? "kng" : "naik";
-  const rinci = ada.sort((a, b) => b.rugi - a.rugi).map(x => `<span>${x.aset} <b class="${x.pct > batasTrade() ? "turun" : ""}">${x.rugi.toFixed(0)} USDT (${x.pct.toFixed(1)}%)</b>${x.bawah ? " <em class='turun'>harga sudah di bawah SL</em>" : ""}</span>`).join("");
+  const rugi = hasil.reduce((a, x) => a + x.rugi, 0), pct = rugi / total * 100, lewat = pct > batasSerentak();
+  const pctTanpa = nilaiTanpa / total * 100, adaTanpa = nilaiTanpa > 5;
+  const kl = lewat || adaTanpa ? "turun" : pct > batasSerentak() * 0.7 ? "kng" : "naik";
+  const nDgnSl = hasil.filter(x => x.sumber.length).length;
+  const rinci = hasil.sort((a, b) => b.rugi - a.rugi).map(x => `<span>${x.aset} ` +
+    (x.sumber.length ? `<b class="${x.pct > batasTrade() ? "turun" : ""}">−${x.rugi.toFixed(0)} USDT (${x.pct.toFixed(1)}%)</b> <em>${x.sumber.join(" + ")}</em>` : "") +
+    (x.tanpa ? ` <b class="turun">${Math.round(x.tanpa).toLocaleString("en-US")} USDT tanpa SL</b>` : "") + `</span>`).join("");
+  const status = adaTanpa ? `<b class="turun">⚠ ${Math.round(nilaiTanpa).toLocaleString("en-US")} USDT (${pctTanpa.toFixed(0)}% saldo) tanpa stop-loss${memuat ? " (sebagian pola masih dimuat)" : ""}.</b> Bagian itu tidak punya batas rugi. Pasang stop-loss di Binance supaya risikonya terhitung dan terbatas.`
+    : lewat ? `<b class="turun">Melewati batas.</b> Kecilkan posisi atau jangan tambah posisi baru sampai ada yang tutup.` : `Di dalam batas.`;
   return `<div class="jr-kotak"><h3>Risiko serentak <small>${pos.length} posisi terbuka</small></h3>` +
     `<div class="jr-angka"><div><span>Bila semua kena SL</span><b class="${kl}">${lewat ? "⚠ " : ""}−${rugi.toFixed(0)} USDT</b><span class="rp ${kl}">${pct.toFixed(1)}% saldo · batas ${batasSerentak()}%</span></div>` +
-    `<div><span>Dengan SL pola</span><b>${ada.length}</b><span class="rp">dari ${pos.length} posisi</span></div>` +
-    `<div><span>Tanpa SL diketahui</span><b>${tanpa.length}</b><span class="rp">${Math.round(nilaiTanpa).toLocaleString("en-US")} USDT tidak terhitung</span></div></div>` +
+    `<div><span>Dengan SL (order / pola)</span><b>${nDgnSl}</b><span class="rp">dari ${pos.length} posisi</span></div>` +
+    `<div><span>Tanpa SL</span><b class="${adaTanpa ? "turun" : ""}">${adaTanpa ? Math.round(nilaiTanpa).toLocaleString("en-US") + " USDT" : "0"}</b><span class="rp">${adaTanpa ? pctTanpa.toFixed(0) + "% saldo · " + tanpaNama.join(", ") : "semua terlindungi"}</span></div></div>` +
     (rinci ? `<div class="ak-pola">${rinci}</div>` : "") +
-    `<p class="jr-ket">${lewat ? `<b class="turun">Melewati batas.</b> Kecilkan posisi atau jangan tambah posisi baru sampai ada yang tutup.` : `Di dalam batas.`} Beberapa altcoin searah pada dasarnya satu taruhan: kalau BTC turun, biasanya semua kena SL bersamaan. Koin tanpa pola 4H yang masih jalan tidak punya SL yang bisa dihitung${tanpa.length ? ` (${tanpa.map(b => b.aset).join(", ")})` : ""}.</p></div>`;
+    `<p class="jr-ket">${status} SL dibaca dari order stop Anda di Binance lebih dulu, lalu dari pola 4H yang masih jalan. Beberapa altcoin searah pada dasarnya satu taruhan: kalau BTC turun, biasanya semua kena SL bersamaan.</p></div>`;
 }
 // DONAT ALOKASI (2026-09-22): porsi tiap aset dari total saldo; 6 terbesar + "lainnya".
 const WARNA_DONAT = ["#26A69A", "#42A5F5", "#FFB74D", "#AB7DF6", "#EF5350", "#26C6DA", "#8D9AA9"];
@@ -1461,7 +1486,7 @@ function gambarAkun(baris, akun) {
     `<div><span>PnL koin</span><b class="${kl(pnl)}">${f2(pnl)} USDT</b><span class="rp ${kl(pnl)}">${fRp(pnl)}</span></div></div>` +
     `<p class="jr-ket">PnL koin = harga kini vs harga beli rata-rata dari 500 trade terakhir tiap koin (belum terealisasi). Koin hasil deposit/transfer tidak punya harga beli.` +
     (KURS.idr ? ` Rupiah memakai kurs 1 USDT ≈ Rp ${Math.round(KURS.idr).toLocaleString("id-ID")} (${KURS.sumber}, diperbarui tiap jam).` : ` Kurs rupiah gagal diambil — PnL sementara ditampilkan dalam USDT.`) + `</p></div>` +
-    risikoSerentak(baris, total) + donatAlokasi(baris, total);
+    risikoSerentak(baris, total, akun) + donatAlokasi(baris, total);
   $("akList").innerHTML = baris.sort((a, b) => (b.nilai || 0) - (a.nilai || 0)).map(b =>
     `<div class="jr-tr${klsSt(false, b.pnl)}"><div style="min-width:0"><div class="nm">${b.aset}</div><div class="sub">${b.jml.toLocaleString("en-US", { maximumFractionDigits: 8 })}${b.terkunci ? ` · ${b.terkunci} terkunci di order` : ""}</div></div>` +
     `<div class="lv">${b.px == null ? "harga —" : "Kini " + fHarga(b.px)}${b.rata ? `<br>Beli ${fHarga(b.rata)}${b.sebagian ? " (sebagian)" : ""}` : ""}</div>` +
