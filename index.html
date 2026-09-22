@@ -186,6 +186,9 @@ svg.sp{display:block;width:84px;height:22px}
 .bt-isi{color:var(--label);min-width:0;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:640px){.bt-log{grid-template-columns:auto minmax(0,1fr)}.bt-isi{grid-column:1/-1}
   .jr-tr.bt-baris{grid-template-columns:minmax(0,1fr) auto}.jr-tr.bt-baris .lv{grid-column:1/-1;grid-row:2}}
+#akOrderJudul[hidden],#akOrder[hidden],#btKunci[hidden]{display:none!important}
+#akOrderJudul{margin-top:16px}
+#btForm.terkunci input:disabled{opacity:.7;cursor:not-allowed}
 #akForm[hidden],#akPesan[hidden],#btForm[hidden],#btPesan[hidden],#btPesanBar[hidden]{display:none!important}
 .rp{display:block;font:12px var(--f-num);color:var(--label);margin-top:1px}
 .donat-isi{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
@@ -354,10 +357,11 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
     <p class="ak-pesan" id="akPesan">Belum tersambung. Alamat &amp; sandi disimpan hanya di perangkat ini. Aplikasi hanya MEMBACA saldo — tidak bisa memasang order atau menarik dana.</p>
     <div class="jr-ring" id="akRing"></div>
     <div class="jr-list" id="akList"></div>
-    <h3 id="akOrderJudul" style="font:600 14px var(--f-ui);margin:16px 0 8px" hidden>Order terbuka</h3>
+    <div class="jn-kepala" id="akOrderJudul" hidden><h3>Order terbuka <small class="redup" id="akOrderN"></small></h3><button class="btn" type="button" id="akOrderToggle" aria-controls="akOrder" aria-expanded="true">Sembunyikan</button></div>
     <div class="jr-list" id="akOrder"></div>
     <div class="jn-kepala"><h3>Bot trading otomatis <small class="redup">TESTNET · saldo latihan</small></h3><button class="btn" type="button" id="btMuat">Perbarui</button></div>
     <div class="ak-bar"><button class="btn" type="button" id="btToggle" aria-expanded="true" aria-controls="btForm">⚙ Sembunyikan pengaturan bot</button><span class="ak-pesan" id="btPesanBar"></span></div>
+    <p class="ak-pesan kng" id="btKunci" hidden>🔒 Mode lihat — perangkat ini belum memasukkan sandi bot, jadi pengaturan hanya bisa dilihat. Isi <b>Sandi bot</b> lalu tekan <b>Buka kunci</b> untuk mengubah.</p>
     <form class="ak-set" id="btForm" autocomplete="off">
       <label for="btUrl">Alamat bot (Cloudflare Worker)<input id="btUrl" type="url" inputmode="url" placeholder="https://amonk-bot.NAMAMU.workers.dev"></label>
       <label for="btSandi">Sandi bot<input id="btSandi" type="password" placeholder="kosong = sama dengan sandi aplikasi"></label>
@@ -372,7 +376,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
         <label><input type="checkbox" value="CH"> 7 Cup &amp; Handle</label></div>
       <div class="bt-pola" style="grid-column:1/-1"><span>Sinyal lain:</span>
         <label><input type="checkbox" id="btFib"> FIB 1H — limit di fib 0.85, TP 2R, SL 1 ATR, 60 jam (eksploratif, dihitung GitHub tiap jam)</label></div>
-      <div class="tb"><button class="btn" type="submit">Simpan ke bot</button></div>
+      <div class="tb"><button class="btn" type="submit" id="btSimpan">Simpan ke bot</button></div>
     </form>
     <p class="ak-pesan" id="btPesan">Pengaturan ini disimpan DI BOT, jadi tetap berlaku walau aplikasi tertutup. Modal bot = modal awal + hasil semua trade bot yang sudah tutup (untung menambah, rugi mengurangi). Ukuran tiap posisi = modal bot ÷ maks entry, lalu dipangkas kalau rugi bila kena SL melewati batas rugi bot. SL SELALU dari sinyal; batas rugi hanya mengubah ukuran. Total posisi terbuka tidak pernah melewati modal bot. Mengganti angka modal awal = mulai hitungan baru.</p>
     <div class="jr-ring" id="btRing"></div>
@@ -1525,10 +1529,18 @@ function gambarAkun(baris, akun) {
     `</div>${polaAkun(b.aset)}</div>`).join("") ||
     `<div class="kosong">Tidak ada saldo.</div>`;
   const order = (akun && akun.order) || [];
-  $("akOrderJudul").hidden = !order.length;
+  $("akOrderJudul").hidden = !order.length; $("akOrderN").textContent = order.length ? `${order.length} order` : "";
+  pasangToggleOrder(!!baca("akOrderBuka", true));
   $("akOrder").innerHTML = order.map(o => `<div class="jr-tr"><div><div class="nm">${o.simbol.replace(/USDT$/, "")}</div><div class="sub">${o.sisi === "BUY" ? "BELI" : "JUAL"} · ${o.jenis}</div></div>` +
     `<div class="lv">Harga ${fHarga(o.harga)}${o.stop ? "<br>Stop " + fHarga(o.stop) : ""}</div><div class="ha"><b>${o.jumlah}</b><span class="redup" style="font-size:12px">terisi ${o.terisi}</span></div></div>`).join("");
 }
+// SEMBUNYIKAN / MUNCULKAN order terbuka (2026-09-22, permintaan user). Judul + jumlah order tetap terlihat.
+function pasangToggleOrder(buka) {
+  $("akOrder").hidden = !buka;
+  $("akOrderToggle").textContent = buka ? "Sembunyikan" : "Tampilkan";
+  $("akOrderToggle").setAttribute("aria-expanded", buka ? "true" : "false");
+}
+$("akOrderToggle").addEventListener("click", () => { const buka = $("akOrder").hidden; simpan("akOrderBuka", buka); pasangToggleOrder(buka); });
 setInterval(() => { if (halAktif === "Akun" && akCfg().url) window.muatAkun(); }, 60e3);
 // isian risiko % & modal manual (tab Akun) -> ukuran posisi di Terminal
 $("akRisiko").value = risikoPct();
@@ -1732,11 +1744,12 @@ $("jnMuat").addEventListener("click", muatJurnalNyata);
 // Membaca GET /status dan mengubah batas saldo lewat POST /atur di worker amonk-bot
 // (terminal/worker_bot_testnet.js). Bot hanya bicara ke Binance TESTNET; aplikasi tetap tanpa tombol order.
 const BT_BAWAAN = "https://amonk-bot.amonkpubg.workers.dev";
-function btCfg() { return { url: String(baca("btUrl", BT_BAWAAN) || BT_BAWAAN).trim().replace(/\/+$/, ""), sandi: baca("btSandi", "") || akCfg().sandi }; }
+function btCfg() { return { url: String(baca("btUrl", BT_BAWAAN) || BT_BAWAAN).trim().replace(/\/+$/, ""), sandi: ($("btSandi") && $("btSandi").value) || baca("btSandi", "") || akCfg().sandi }; }
 async function btPanggil(jalur, opsi = {}) {
   const c = btCfg();
-  if (!c.sandi) throw new Error("isi sandi bot, atau sambungkan Akun dulu");
-  const r = await fetch(c.url + jalur, { ...opsi, cache: "no-store", headers: { "X-Sandi": c.sandi, ...(opsi.headers || {}) } });
+  // MODE LIHAT: tanpa sandi, GET /status tetap boleh (bot menjawab bolehUbah=false). Mengubah tetap wajib sandi.
+  if (!c.sandi && (opsi.method || "GET") !== "GET") throw new Error("isi sandi bot dulu untuk mengubah pengaturan");
+  const r = await fetch(c.url + jalur, { ...opsi, cache: "no-store", headers: { ...(c.sandi ? { "X-Sandi": c.sandi } : {}), ...(opsi.headers || {}) } });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j.galat || ("HTTP " + r.status));
   return j;
@@ -1866,16 +1879,32 @@ function gambarBot(s) {
 }
 async function muatBot() {
   try { btPesan("Membaca bot…"); const s = await btPanggil("/status"); gambarBot(s);
-    btPesan(`Tersambung ke bot · diperbarui ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`); }
-  catch (e) { btPesan("Bot: " + e.message + (/Failed to fetch/i.test(e.message) ? " — periksa alamat bot." : ""), true); }
+    const lihat = s.bolehUbah === false; kunciBot(lihat);                // bot lama tanpa field ini = boleh ubah
+    btPesan(`${lihat ? "🔒 Mode lihat" : "Tersambung ke bot"} · diperbarui ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`); }
+  catch (e) {
+    const sandiSalah = /sandi salah/i.test(e.message);
+    if (sandiSalah) kunciBot(true);
+    btPesan("Bot: " + e.message + (sandiSalah ? " — periksa Sandi bot di pengaturan." : /Failed to fetch/i.test(e.message) ? " — periksa alamat bot." : ""), true); }
 }
 // JANGAN menimpa window.muatBot: fungsi global = properti window, jadi muatBot akan memanggil dirinya sendiri
 // tanpa henti ("Maximum call stack size exceeded", terlihat user 2026-09-22). Pakai nama lain.
-window.muatBotBilaAda = () => { if (btCfg().sandi) muatBot(); };
+// Dulu hanya dimuat kalau ada sandi; sekarang selalu (mode lihat untuk perangkat tanpa sandi).
+window.muatBotBilaAda = () => { if (btCfg().url) muatBot(); };
+// KUNCI pengaturan bot di perangkat tanpa sandi yang benar: semua isian dinonaktifkan kecuali alamat & sandi;
+// tombol berubah jadi "Buka kunci" (hanya menyimpan sandi lalu memuat ulang, tidak mengirim pengaturan).
+function kunciBot(terkunci) {
+  $("btForm").classList.toggle("terkunci", terkunci); $("btKunci").hidden = !terkunci;
+  $("btForm").querySelectorAll("input").forEach(el => { if (el.id !== "btSandi" && el.id !== "btUrl") el.disabled = terkunci; });
+  $("btSimpan").textContent = terkunci ? "🔓 Buka kunci" : "Simpan ke bot";
+}
 $("btMuat").addEventListener("click", muatBot);
 $("btForm").addEventListener("submit", async ev => {
   ev.preventDefault();
   simpan("btUrl", $("btUrl").value.trim()); simpan("btSandi", $("btSandi").value);
+  if ($("btForm").classList.contains("terkunci")) {                   // mode lihat: cek sandi saja
+    if (!$("btSandi").value) { btPesan("Isi sandi bot dulu.", true); return; }
+    await muatBot(); return;
+  }
   const v = +$("btModal").value;
   if (!(v >= 0)) { btPesan("Isi angka USDT (0 = seluruh saldo testnet).", true); return; }
   if (BT_S && BT_S.modal && BT_S.modal.awal > 0 && v !== BT_S.modal.awal && BT_S.modal.nTutup > 0 &&
