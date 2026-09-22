@@ -299,7 +299,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
       <button data-r="rugi" aria-pressed="false">Rugi</button>
     </div>
     <div class="jr-list" id="rwList"></div>
-    <p class="jr-ket" style="margin-top:10px">Riwayat = SEMUA pola 4H valid di 109 koin selama ~100 hari terakhir, dihitung di perangkat ini dengan aturan yang sama dengan Terminal (entry close bar valid, 50% di TP1, SL ke entry, 50% di TP2, biaya 0,2%, 1000 USDT). Trade lebih tua dari ~100 hari tetap disimpan di perangkat ini. Beda dengan tab Jurnal (buku rutin: SL 2,5 ATR / TP 1R).</p>
+    <p class="jr-ket" style="margin-top:10px">Riwayat = SEMUA pola 4H valid di 109 koin selama ~100 hari terakhir, dihitung di perangkat ini dengan aturan yang sama dengan Terminal (entry close bar valid, 50% di TP1, SL ke entry, 50% di TP2, biaya 0,2%, 1000 USDT). Trade lebih tua dari ~100 hari tetap disimpan di perangkat ini. Mode "Maju" memakai catatan yang sama untuk semua perangkat (berkas GitHub yang ditulis otomatis tiap 4 jam): trade tutup dari catatan itu, trade jalan dari hitungan perangkat ini. Beda dengan tab Jurnal (buku rutin: SL 2,5 ATR / TP 1R).</p>
   </div>
 
   <div class="hal" id="halJurnal" hidden>
@@ -322,6 +322,10 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
       <label for="akBagi" id="lbBagi">Saldo dibagi jadi (bagian)<input id="akBagi" type="number" step="1" min="1" max="20" inputmode="numeric"></label>
       <label for="akRisiko" id="lbRisiko">Risiko per trade (%)<input id="akRisiko" type="number" step="0.1" min="0.1" max="5" inputmode="decimal"></label>
       <label for="akModal">Modal untuk ukuran (USDT)<input id="akModal" type="number" step="1" min="0" inputmode="decimal" placeholder="kosong = saldo Binance"></label>
+      <label for="akBatasTrade">Batas rugi per trade (% saldo)<input id="akBatasTrade" type="number" step="0.1" min="0.1" max="20" inputmode="decimal"></label>
+      <label for="akBatasSerentak">Batas rugi serentak (% saldo)<input id="akBatasSerentak" type="number" step="0.5" min="0.5" max="50" inputmode="decimal"></label>
+      <label for="akJedaN">Jeda bila rugi berturut (kali)<input id="akJedaN" type="number" step="1" min="1" max="20" inputmode="numeric"></label>
+      <label for="akJedaPct">Jeda bila rugi 7 hari (% saldo)<input id="akJedaPct" type="number" step="0.5" min="0.5" max="50" inputmode="decimal"></label>
       <div class="tb"><button class="btn" type="submit">Sambungkan</button><button class="btn" type="button" id="akLupa">Lupakan</button></div>
     </form>
     <p class="ak-pesan" id="akPesan">Belum tersambung. Alamat &amp; sandi disimpan hanya di perangkat ini. Aplikasi hanya MEMBACA saldo — tidak bisa memasang order atau menarik dana.</p>
@@ -341,6 +345,9 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
       <li><b>Jurnal</b> — catatan forward-test <b>POLA 4H</b> dan <b>AI 4H</b>: tiap sinyal dianggap entry 1000 USDT. Dikirim dari laptop tiap 4 jam; trade yang masih jalan dinilai dengan harga hidup.</li>
       <li>Hanya dua sinyal: POLA 4H dan AI 4H. Timeframe 4H, spot, long saja.</li>
       <li><b>Akun</b> — saldo spot Binance, harga beli rata-rata, PnL koin, dan order terbuka, lewat perantara Cloudflare Worker milikmu. HANYA MEMBACA: perantara menolak kunci API yang bisa trading atau tarik dana, dan aplikasi tidak punya tombol order.</li>
+      <li><b>Risiko</b> (tab Akun) — <b>risiko serentak</b>: berapa % saldo hilang bila semua posisi terbuka kena SL bersamaan (batas bawaan 3%); <b>peringatan per trade</b> di kolom Ukuran posisi bila rugi-bila-SL melewati batas (bawaan 1% saldo); <b>aturan jeda</b> dari trade nyata: N rugi berturut (bawaan 3) atau rugi 7 hari ≥ 5% saldo → saran jeda seminggu. Semua batas bisa diubah di pengaturan Akun. Ini disiplin, bukan sinyal.</li>
+      <li><b>Pengukur nyata</b> (tab Akun, jurnal trade nyata) — biaya nyatamu (selisih isi vs entry sinyal + komisi, dalam R) dan sinyal yang kamu ambil vs yang kamu lewati (simulasi yang sama untuk keduanya, dibanding pilihan acak).</li>
+      <li><b>Riwayat mode Maju</b> — trade tutup diambil dari catatan GitHub yang ditulis otomatis tiap 4 jam, jadi sama di semua perangkat; trade jalan dihitung di perangkat ini.</li>
     </ul></section>
     <section><h3>Aturan trade pola di Terminal</h3><ul>
       <li><b>Entry</b> = harga tutup lilin 4H saat pola valid (garis tembus). <b>SL</b> = garis batal pola. <b>TP2</b> = tinggi pola diproyeksikan dari titik tembus. <b>TP1</b> = entry + 0,75 × jarak SL (atau tengah jalan ke TP2).</li>
@@ -988,6 +995,13 @@ function modalUkuran() {
 function caraUkuran() { return baca("caraUkuran", "bagi") === "risiko" ? "risiko" : "bagi"; }
 function bagiModal() { const n = Math.round(+baca("bagiModal", 3)); return n >= 1 && n <= 20 ? n : 3; }
 function labelUkuran() { return caraUkuran() === "bagi" ? `1/${bagiModal()} saldo` : `risiko ${risikoPct()}%`; }
+// BATAS RISIKO (2026-09-22, saran disetujui user): per trade (bawaan 1% saldo), serentak semua posisi
+// terbuka (bawaan 3%), dan aturan JEDA: N rugi nyata berturut (bawaan 3) atau rugi 7 hari (bawaan 5%).
+const angkaSetel = (k, bawaan, lo, hi) => { const v = +baca(k, bawaan); return v >= lo && v <= hi ? v : bawaan; };
+function batasTrade() { return angkaSetel("batasTrade", 1, 0.1, 20); }
+function batasSerentak() { return angkaSetel("batasSerentak", 3, 0.5, 50); }
+function jedaN() { return Math.round(angkaSetel("jedaN", 3, 1, 20)); }
+function jedaPct() { return angkaSetel("jedaPct", 5, 0.5, 50); }
 function ukuran(P) {
   const M = modalUkuran(); if (!M || !P || !(P.entry > P.sl)) return null;
   if (caraUkuran() === "bagi") {
@@ -1004,9 +1018,11 @@ function ukuranTeks(P, pendek) {
   const u = ukuran(P);
   if (!u) return pendek ? `<span class="redup" title="Sambungkan tab Akun atau isi modal manual">—</span>` : "sambungkan Akun / isi modal di tab Akun";
   const q = u.qty.toLocaleString("en-US", { maximumFractionDigits: u.qty < 10 ? 4 : 0 });
+  const lewat = u.rugiPct > batasTrade();   // peringatan: rugi bila SL melewati batas per trade
+  const awas = lewat ? ` title="Rugi bila SL ${u.rugiPct.toFixed(1)}% saldo melewati batas ${batasTrade()}% — kecilkan posisi"` : "";
   return pendek ? `${Math.round(u.nilai).toLocaleString("en-US")} <span class="redup">USDT</span>` +
-      `<span class="rp">rugi bila SL ${u.rugi.toFixed(0)} (${u.rugiPct.toFixed(1)}%)</span>`
-    : `${q} koin ≈ ${Math.round(u.nilai).toLocaleString("en-US")} USDT · rugi bila SL ≈ ${u.rugi.toFixed(2)} USDT (${u.rugiPct.toFixed(1)}% saldo)${u.batas ? " · dibatasi modal" : ""}`;
+      `<span class="rp${lewat ? " turun" : ""}"${awas}>${lewat ? "⚠ " : ""}rugi bila SL ${u.rugi.toFixed(0)} (${u.rugiPct.toFixed(1)}%)</span>`
+    : `${q} koin ≈ ${Math.round(u.nilai).toLocaleString("en-US")} USDT · <span class="${lewat ? "turun" : ""}"${awas}>${lewat ? "⚠ " : ""}rugi bila SL ≈ ${u.rugi.toFixed(2)} USDT (${u.rugiPct.toFixed(1)}% saldo${lewat ? `, lewat batas ${batasTrade()}%` : ""})</span>${u.batas ? " · dibatasi modal" : ""}`;
 }
 // kelas garis status kiri: u untung · r rugi · j jalan (2026-09-22)
 const klsSt = (jalan, pnl) => jalan ? " j" : pnl == null ? "" : pnl >= 0 ? " u" : " r";
@@ -1368,6 +1384,32 @@ function polaAkun(aset) {
     `<span>TP1 ${fHarga(P.tp1)}${P.kenaTp1 ? " ✓" : ""}</span><span>TP2 ${fHarga(P.tp2)}</span>` +
     `<span>valid ${tg} WIB · ${P.umur} lilin lalu</span></div>`;
 }
+// RISIKO SERENTAK (2026-09-22, disetujui user): kalau SEMUA posisi terbuka kena SL bersamaan,
+// berapa % saldo hilang. SL tiap koin = SL pola 4H terakhir yang masih jalan (atau entry bila TP1
+// sudah kena). Koin tanpa pola jalan tidak punya SL yang diketahui -> dihitung terpisah.
+// Tiga altcoin searah pada dasarnya satu taruhan; batas = pengaturan "Batas rugi serentak".
+function risikoSerentak(baris, total) {
+  if (!(total > 0)) return "";
+  const pos = baris.filter(b => !STABIL.has(b.aset) && (b.nilai || 0) > 5);
+  if (!pos.length) return "";
+  const ada = [], tanpa = [];
+  for (const b of pos) {
+    const P = data[b.aset] && data[b.aset].pola;
+    if (!P || P.umur > POLA_MAKS_UMUR || P.st !== "jalan" || !b.px) { tanpa.push(b); continue; }
+    const sl = P.kenaTp1 ? P.entry : P.sl, rugi = Math.max(0, b.nilai * (1 - sl / b.px));
+    ada.push({ aset: b.aset, nilai: b.nilai, sl, rugi, pct: rugi / total * 100, bawah: b.px <= sl });
+  }
+  const rugi = ada.reduce((a, x) => a + x.rugi, 0), pct = rugi / total * 100, lewat = pct > batasSerentak();
+  const nilaiTanpa = tanpa.reduce((a, b) => a + (b.nilai || 0), 0);
+  const kl = lewat ? "turun" : pct > batasSerentak() * 0.7 ? "kng" : "naik";
+  const rinci = ada.sort((a, b) => b.rugi - a.rugi).map(x => `<span>${x.aset} <b class="${x.pct > batasTrade() ? "turun" : ""}">${x.rugi.toFixed(0)} USDT (${x.pct.toFixed(1)}%)</b>${x.bawah ? " <em class='turun'>harga sudah di bawah SL</em>" : ""}</span>`).join("");
+  return `<div class="jr-kotak"><h3>Risiko serentak <small>${pos.length} posisi terbuka</small></h3>` +
+    `<div class="jr-angka"><div><span>Bila semua kena SL</span><b class="${kl}">${lewat ? "⚠ " : ""}−${rugi.toFixed(0)} USDT</b><span class="rp ${kl}">${pct.toFixed(1)}% saldo · batas ${batasSerentak()}%</span></div>` +
+    `<div><span>Dengan SL pola</span><b>${ada.length}</b><span class="rp">dari ${pos.length} posisi</span></div>` +
+    `<div><span>Tanpa SL diketahui</span><b>${tanpa.length}</b><span class="rp">${Math.round(nilaiTanpa).toLocaleString("en-US")} USDT tidak terhitung</span></div></div>` +
+    (rinci ? `<div class="ak-pola">${rinci}</div>` : "") +
+    `<p class="jr-ket">${lewat ? `<b class="turun">Melewati batas.</b> Kecilkan posisi atau jangan tambah posisi baru sampai ada yang tutup.` : `Di dalam batas.`} Beberapa altcoin searah pada dasarnya satu taruhan: kalau BTC turun, biasanya semua kena SL bersamaan. Koin tanpa pola 4H yang masih jalan tidak punya SL yang bisa dihitung${tanpa.length ? ` (${tanpa.map(b => b.aset).join(", ")})` : ""}.</p></div>`;
+}
 // DONAT ALOKASI (2026-09-22): porsi tiap aset dari total saldo; 6 terbesar + "lainnya".
 const WARNA_DONAT = ["#26A69A", "#42A5F5", "#FFB74D", "#AB7DF6", "#EF5350", "#26C6DA", "#8D9AA9"];
 function donatAlokasi(baris, total) {
@@ -1397,7 +1439,7 @@ function gambarAkun(baris, akun) {
     `<div><span>PnL koin</span><b class="${kl(pnl)}">${f2(pnl)} USDT</b><span class="rp ${kl(pnl)}">${fRp(pnl)}</span></div></div>` +
     `<p class="jr-ket">PnL koin = harga kini vs harga beli rata-rata dari 500 trade terakhir tiap koin (belum terealisasi). Koin hasil deposit/transfer tidak punya harga beli.` +
     (KURS.idr ? ` Rupiah memakai kurs 1 USDT ≈ Rp ${Math.round(KURS.idr).toLocaleString("id-ID")} (${KURS.sumber}, diperbarui tiap jam).` : ` Kurs rupiah gagal diambil — PnL sementara ditampilkan dalam USDT.`) + `</p></div>` +
-    donatAlokasi(baris, total);
+    risikoSerentak(baris, total) + donatAlokasi(baris, total);
   $("akList").innerHTML = baris.sort((a, b) => (b.nilai || 0) - (a.nilai || 0)).map(b =>
     `<div class="jr-tr${klsSt(false, b.pnl)}"><div style="min-width:0"><div class="nm">${b.aset}</div><div class="sub">${b.jml.toLocaleString("en-US", { maximumFractionDigits: 8 })}${b.terkunci ? ` · ${b.terkunci} terkunci di order` : ""}</div></div>` +
     `<div class="lv">${b.px == null ? "harga —" : "Kini " + fHarga(b.px)}${b.rata ? `<br>Beli ${fHarga(b.rata)}${b.sebagian ? " (sebagian)" : ""}` : ""}</div>` +
@@ -1421,6 +1463,11 @@ $("akBagi").addEventListener("change", () => { const v = Math.round(+$("akBagi")
 $("akModal").value = +baca("modalManual", 0) || "";
 $("akRisiko").addEventListener("change", () => { const v = +$("akRisiko").value; if (v > 0 && v <= 5) simpan("risikoPct", v); $("akRisiko").value = risikoPct(); gambar(); });
 $("akModal").addEventListener("change", () => { const v = +$("akModal").value; simpan("modalManual", v > 0 ? v : 0); gambar(); });
+// batas risiko & aturan jeda (2026-09-22)
+for (const [id, k, f] of [["akBatasTrade", "batasTrade", batasTrade], ["akBatasSerentak", "batasSerentak", batasSerentak], ["akJedaN", "jedaN", jedaN], ["akJedaPct", "jedaPct", jedaPct]]) {
+  $(id).value = f();
+  $(id).addEventListener("change", () => { const v = +$(id).value; if (v > 0) simpan(k, v); $(id).value = f(); gambar(); if (AK) window.muatAkun(); if (JN) gambarJurnalNyata(); });
+}
 
 // ================= JURNAL TRADE NYATA (2026-09-22, saran #3 disetujui user) =================
 // Riwayat beli/jual Binance (500 trade terakhir per koin, lewat perantara baca-saja) disusun jadi
@@ -1537,7 +1584,7 @@ function gambarJurnalNyata() {
     `<div><span>Di luar sinyal</span><b class="${kl(sum(luar))}">${f2(sum(luar))}</b><span class="rp">${luar.length} trade · WR ${wr(luar)}%</span></div></div>` +
     `<p class="jr-ket">Selisih "sesuai sinyal" vs "simulasi" = efek eksekusimu (harga masuk, disiplin TP/SL, biaya). Hanya 500 trade terakhir per koin; koin yang dijual tanpa riwayat beli tidak dihitung.` +
     ` Dimuat ${new Date(JN.t).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}${JN.gagal ? ` · ${JN.gagal} koin gagal dibaca` : ""}.</p></div>` +
-    kotakBiayaNyata(eps, sin) + kotakPilihan(eps);
+    kotakJeda(tutup) + kotakBiayaNyata(eps, sin) + kotakPilihan(eps);
   $("jnList").innerHTML = eps.slice(0, 200).map(e => {
     const tg = new Date(e.mulai + 7 * 3600e3).toISOString().slice(5, 16).replace(/(\d\d)-(\d\d)T/, "$2/$1 ");
     const lab = e.sinyal ? `<span class="jn-label sinyal">${PERINGKAT_APP(e.sinyal.kode)} ${e.sinyal.nama}</span>` : `<span class="jn-label">di luar sinyal</span>`;
@@ -1563,6 +1610,26 @@ function kotakBiayaNyata(eps, sin) {
     `<div><span>Komisi bolak-balik</span><b>${fP(feePct)}</b><span class="rp">${fR(feeR)} · ${tf.length} tutup</span></div>` +
     `<div><span>Total vs asumsi</span><b class="${totalR != null && asumsiR != null ? (totalR > asumsiR ? "turun" : "naik") : ""}">${fR(totalR)}</b><span class="rp">asumsi aplikasi ${fR(asumsiR)} (0.2%)</span></div></div>` +
     `<p class="jr-ket">Selisih isi = harga beli rata-ratamu vs entry sinyal (positif = lebih mahal). 1R = jarak entry→SL sinyal. Biaya adalah tuas terbesar yang pernah terbukti di proyek ini: kalau total nyata jauh di atas asumsi, itu yang harus dibereskan dulu, bukan pola.</p></div>`;
+}
+// Kotak ATURAN JEDA (2026-09-22, disetujui user): bukan sinyal, hanya disiplin. Dari trade NYATA yang
+// sudah tutup: rugi berturut terakhir >= jedaN, atau rugi 7 hari terakhir >= jedaPct% saldo -> saran
+// jeda seminggu / ukuran lebih kecil. Tidak menambah edge; menahan kerugian saat pasar tidak searah.
+function kotakJeda(tutup) {
+  const M = modalUkuran(), modal = M ? M.modal : 0;
+  const urut = tutup.filter(e => e.pnl != null && e.selesai).sort((a, b) => b.selesai - a.selesai);
+  if (!urut.length) return `<div class="jr-kotak"><h3>Aturan jeda</h3><p class="jr-ket">Belum ada trade nyata yang tutup. Aturan: jeda seminggu bila ${jedaN()} rugi berturut atau rugi 7 hari ≥ ${jedaPct()}% saldo (ubah di pengaturan).</p></div>`;
+  let beruntun = 0; for (const e of urut) { if (e.pnl < 0) beruntun++; else break; }
+  const rugi7 = urut.filter(e => e.selesai >= Date.now() - 7 * 864e5).reduce((a, e) => a + e.pnl, 0);
+  const pct7 = modal > 0 ? rugi7 / modal * 100 : null;
+  const kenaN = beruntun >= jedaN(), kenaPct = pct7 != null && -pct7 >= jedaPct();
+  const jeda = kenaN || kenaPct;
+  const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
+  const sampai = jeda ? new Date(urut[0].selesai + 7 * 864e5 + 7 * 3600e3).toISOString().slice(0, 10).split("-").reverse().join("/") : null;
+  return `<div class="jr-kotak"><h3>Aturan jeda <small>disiplin, bukan sinyal</small></h3>` +
+    `<div class="jr-angka"><div><span>Status</span><b class="${jeda ? "turun" : "naik"}">${jeda ? "⏸ JEDA" : "▶ Lanjut"}</b><span class="rp">${jeda ? `sampai ${sampai} WIB` : "di dalam aturan"}</span></div>` +
+    `<div><span>Rugi berturut</span><b class="${kenaN ? "turun" : ""}">${beruntun}</b><span class="rp">batas ${jedaN()} kali</span></div>` +
+    `<div><span>Hasil 7 hari</span><b class="${kl(rugi7)}">${f2(rugi7)}</b><span class="rp ${kenaPct ? "turun" : ""}">${pct7 == null ? "modal tidak diketahui" : f2(pct7) + "% saldo · batas −" + jedaPct() + "%"}</span></div></div>` +
+    `<p class="jr-ket">${jeda ? `<b class="turun">Jeda disarankan seminggu</b> atau ukuran setengah. Alasan: ${kenaN ? `${beruntun} rugi berturut` : ""}${kenaN && kenaPct ? " dan " : ""}${kenaPct ? `rugi 7 hari ${f2(pct7)}% saldo` : ""}. Ini bukan tanda pola rusak, tapi tanda pasar sedang tidak searah dengan long.` : `Belum ada alasan jeda.`} Aturan ini tidak menambah edge; gunanya menahan kerugian beruntun.</p></div>`;
 }
 // Kotak DIAMBIL vs DILEWATI (saran #2).
 function kotakPilihan(eps) {
@@ -1621,14 +1688,42 @@ const pnlTrade = t => {
   const px = data[t.koin] && data[t.koin].harga;
   return px ? t.real + t.sisa * MODAL_POLA * (px / t.entry - 1) - MODAL_POLA * BIAYA_POLA : null;
 };
+// CATATAN MAJU DARI SATU SUMBER (2026-09-22, disetujui user): workflow Telegram mencatat SEMUA pola
+// sejak 22-09 di notif/maju.json (GitHub, publik, diperbarui tiap 4 jam). Mode "Maju" memakai berkas
+// itu supaya angkanya sama di iPhone & laptop dan tidak hilang bila penyimpanan browser terhapus.
+// Aturan gabung: trade TUTUP -> catatan GitHub (beku); trade JALAN -> hitungan perangkat ini (hidup).
+let MAJU_GH = { t: 0, rec: null, galat: "" };
+async function ambilMajuGH() {
+  if (MAJU_GH.rec && Date.now() - MAJU_GH.t < 600e3) return MAJU_GH.rec;
+  const url = (location.hostname.endsWith("github.io") ? "notif/maju.json" : "https://amonkshark.github.io/Amonk/notif/maju.json") + "?v=" + Math.floor(Date.now() / 600e3);
+  try {
+    const r = await fetch(url, { cache: "no-store" }); if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json(); MAJU_GH = { t: Date.now(), rec: j, galat: "" };
+  } catch (e) { MAJU_GH.t = Date.now(); MAJU_GH.galat = e.message; }
+  if (halAktif === "Riwayat" && rwMode === "maju") window.gambarRiwayat();
+  return MAJU_GH.rec;
+}
+const dariMaju = m => ({ koin: m.koin, nama: m.nama, kode: m.kode, masukT: m.masukT, keluarT: m.keluarT, entry: m.entry, sl: m.sl, tp1: m.tp1, tp2: m.tp2,
+  st: m.st, kenaTp1: m.kenaTp1, gh: true,
+  sisa: m.st !== "jalan" ? 0 : m.kenaTp1 ? 0.5 : 1,
+  real: m.st !== "jalan" ? m.usdt + MODAL_POLA * BIAYA_POLA : m.kenaTp1 ? 0.5 * MODAL_POLA * (m.tp1 / m.entry - 1) : 0 });
+function gabungMaju() {
+  const out = {};
+  for (const [kk, t] of Object.entries(RW)) if (t.masukT >= RW_MULAI) out[kk] = t;
+  if (MAJU_GH.rec) for (const m of Object.values(MAJU_GH.rec)) {
+    const kk = m.koin + "|" + m.masukT, lokal = out[kk];
+    if (m.st !== "jalan" || !lokal || lokal.luar) out[kk] = dariMaju(m);   // tutup: GitHub menang; jalan: perangkat menang
+  }
+  return Object.values(out);
+}
 function chipRw(t) {
   if (t.st === "jalan") return t.luar ? `<span class="chip nd">tak terlacak</span>` : (t.kenaTp1 ? `<span class="chip jalan">Jalan 50%</span>` : `<span class="chip jalan">Jalan</span>`);
   return t.st === "TP2" ? `<span class="chip tp">TP1+TP2</span>` : t.st === "BE" ? `<span class="chip tp">TP1+BE</span>` : `<span class="chip sl">Kena SL</span>`;
 }
 // Progres pola menuju ambang proyek: >= 30 trade tutup DAN >= 6 bulan sejak trade pertama.
 // Vonis hanya sesudah dua-duanya terpenuhi; sebelum itu angka apa pun belum berarti.
-function majuHtml(nm, x) {
-  const ts = Object.values(RW).filter(t => t.nama === nm && t.masukT >= RW_MULAI && t.st !== "jalan");
+function majuHtml(nm, x, kolam) {
+  const ts = (kolam || Object.values(RW)).filter(t => t.nama === nm && t.masukT >= RW_MULAI && t.st !== "jalan");
   const bln = ts.length ? (Date.now() - Math.min(...ts.map(t => t.masukT))) / (30.44 * 864e5) : 0;
   const pn = Math.min(1, x.n / AMBANG_N), pb = Math.min(1, bln / AMBANG_BULAN);
   const cukup = x.n >= AMBANG_N && bln >= AMBANG_BULAN;
@@ -1642,15 +1737,17 @@ document.querySelectorAll("#rwPeriode button").forEach(b => b.addEventListener("
   rwMode = b.dataset.m; simpan("rwMode", rwMode); rwPola = null; window.gambarRiwayat(); }));
 window.gambarRiwayat = function () {
   const semuaRw = Object.values(RW);
-  if (!semuaRw.length) return;
-  const semua = rwMode === "maju" ? semuaRw.filter(t => t.masukT >= RW_MULAI) : semuaRw;
+  if (rwMode === "maju" && !MAJU_GH.t) ambilMajuGH();
+  if (!semuaRw.length && !(rwMode === "maju" && MAJU_GH.rec)) return;
+  const semua = rwMode === "maju" ? gabungMaju() : semuaRw;
   document.querySelectorAll("#rwPeriode button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === rwMode ? "true" : "false"));
   const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
   const tutup = semua.filter(t => t.st !== "jalan"), jalan = semua.filter(t => t.st === "jalan" && !t.luar);
   tutup.forEach(t => t.pnl = pnlTrade(t)); jalan.forEach(t => t.pnl = pnlTrade(t));
   const tot = tutup.reduce((a, t) => a + t.pnl, 0), menang = tutup.filter(t => t.pnl > 0).length;
   const totJ = jalan.reduce((a, t) => a + (t.pnl || 0), 0);
-  const mulai = rwMode === "maju" ? "2026-09-22 (maju)" : semua.length ? new Date(Math.min(...semua.map(t => t.masukT))).toISOString().slice(0, 10) : "—";
+  const nGh = rwMode === "maju" ? semua.filter(t => t.gh).length : 0;
+  const mulai = rwMode === "maju" ? `2026-09-22 (maju) · ${MAJU_GH.rec ? `${nGh} dari catatan GitHub` : MAJU_GH.galat ? "catatan GitHub gagal dibaca — hanya perangkat ini" : "membaca catatan GitHub…"}` : semua.length ? new Date(Math.min(...semua.map(t => t.masukT))).toISOString().slice(0, 10) : "—";
   if (!semua.length) {
     $("rwRing").innerHTML = `<div class="jr-kotak"><h3>Pemantauan maju <small>sejak 22-09-2026</small></h3><p class="jr-ket">Belum ada pola 4H yang valid sejak 22-09-2026. Trade akan muncul di sini begitu pola baru lahir, dan dicatat terus sampai tiap pola punya ≥ 30 trade dalam ≥ 6 bulan.</p></div>`;
     $("rwPola").innerHTML = ""; $("rwList").innerHTML = ""; return;
@@ -1680,7 +1777,7 @@ window.gambarRiwayat = function () {
       `<div class="d"><span><em>${x.n}</em> tutup</span><span>WR <em>${wr}%</em></span><span>rata <em class="${kl(rata)}">${f2(rata)}</em></span></div>` +
       `<div class="d"><span>TP1+TP2 <em>${x.tp2}</em></span><span>TP1+BE <em>${x.be}</em></span><span>SL <em>${x.sl}</em></span>${x.jalan ? `<span>jalan <em>${x.jalan}</em></span>` : ""}</div>` +
       `<div class="d"><span>rata untung <em class="naik">${f2(avgW)}</em></span><span>rata rugi <em class="turun">${f2(avgL)}</em></span></div>` +
-      (rwMode === "maju" ? majuHtml(nm, x) : (x.n < 30 ? `<div class="kecil2">sampel kecil (&lt;30 trade) — belum bisa disimpulkan</div>` : "")) + `</button>`;
+      (rwMode === "maju" ? majuHtml(nm, x, semua) : (x.n < 30 ? `<div class="kecil2">sampel kecil (&lt;30 trade) — belum bisa disimpulkan</div>` : "")) + `</button>`;
   }).join("");
   document.querySelectorAll("#rwPola .rw-pola").forEach(b => b.addEventListener("click", () => {
     rwPola = rwPola === b.dataset.p ? null : b.dataset.p; window.gambarRiwayat(); }));
