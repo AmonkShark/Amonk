@@ -1460,9 +1460,40 @@ function susunTrade(k, trades) {
       .filter(x => x.dt >= -3600e3 && x.dt <= 48 * 3600e3 && Math.abs(e.rataBeli / x.p.entry - 1) <= 0.05)
       .sort((a, b) => Math.abs(a.dt) - Math.abs(b.dt));
     e.sinyal = kandidat.length ? kandidat[0].p : null;
-    if (e.sinyal) { const u = pnlTrade(e.sinyal); e.sim = u == null ? null : u * e.beliU / MODAL_POLA; }
+    if (e.sinyal) {
+      const u = pnlTrade(e.sinyal); e.sim = u == null ? null : u * e.beliU / MODAL_POLA;
+      // BIAYA NYATA (saran #1, 2026-09-22): selisih harga isi vs entry sinyal + komisi, dalam % dan R.
+      // 1R = jarak entry->SL sinyal untuk nominal belimu. Positif = ongkos (isi lebih mahal dari entry).
+      const S = e.sinyal, rUsdt = e.beliU * (S.entry - S.sl) / S.entry;
+      e.slipPct = (e.rataBeli / S.entry - 1) * 100; e.slipR = (e.rataBeli - S.entry) / (S.entry - S.sl);
+      e.feePct = e.fee / e.beliU * 100; e.feeR = rUsdt > 0 ? e.fee / rUsdt : null;
+      e.asumsiR = BIAYA_POLA * S.entry / (S.entry - S.sl);   // 0.2% nominal (asumsi aplikasi) dalam R
+    }
   }
   return out;
+}
+// DIAMBIL vs DILEWATI (saran #2, 2026-09-22): sinyal yang kamu ambil (cocok dengan trade nyata) vs
+// sinyal yang tidak kamu ambil, sama-sama dinilai dengan SIMULASI aplikasi 1000 USDT, sejak trade
+// nyata pertamamu. Jadi yang diukur murni PEMILIHAN, bukan eksekusi. Placebo = 300 subset acak
+// sebesar jumlah yang diambil, dari kolam yang sama -> p5/p95.
+function bandingPilihan(eps) {
+  const cocok = eps.filter(e => e.sinyal);
+  if (!eps.length) return null;
+  const mulai = Math.min(...eps.map(e => e.mulai));
+  const kunciAmbil = new Set(cocok.map(e => e.sinyal.koin + "|" + e.sinyal.masukT));
+  const kolam = Object.values(RW).filter(t => t.st !== "jalan" && t.masukT + 4 * 3600e3 >= mulai - 48 * 3600e3)
+    .map(t => ({ u: pnlTrade(t), ambil: kunciAmbil.has(t.koin + "|" + t.masukT) })).filter(x => x.u != null);
+  const rata = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+  const ambil = kolam.filter(x => x.ambil), lewat = kolam.filter(x => !x.ambil);
+  let p5 = null, p95 = null;
+  if (ambil.length && kolam.length > ambil.length) {
+    const pl = [];
+    for (let b = 0; b < 300; b++) { let s = 0; for (let j = 0; j < ambil.length; j++) s += kolam[Math.floor(Math.random() * kolam.length)].u; pl.push(s / ambil.length); }
+    pl.sort((a, b) => a - b); p5 = pl[Math.floor(300 * .05)]; p95 = pl[Math.floor(300 * .95)];
+  }
+  return { mulai, nAmbil: ambil.length, nLewat: lewat.length, rAmbil: rata(ambil.map(x => x.u)), rLewat: rata(lewat.map(x => x.u)),
+    wrAmbil: ambil.length ? Math.round(ambil.filter(x => x.u > 0).length / ambil.length * 100) : null,
+    wrLewat: lewat.length ? Math.round(lewat.filter(x => x.u > 0).length / lewat.length * 100) : null, p5, p95 };
 }
 async function muatJurnalNyata() {
   const c = akCfg();
@@ -1505,7 +1536,8 @@ function gambarJurnalNyata() {
     `<div><span>Simulasi sinyal itu</span><b class="${kl(simSin)}">${f2(simSin)}</b><span class="rp">aturan aplikasi, nominal sama</span></div>` +
     `<div><span>Di luar sinyal</span><b class="${kl(sum(luar))}">${f2(sum(luar))}</b><span class="rp">${luar.length} trade · WR ${wr(luar)}%</span></div></div>` +
     `<p class="jr-ket">Selisih "sesuai sinyal" vs "simulasi" = efek eksekusimu (harga masuk, disiplin TP/SL, biaya). Hanya 500 trade terakhir per koin; koin yang dijual tanpa riwayat beli tidak dihitung.` +
-    ` Dimuat ${new Date(JN.t).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}${JN.gagal ? ` · ${JN.gagal} koin gagal dibaca` : ""}.</p></div>`;
+    ` Dimuat ${new Date(JN.t).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}${JN.gagal ? ` · ${JN.gagal} koin gagal dibaca` : ""}.</p></div>` +
+    kotakBiayaNyata(eps, sin) + kotakPilihan(eps);
   $("jnList").innerHTML = eps.slice(0, 200).map(e => {
     const tg = new Date(e.mulai + 7 * 3600e3).toISOString().slice(5, 16).replace(/(\d\d)-(\d\d)T/, "$2/$1 ");
     const lab = e.sinyal ? `<span class="jn-label sinyal">${PERINGKAT_APP(e.sinyal.kode)} ${e.sinyal.nama}</span>` : `<span class="jn-label">di luar sinyal</span>`;
@@ -1514,6 +1546,40 @@ function gambarJurnalNyata() {
       `<div class="ha"><b class="${kl(e.pnl)}">${f2(e.pnl)} USDT</b><span class="rp ${kl(e.pnl)}">${rpN(e.pnl)}</span></div></div>`;
   }).join("") || `<div class="kosong">Belum ada trade di riwayat Binance yang terbaca.</div>`;
   $("jnPesan").textContent = "Tekan \"Muat dari Binance\" untuk memperbarui.";
+}
+// Kotak BIAYA NYATA (saran #1): selisih isi (semua trade cocok sinyal) + komisi bolak-balik (hanya
+// yang sudah tutup) dalam % nominal dan R, dibandingkan asumsi aplikasi 0.2%.
+function kotakBiayaNyata(eps, sin) {
+  const cocok = eps.filter(e => e.sinyal), rata = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+  const fR = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(3) + "R", fP = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2) + "%";
+  if (!cocok.length) return `<div class="jr-kotak"><h3>Biaya nyata</h3><p class="jr-ket">Belum ada trade nyata yang cocok dengan sinyal pola 4H, jadi biaya nyatamu belum bisa diukur.</p></div>`;
+  const slipPct = rata(cocok.map(e => e.slipPct)), slipR = rata(cocok.map(e => e.slipR));
+  const tf = sin.filter(e => e.feeR != null);
+  const feePct = rata(tf.map(e => e.feePct)), feeR = rata(tf.map(e => e.feeR)), asumsiR = rata(tf.map(e => e.asumsiR));
+  const totalR = slipR != null && feeR != null ? slipR + feeR : null;
+  const kl = v => v == null ? "" : v > 0 ? "turun" : "naik";
+  return `<div class="jr-kotak"><h3>Biaya nyata <small>${cocok.length} trade sesuai sinyal</small></h3>` +
+    `<div class="jr-angka"><div><span>Selisih isi vs entry</span><b class="${kl(slipPct)}">${fP(slipPct)}</b><span class="rp">${fR(slipR)} · ${cocok.length} trade</span></div>` +
+    `<div><span>Komisi bolak-balik</span><b>${fP(feePct)}</b><span class="rp">${fR(feeR)} · ${tf.length} tutup</span></div>` +
+    `<div><span>Total vs asumsi</span><b class="${totalR != null && asumsiR != null ? (totalR > asumsiR ? "turun" : "naik") : ""}">${fR(totalR)}</b><span class="rp">asumsi aplikasi ${fR(asumsiR)} (0.2%)</span></div></div>` +
+    `<p class="jr-ket">Selisih isi = harga beli rata-ratamu vs entry sinyal (positif = lebih mahal). 1R = jarak entry→SL sinyal. Biaya adalah tuas terbesar yang pernah terbukti di proyek ini: kalau total nyata jauh di atas asumsi, itu yang harus dibereskan dulu, bukan pola.</p></div>`;
+}
+// Kotak DIAMBIL vs DILEWATI (saran #2).
+function kotakPilihan(eps) {
+  const B = bandingPilihan(eps);
+  const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
+  if (!B || !B.nAmbil) return `<div class="jr-kotak"><h3>Sinyal diambil vs dilewati</h3><p class="jr-ket">Belum ada sinyal yang cocok dengan trade nyatamu. Begitu ada, kotak ini membandingkan sinyal yang kamu ambil dengan yang kamu lewati, sama-sama dengan simulasi aplikasi 1000 USDT.</p></div>`;
+  const sel = B.rAmbil != null && B.rLewat != null ? B.rAmbil - B.rLewat : null;
+  const vonis = B.nAmbil < AMBANG_N ? `Belum cukup data (${B.nAmbil}/${AMBANG_N} sinyal diambil) — angka ini baru pengamatan.`
+    : B.p95 != null && B.rAmbil > B.p95 ? `Pilihanmu di atas 95% pilihan acak berukuran sama: cara memilihmu menambah hasil.`
+    : B.p5 != null && B.rAmbil < B.p5 ? `Pilihanmu di bawah 95% pilihan acak berukuran sama: cara memilihmu justru mengurangi hasil.`
+    : `Pilihanmu tidak berbeda dari pilihan acak berukuran sama (p5 ${f2(B.p5)} · p95 ${f2(B.p95)}).`;
+  const tg = new Date(B.mulai + 7 * 3600e3).toISOString().slice(0, 10).split("-").reverse().join("/");
+  return `<div class="jr-kotak"><h3>Sinyal diambil vs dilewati <small>sejak ${tg}</small></h3>` +
+    `<div class="jr-angka"><div><span>Diambil</span><b class="${kl(B.rAmbil)}">${f2(B.rAmbil)}</b><span class="rp">${B.nAmbil} sinyal · WR ${B.wrAmbil}%</span></div>` +
+    `<div><span>Dilewati</span><b class="${kl(B.rLewat)}">${f2(B.rLewat)}</b><span class="rp">${B.nLewat} sinyal · WR ${B.wrLewat == null ? "—" : B.wrLewat + "%"}</span></div>` +
+    `<div><span>Selisih</span><b class="${kl(sel)}">${f2(sel)}</b><span class="rp">USDT per 1000, simulasi</span></div></div>` +
+    `<p class="jr-ket">${vonis} Keduanya dinilai dengan aturan aplikasi (1000 USDT, 50% TP1, SL ke entry, 50% TP2), jadi yang diukur murni <b>cara memilih</b>, bukan eksekusi. Hanya sinyal yang sudah tutup.</p></div>`;
 }
 $("jnMuat").addEventListener("click", muatJurnalNyata);
 if (JN) setTimeout(gambarJurnalNyata, 0);
