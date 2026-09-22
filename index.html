@@ -4,6 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>AMONK MONITOR</title>
+<!-- PWA (2026-09-23): bisa dipasang di layar utama HP (Android: menu ⋮ → Instal aplikasi; iPhone: Bagikan → Tambah ke Layar Utama) -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0F131C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AMONK">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
@@ -37,6 +46,23 @@ h1 b{color:var(--hijau);font-weight:600}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--redup)}
 .dot.on{background:var(--hijau);box-shadow:0 0 0 3px rgba(38,166,154,.18)}
 .dot.off{background:var(--merah)}
+/* BILAH STATUS */
+.pita{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;padding:7px 12px;margin:0 0 10px;background:var(--bg1);border:1px solid var(--garis);border-radius:8px;font:12px var(--f-ui);color:var(--label);position:sticky;top:0;z-index:20}
+.pita-i{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;background:none;border:0;padding:0;color:inherit;font:inherit}
+button.pita-i{cursor:pointer} button.pita-i:hover span{color:var(--teks)}
+.pita-i b{font:500 12px var(--f-num);color:var(--teks)}
+.pita-i b.naik{color:var(--hijau)} .pita-i b.turun{color:var(--merah)} .pita-i b.kng{color:var(--kuning)}
+.lampu{width:8px;height:8px;border-radius:50%;background:var(--redup);flex:none}
+.lampu.on{background:var(--hijau);box-shadow:0 0 0 3px rgba(38,166,154,.18)} .lampu.jeda{background:var(--kuning)} .lampu.off{background:var(--merah);box-shadow:0 0 0 3px rgba(239,83,80,.18)}
+@media (max-width:640px){.pita{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:12px;font-size:11px;padding:6px 10px}.pita::-webkit-scrollbar{display:none}.pita-i b{font-size:11px}}
+/* JALUR POSISI BOT: SL — entry — TP1 — TP2 dengan titik harga kini */
+.bt-jalur{grid-column:1/-1;position:relative;height:26px;margin:4px 2px 0}
+.bt-jalur .rel{position:absolute;left:0;right:0;top:9px;height:6px;border-radius:3px;overflow:hidden;display:flex}
+.bt-jalur .rel i{display:block;height:100%}
+.bt-jalur .tk{position:absolute;top:5px;width:2px;height:14px;background:var(--label);transform:translateX(-1px)}
+.bt-jalur .lb{position:absolute;top:19px;font:10px var(--f-num);color:var(--label);transform:translateX(-50%);white-space:nowrap}
+.bt-jalur .kini{position:absolute;top:6px;width:12px;height:12px;border-radius:50%;background:var(--teks);border:2px solid var(--bg1);transform:translateX(-6px);box-shadow:0 0 0 2px var(--biru);transition:left .6s}
+.bt-kurva{margin-top:4px}
 
 .strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--garis);border:1px solid var(--garis);border-radius:6px;overflow:hidden}
 .strip>div{background:var(--bg1);padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -274,6 +300,15 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
     <div class="status"><span class="dot" id="dot"></span><span id="stat">menyambung…</span>
       <button class="btn ikon" id="tema" type="button" title="Ganti tampilan terang / gelap" aria-label="Ganti tema"></button></div>
   </header>
+  <!-- BILAH STATUS (2026-09-23): selalu terlihat di semua tab — bot, perantara VPS, harga hidup, modal & laba bot -->
+  <div class="pita" id="pita" role="status" aria-live="polite">
+    <button type="button" class="pita-i" id="pitaBot" title="Status bot — ketuk untuk membuka tab Akun"><i class="lampu"></i><span>Bot</span><b>—</b></button>
+    <span class="pita-i" id="pitaVps" title="Perantara VPS Frankfurt (kunci trading)"><i class="lampu"></i><span>Perantara</span><b>—</b></span>
+    <span class="pita-i" id="pitaHarga" title="Harga hidup dari Binance"><i class="lampu"></i><span>Harga</span><b>—</b></span>
+    <span class="pita-i" id="pitaModal"><span>Modal bot</span><b>—</b></span>
+    <span class="pita-i" id="pitaHari"><span>Laba hari ini</span><b>—</b></span>
+    <span class="pita-i" id="pitaPosisi"><span>Posisi</span><b>—</b></span>
+  </div>
 
   <nav class="tab" role="tablist" aria-label="Halaman">
     <button role="tab" id="tbTerminal" data-hal="Terminal" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v14H4z"/><path d="M8 15l3-4 3 3 3-5"/></svg><span>Terminal</span></button>
@@ -2000,8 +2035,34 @@ function kotakBanding(s) {
 }
 // Hasil satu trade bot dalam R: hasil USDT ÷ rugi bila kena SL awal (ukuran × jarak isi→SL). null kalau SL tak sah.
 function rBot(r) { if (!(r && r.isi > r.sl && r.sl > 0 && r.beliUsdt > 0)) return null; const risk = r.beliUsdt * (r.isi - r.sl) / r.isi; return risk > 0 ? r.hasil / risk : null; }
+// JALUR POSISI (2026-09-23): bilah SL → entry → TP1 → TP2 dengan titik harga kini (harga pasar hidup).
+function jalurPosisi(p, px) {
+  const sl = +p.sl, e = +(p.isi || p.entry), t2 = +p.tp2, t1 = +p.tp1 || null;
+  if (!(sl > 0 && t2 > e && e > sl)) return "";
+  const pos = v => Math.max(0, Math.min(100, (v - sl) / (t2 - sl) * 100));
+  const tk = (v, lb) => `<span class="tk" style="left:${pos(v)}%"></span><span class="lb" style="left:${Math.max(4, Math.min(96, pos(v)))}%">${lb}</span>`;
+  return `<div class="bt-jalur" title="SL ${fHarga(sl)} · entry ${fHarga(e)}${t1 ? " · TP1 " + fHarga(t1) : ""} · TP2 ${fHarga(t2)}${px ? " · kini " + fHarga(px) : ""}">` +
+    `<div class="rel"><i style="width:${pos(e)}%;background:rgba(239,83,80,.45)"></i><i style="flex:1;background:rgba(38,166,154,.45)"></i></div>` +
+    tk(sl, "SL") + tk(e, "entry") + (t1 ? tk(t1, "TP1") : "") + tk(t2, "TP2") +
+    (px ? `<span class="kini" style="left:${pos(px)}%"></span>` : "") + `</div>`;
+}
+// KURVA MODAL BOT (2026-09-23): modal awal → tiap trade tutup (dan tarik/tambah dana) sejak modal awal disimpan.
+function kurvaModalBot(MO, R) {
+  const sejak = MO.sejak || 0, tt = [];
+  for (const r of R) if ((r.keluarT || 0) >= sejak) tt.push({ t: r.keluarT, d: +r.hasil || 0 });
+  for (const p of MO.riwayatDana || []) tt.push({ t: p.t, d: +p.jumlah || 0, dana: true });
+  if (!tt.length || !(MO.awal > 0)) return `<p class="jr-ket bt-kurva">Kurva modal muncul setelah trade bot pertama tutup.</p>`;
+  tt.sort((a, b) => a.t - b.t);
+  const c = [MO.awal]; for (const x of tt) c.push(c[c.length - 1] + x.d);
+  const W = 300, H = 60, lo = Math.min(MO.awal, ...c), hi = Math.max(MO.awal, ...c), rg = (hi - lo) || 1;
+  const x = i => (3 + i / (c.length - 1) * (W - 6)).toFixed(1), y = v => (3 + (hi - v) / rg * (H - 6)).toFixed(1);
+  const pts = c.map((v, i) => x(i) + "," + y(v)).join(" "), w = c[c.length - 1] >= MO.awal ? "var(--hijau)" : "var(--merah)";
+  return `<div class="bt-kurva"><div class="jr-ket">Kurva modal bot · ${tt.filter(t => !t.dana).length} trade · garis putus = modal awal ${Math.round(MO.awal)} USDT</div>` +
+    `<svg class="jr-kurva" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="${W}" y1="${y(MO.awal)}" y2="${y(MO.awal)}" stroke="var(--garis)" stroke-dasharray="3 3"/>` +
+    `<polygon points="${x(0)},${y(MO.awal)} ${pts} ${x(c.length - 1)},${y(MO.awal)}" fill="${w}" opacity=".12"/><polyline points="${pts}" fill="none" stroke="${w}" stroke-width="1.8"/></svg></div>`;
+}
 function gambarBot(s) {
-  BT_S = s;
+  BT_S = s; gambarPita(s);
   const asli = s.jaringan === "asli";                                  // bot memakai AKUN ASLI (uang sungguhan)
   $("btJaringan").innerHTML = asli ? "" : "TESTNET · saldo latihan";   // label merah akun asli dibuang (permintaan user 09-22)
   $("btModal").placeholder = asli ? `0 = pagu ${s.modalAsliMaks || "?"} USDT dari Cloudflare` : "0 = seluruh saldo testnet";
@@ -2042,6 +2103,7 @@ function gambarBot(s) {
     `<div class="rw-maju"><div class="pb"><span>trade</span><div><i style="width:${Math.min(1, R.length / AMBANG_N) * 100}%"></i></div><span>${R.length}/${AMBANG_N}</span></div>` +
     `<div class="pb"><span>waktu</span><div><i style="width:${Math.min(1, blnBot / AMBANG_BULAN) * 100}%"></i></div><span>${blnBot.toFixed(1)}/${AMBANG_BULAN} bln</span></div>` +
     `<span class="rw-vonis" style="color:var(--label)">${R.length >= AMBANG_N && blnBot >= AMBANG_BULAN ? "Cukup data untuk dinilai" : "Belum cukup data untuk menilai bot"}</span></div>` +
+    kurvaModalBot(MO, R) +
     (asli ? `<p class="jr-ket">Akun ASLI: hasil di sini uang sungguhan, termasuk komisi & selip nyata. Trade bot di akun asli TIDAK dihitung sebagai trade Anda di "Anda vs bot".</p></div>`
       : `<p class="jr-ket">Saldo testnet adalah uang latihan dan harganya bisa berbeda dari pasar asli. Hasil di sini menguji mekanisme (order, TP/SL, SL ke entry), bukan biaya eksekusi nyata.</p></div>`) + kotakBanding(s);
   const baris = [];
@@ -2054,7 +2116,8 @@ function gambarBot(s) {
     baris.push(`<div class="jr-tr buka j bt-baris"><div style="min-width:0"><div class="nm">${p.sym.replace(/USDT$/, "")} <span class="jn-label sinyal">${p.kode}</span></div>` +
       `<div class="sub">${p.pola} · masuk ${jamLokal(p.t)} · ${p.tahap === "tp1" ? "TP1 ✓, SL di entry" : p.tahap === "tunggu-close" ? "menunggu close lilin isian" : "menunggu TP1"}</div></div>` +
       `<div class="lv">Isi ${fHarga(p.isi)} · ${Math.round(p.beliUsdt)} USDT · kini ${px ? fHarga(px) : "—"}<br>SL ${fHarga(p.sl)}${p.tp1 ? " · TP1 " + fHarga(p.tp1) : ""} · TP2 ${fHarga(p.tp2)}</div>` +
-      `<div class="ha">${pnl == null ? `<span class="chip jalan">Jalan</span>` : `<b class="${kl(pnl)}">${f2(pnl)} USDT</b><span class="rp">${risk ? f2(pnl / risk) + " R" : ""}</span>`}</div></div>`);
+      `<div class="ha">${pnl == null ? `<span class="chip jalan">Jalan</span>` : `<b class="${kl(pnl)}">${f2(pnl)} USDT</b><span class="rp">${risk ? f2(pnl / risk) + " R" : ""}</span>`}</div>` +
+      jalurPosisi(p, px) + `</div>`);
   }
   if (R.length) baris.push(`<h4 class="bt-sub">Riwayat bot</h4>`);
   for (const r of R.slice(0, 20)) { const rr = rBot(r);
@@ -2170,7 +2233,34 @@ $("btForm").addEventListener("submit", async ev => {
     const pesanSimpan = `Tersimpan di bot: modal awal ${j.modalMaks ? Math.round(j.modalMaks).toLocaleString("en-US") + " USDT" : "seluruh saldo testnet"}${j.modal && j.modal.laba ? ` (kini ${Math.round(kini).toLocaleString("en-US")} dengan laba)` : ""} · maks ${j.maksPosisi} entry (±${kini ? Math.round(kini / j.maksPosisi).toLocaleString("en-US") + " USDT" : "saldo ÷ " + j.maksPosisi} per entry) · koin ${j.koin && j.koin.length ? j.koin.map(k => k.replace(/USDT$/, "")).join(", ") : "semua"} · pola ${(j.pola || []).join(", ")}${j.fib ? " + FIB 1H" : ""}.`; await muatBot(); btPesan(pesanSimpan); }
   catch (e) { btPesan("Gagal menyimpan: " + e.message, true); }
 });
-setInterval(() => { if (halAktif === "Akun" && btCfg().sandi) muatBot(); }, 60e3);
+// BILAH STATUS (2026-09-23): diperbarui dari status bot yang SAMA (satu panggilan /status tiap 60 dtk,
+// hanya operasi BACA KV). Di tab Akun muatBot() yang memanggil; di tab lain muatPita().
+function gambarPita(s) {
+  const set = (id, teks, kls, lampu) => { const el = $(id); if (!el) return; const b = el.querySelector("b"); b.textContent = teks; b.className = kls || "";
+    const l = el.querySelector(".lampu"); if (l && lampu !== undefined) l.className = "lampu " + lampu; };
+  if (!s) { set("pitaBot", "tak terbaca", "turun", "off"); return; }
+  const PG = s.pengaturan || {}, M = s.modal || {}, R = s.riwayat || [], asli = s.jaringan === "asli";
+  const masalah = (asli && s.hentiAsli) || s.kunciGalat;
+  set("pitaBot", PG.jeda ? "DIJEDA" : masalah ? "PERIKSA" : s.aktif ? (asli ? "AKTIF · asli" : "AKTIF · testnet") : "KERING",
+    PG.jeda ? "kng" : masalah ? "turun" : s.aktif ? "naik" : "kng", PG.jeda ? "jeda" : masalah ? "off" : s.aktif ? "on" : "jeda");
+  set("pitaVps", !asli ? "tidak dipakai" : s.perantaraMati ? "MATI" : "sehat", s.perantaraMati ? "turun" : "", !asli ? "" : s.perantaraMati ? "off" : "on");
+  set("pitaModal", M.kini ? Math.round(M.kini).toLocaleString("en-US") + " USDT" : "—");
+  const tengahMalam = new Date(); tengahMalam.setHours(0, 0, 0, 0);
+  const hari = R.filter(r => (r.keluarT || 0) >= tengahMalam.getTime()).reduce((a, r) => a + (+r.hasil || 0), 0);
+  set("pitaHari", (hari >= 0 ? "+" : "") + hari.toFixed(2) + " USDT", hari > 0 ? "naik" : hari < 0 ? "turun" : "");
+  set("pitaPosisi", `${(s.posisi || []).length} / ${PG.maksPosisi || "?"}${((s.fib || {}).order || []).length ? " · " + s.fib.order.length + " order" : ""}`);
+}
+async function muatPita() {
+  if (!btCfg().url) return;
+  try { const s = await btPanggil("/status"); BT_S = s; gambarPita(s); } catch (e) { gambarPita(null); }
+}
+// lampu harga ikut titik status koneksi harga di kepala halaman
+setInterval(() => { const d = $("dot"), el = $("pitaHarga"); if (!d || !el) return;
+  el.querySelector(".lampu").className = "lampu " + (d.classList.contains("on") ? "on" : d.classList.contains("off") ? "off" : "");
+  el.querySelector("b").textContent = d.classList.contains("on") ? "hidup" : d.classList.contains("off") ? "putus" : "menyambung"; }, 3000);
+$("pitaBot").addEventListener("click", () => pindahHal("Akun"));
+setInterval(() => { if (halAktif === "Akun") { if (btCfg().url) muatBot(); } else muatPita(); }, 60e3);
+setTimeout(muatPita, 1500);
 setTimeout(() => { if (halAktif === "Akun" && btCfg().sandi) muatBot(); }, 1500);
 if (JN) setTimeout(gambarJurnalNyata, 0);
 
@@ -2448,6 +2538,8 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("popup"
 setInterval(() => { if (halAktif === "Riwayat") window.gambarRiwayat(); }, 5000);
 
 pindahHal(["Terminal", "Riwayat", "Jurnal", "Akun", "Info"].includes(halAktif) ? halAktif : "Terminal");
+// PWA (2026-09-23): service worker hanya di alamat online (https), supaya aplikasi bisa dipasang di layar utama
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 
 
 
