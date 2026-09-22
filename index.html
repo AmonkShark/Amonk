@@ -413,7 +413,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
     <div class="jr-list" id="akList"></div>
     <div class="jn-kepala" id="akOrderJudul" hidden><h3>Order terbuka <small class="redup" id="akOrderN"></small></h3><button class="btn" type="button" id="akOrderToggle" aria-controls="akOrder" aria-expanded="true">Sembunyikan</button></div>
     <div class="jr-list" id="akOrder"></div>
-    <div class="jn-kepala"><h3>Bot trading otomatis <small class="redup" id="btJaringan">TESTNET · saldo latihan</small></h3><button class="btn" type="button" id="btMuat">Perbarui</button></div>
+    <div class="jn-kepala"><h3>Bot trading otomatis <small class="redup" id="btJaringan">TESTNET · saldo latihan</small></h3><span class="tb"><button class="btn" type="button" id="btTes" title="Cek jalur aplikasi → bot → perantara → Binance dengan kunci bot">🔌 Uji sambungan</button><button class="btn" type="button" id="btMuat">Perbarui</button></span></div>
     <div class="ak-bar"><button class="btn" type="button" id="btToggle" aria-expanded="true" aria-controls="btForm">⚙ Sembunyikan pengaturan bot</button><span class="ak-pesan" id="btPesanBar"></span></div>
     <p class="ak-pesan kng" id="btKunci" hidden>🔒 Mode lihat — perangkat ini belum memasukkan sandi bot, jadi pengaturan hanya bisa dilihat. Isi <b>Sandi bot</b> lalu tekan <b>Buka kunci</b> untuk mengubah.</p>
     <form class="ak-set" id="btForm" autocomplete="off">
@@ -2093,6 +2093,20 @@ function kunciBot(terkunci) {
   $("btSimpan").textContent = terkunci ? "🔓 Buka kunci" : "Simpan ke bot";
 }
 $("btMuat").addEventListener("click", muatBot);
+// UJI SAMBUNGAN (2026-09-22, user: "bagaimana cara cek jika sudah benar semua?"). GET /tes (wajib sandi):
+// bot membaca saldo USDT lewat jalurnya sendiri — di mode asli lewat perantara VPS dengan kunci asli.
+// Berhasil = aplikasi→bot→perantara→Binance tersambung DAN kunci sah. Tidak memasang order apa pun.
+$("btTes").addEventListener("click", async () => {
+  if (!btCfg().sandi) { btPesan("Uji sambungan butuh sandi bot (isi di ⚙ Pengaturan bot).", true); return; }
+  btPesan("Menguji sambungan…");
+  try {
+    const t = await btPanggil("/tes");
+    const asli = t.jaringan === "asli";
+    btPesan(t.kunciBekerja
+      ? `✅ Sambungan OK · ${asli ? "AKUN ASLI lewat perantara" : "testnet"} · USDT bebas ${(+t.usdtBebas || 0).toFixed(2)} · izin trading ${t.bisaTrade ? "ya" : "TIDAK"} · bot ${t.aktif ? "AKTIF" : "KERING"}`
+      : `⛔ Gagal: ${t.galat || "kunci tidak bekerja"}`, !t.kunciBekerja || !t.bisaTrade);
+  } catch (e) { btPesan("⛔ Uji sambungan gagal: " + e.message, true); }
+});
 $("btForm").addEventListener("submit", async ev => {
   ev.preventDefault();
   simpan("btUrl", $("btUrl").value.trim()); simpan("btSandi", $("btSandi").value);
