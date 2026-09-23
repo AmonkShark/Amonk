@@ -124,7 +124,7 @@ function bentuk(P, i) {
 //   VALID = limit TERISI: entry = limit (bukan close), batal = SL = entry - 2.5 ATR bar isian,
 //   level + tinggi = PUNCAK 3 (TP2 buku Elliott). TP1 dihitung pemakai dengan aturan aplikasi.
 // Hanya dijalankan bila opsi.elliott === true, supaya skrip riset lama tetap menghasilkan angka yang sama.
-const EW = { ayun: 20, tunggu: 60, slAtr: 2.5 };
+const EW = { ayun: 20, tunggu: 60, slAtr: 2.5, gel1Min: 0.25 };   // gel1Min: saringan pilihan user 2026-09-24 (gel.1 >= 25% dari titik 0), bukan edge terbukti
 function elliott(d, A, mx) {
   const n = d.c.length, dalam = mx >= 3 ? 0.57 : 0.90;   // Pine: <=1H m 3.5 & 0.57, >=2H m 2.5 & 0.90
   const valid = [], semua = [];        // semua = riwayat tiap limit (untuk uji pemilih; tidak dipakai app/bot)
@@ -172,7 +172,7 @@ function elliott(d, A, mx) {
     // 4. setup di titik 3
     if (titik3 && low0 !== null && low2 !== null && high1 !== null && b0 !== null) {
       const g3 = high3 - low2;
-      const ayunOk = g3 > 0 && low2 > 0 && g3 / low2 * 100 >= EW.ayun;
+      const ayunOk = g3 > 0 && low2 > 0 && g3 / low2 * 100 >= EW.ayun && low0 > 0 && (high1 - low0) / low0 >= EW.gel1Min;
       if (ayunOk && b0 >= p3Lalu) {
         if (!terisi) tutupCur(i); else cur = null;          // limit lama yang belum terisi diganti
         p3Lalu = b3; level = high3 - dalam * g3; tpBuku = high3; lahir = i; terisi = false;
