@@ -410,7 +410,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
     </div>
     <div class="jr-list" id="rwList"></div>
     <p class="jr-ket" id="rwKetAI" style="margin-top:10px" hidden>Riwayat AI 4H = semua entry dari analisa chart Claude tiap 4 jam (buku jurnal laptop, dikirim ke GitHub tiap 4 jam). Nominal 1000 USDT per sinyal, biaya 0,2%, keluar di SL, TP, atau batas waktu. Trade "Jalan" dinilai dengan harga hidup. R = hasil ÷ jarak entry→SL.</p>
-    <p class="jr-ket" id="rwKetPola" style="margin-top:10px">Riwayat = SEMUA pola 4H valid di 109 koin selama ~100 hari terakhir, dihitung di perangkat ini dengan aturan yang sama dengan Terminal (entry close bar valid, 50% di TP1, SL ke entry, 50% di TP2, biaya 0,2%, 1000 USDT). Trade lebih tua dari ~100 hari tetap disimpan di perangkat ini. Mode "Maju" memakai catatan yang sama untuk semua perangkat (berkas GitHub yang ditulis otomatis tiap 4 jam): trade tutup dari catatan itu, trade jalan dari hitungan perangkat ini. Beda dengan tab Jurnal (buku rutin: SL 2,5 ATR / TP 1R).</p>
+    <p class="jr-ket" id="rwKetPola" style="margin-top:10px">Riwayat = SEMUA pola 4H valid di 109 koin selama ~100 hari terakhir, dihitung di perangkat ini dengan aturan yang sama dengan Terminal (entry close bar valid, 50% di TP1, SL ke entry, 50% di TP2, biaya 0,2%, 1000 USDT). Trade lebih tua dari ~100 hari tetap disimpan di perangkat ini. Mode "Maju" memakai catatan yang sama untuk semua perangkat (berkas GitHub yang ditulis otomatis tiap 4 jam): trade tutup dari catatan itu, trade jalan dari hitungan perangkat ini. Beda dengan tab Jurnal (buku rutin: SL 2,5 ATR / TP 1R). <b>FIB 1H</b> (2026-09-23) ikut ditambahkan — aturan sama persis dengan yang dipakai bot (0,85 retracement), tapi TP/SL di sini pakai buku tunggal (SL 1×ATR, TP 2×ATR, batas 60 lilin 1H) supaya sebanding dengan pola, BUKAN exit sungguhan bot yang lebih kaya (lihat tab Info). Data 1H dimuat terpisah saat tab ini pertama dibuka, jadi mungkin muncul beberapa detik lebih lambat dari pola.</p>
   </div>
 
   <div class="hal" id="halJurnal" hidden>
@@ -1090,6 +1090,87 @@ function simTrade(d, e) {
   return { nama: e.nama, kode: e.kode, masukT: d.t[e.i], umur: n - 1 - e.i, entry, sl, tp1, tp2, st, keluarT, kenaTp1, sisa, real };
 }
 
+// FIB 1H DI RIWAYAT (2026-09-23, permintaan user: "kenapa tidak ada sinyal fib yang ditampilkan").
+// PENTING: replika `research/konfirmasi_fib1h_limit_jual_close.cjs` (limit + jual di close), BUKAN
+// `fwd12/deteksi_gz_fib.cjs::cariFIB()` — cariFIB() memakai EMA200 SEBAGAI GERBANG SEBELUM isian
+// dihitung, itu versi LAMA yang terbukti lookahead [[fib-keunggulan-dari-lookahead-lilin-isian]] dan
+// nyaris nol hasilnya kalau diuji jujur (dicoba dulu di sini, 0 isian dari 10 koin x 1000 lilin —
+// baru ketahuan setelah dibandingkan ke skrip konfirmasi). Aturan yang BENAR (dipakai bot sungguhan,
+// fibIsian() di worker_bot_testnet.js): SETIAP sentuhan limit 0,85 dihitung sebagai isian; BARU
+// SESUDAH isian dicek syaratnya (close < dasar / close ≤ EMA200 / jarak > 3%) — gagal = dijual
+// LANGSUNG di close lilin isian itu (rugi/untung tipis apa adanya), lolos = ditahan ke SL 1xATR /
+// TP 2xATR / batas 60 lilin. Data 1H diambil TERPISAH dari muat 4H (baru dipanggil sekali saat tab
+// Riwayat pertama dibuka), 400 bar (bukan 600) atas permintaan user supaya tidak memperlambat buka
+// aplikasi. emaFib() benih EMA-nya harga PERTAMA (sama seperti modul fwd12), bukan emaArr() bawaan
+// aplikasi yang benih SMA (dipakai utk pola chart) — biar setup FIB di sini identik dgn milik bot.
+const FIB_UMUM = { minLeg: 30, fib: 0.850, maksEma: 3.0, slAtr: 1.0, tpR: 2.0 };
+const FIB_1H_V = { K: 5, umur: 120, jeda: 12, batas: 60 };
+const BIAYA_FIB = 0.002;
+const emaFib = (a, n) => { const k = 2 / (n + 1); let e = null; const o = [];
+  for (const v of a) { e = e == null ? v : v * k + e * (1 - k); o.push(e); } return o; };
+// hasil sesudah isian di bar bi, limit p: dijual di close bila syarat gagal, kalau lolos ditahan ke SL/TP/batas
+function isianFib(B, bi, p, bawah) {
+  const R = FIB_UMUM.slAtr * B.atr[bi - 1]; if (!(R > 0)) return null;
+  const c = B.c[bi], e = B.e200[bi], sl = p - R, tp = p + FIB_UMUM.tpR * R;
+  const gagal = c < bawah || !(e > 0 && c > e) || (c - e) / e * 100 > FIB_UMUM.maksEma;
+  if (gagal) return { entry: p, sl, tp, st: "GAGAL", keluarBar: bi, keluarPx: c };
+  const akhir = Math.min(B.c.length - 1, bi + FIB_1H_V.batas);
+  for (let k = bi + 1; k <= akhir; k++) {
+    if (B.o[k] <= sl) return { entry: p, sl, tp, st: "SL", keluarBar: k, keluarPx: B.o[k] };
+    if (B.l[k] <= sl) return { entry: p, sl, tp, st: "SL", keluarBar: k, keluarPx: sl };
+    if (B.o[k] >= tp) return { entry: p, sl, tp, st: "TP", keluarBar: k, keluarPx: B.o[k] };
+    if (B.h[k] >= tp) return { entry: p, sl, tp, st: "TP", keluarBar: k, keluarPx: tp };
+  }
+  if (akhir === bi + FIB_1H_V.batas) return { entry: p, sl, tp, st: "WAKTU", keluarBar: akhir, keluarPx: B.c[akhir] };
+  return { entry: p, sl, tp, st: "jalan", keluarBar: null, keluarPx: null };   // belum cukup lilin -> masih menunggu
+}
+// jalan lilin-demi-lilin, kelahiran pivot & setup — replika PERSIS nyata() di skrip konfirmasi
+function cariFIBHonest(B) {
+  const { t, h, l, c } = B, K = FIB_1H_V.K, akhir = c.length - 1, out = [];
+  const pvH = i => { for (let j = i - K; j <= i + K; j++) if (j !== i && h[j] >= h[i]) return false; return true; };
+  const pvL = i => { for (let j = i - K; j <= i + K; j++) if (j !== i && l[j] <= l[i]) return false; return true; };
+  let lowT = null, tipe = null, setup = null, last = -1e15;
+  for (let i = K; i <= akhir - K; i++) {
+    const bi = i + K; if (bi > akhir) break;
+    if (setup && bi > setup.lahir && t[bi] - last >= FIB_1H_V.jeda * 3600e3) {
+      const p = setup.atas - setup.leg * FIB_UMUM.fib;
+      if (l[bi] <= p && h[bi] >= p) { last = t[bi]; const x = isianFib(B, bi, p, setup.bawah); if (x) out.push({ bar: bi, ...x }); setup = null; }
+    }
+    if (pvL(i)) { if (tipe !== "L" || lowT == null || l[i] < lowT) lowT = l[i]; tipe = "L"; }
+    if (pvH(i) && lowT != null && lowT > 0) { const leg = h[i] - lowT; if (leg > 0 && leg / lowT * 100 >= FIB_UMUM.minLeg) setup = { atas: h[i], leg, bawah: lowT, lahir: bi }; tipe = "H"; }
+    if (setup && (c[bi] < setup.bawah || (bi - setup.lahir) > FIB_1H_V.umur)) setup = null;
+  }
+  return out;
+}
+function keFormatRiwayat(B, x) {
+  const real = x.keluarPx == null ? 0 : MODAL_POLA * (x.keluarPx / x.entry - 1);
+  return { nama: "FIB 1H", kode: "FIB", masukT: B.t[x.bar], umur: B.c.length - 1 - x.bar, entry: x.entry, sl: x.sl, tp1: null, tp2: x.tp,
+    st: x.st, keluarT: x.keluarBar != null ? B.t[x.keluarBar] : null, kenaTp1: false, sisa: x.st === "jalan" ? 1 : 0, real };
+}
+async function muatKoinFib1h(k) {
+  const j = await getJ(`/api/v3/klines?symbol=${k}USDT&interval=1h&limit=400`);
+  if (!Array.isArray(j) || j.length < 220) return [];
+  const sekarang = Date.now();
+  const b = j.filter(x => +x[6] < sekarang);
+  const B = { t: b.map(x => +x[0]), o: b.map(x => +x[1]), h: b.map(x => +x[2]), l: b.map(x => +x[3]), c: b.map(x => +x[4]) };
+  B.atr = atrArr(B.h, B.l, B.c); B.e200 = emaFib(B.c, 200);
+  try { return cariFIBHonest(B).map(x => keFormatRiwayat(B, x)); }
+  catch (e) { return []; }
+}
+let FIB1H_STATE = { termuat: false, memuat: false, waktu: 0 };
+window.muatFib1hSemua = async function () {
+  if (FIB1H_STATE.memuat || FIB1H_STATE.termuat || !POLA.waktu) return;   // tunggu muat 4H pertama selesai (data[k] wajib ada)
+  FIB1H_STATE.memuat = true;
+  let i = 0;
+  const kerja = async () => { while (i < KOIN.length) { const k = KOIN[i++]; const daftar = await muatKoinFib1h(k);
+    if (!daftar.length) continue; const d = data[k]; if (!d) continue;
+    d.riwayat = [...(d.riwayat || []), ...daftar].sort((a, b) => a.masukT - b.masukT); } };
+  await Promise.all(Array.from({ length: 6 }, kerja));
+  FIB1H_STATE.memuat = false; FIB1H_STATE.termuat = true; FIB1H_STATE.waktu = Date.now();
+  if (window.simpanRiwayat) window.simpanRiwayat();
+  if (halAktif === "Riwayat" && window.gambarRiwayat) window.gambarRiwayat();
+};
+
 async function muatBtcHarian() {
   const j = await getJ(`/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=300`);
   if (!Array.isArray(j)) return;
@@ -1544,6 +1625,7 @@ function pindahHal(h) {
   if (h === "Akun" && window.muatAkun) window.muatAkun();
   if (h === "Akun" && window.muatBotBilaAda) window.muatBotBilaAda();
   if (h === "Riwayat" && window.gambarRiwayat) window.gambarRiwayat();
+  if (h === "Riwayat" && window.muatFib1hSemua) window.muatFib1hSemua();
   if (h === "Terminal") { gambar(); if (window.paskanOtomatis) window.paskanOtomatis(); }
 }
 document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click", () => pindahHal(b.dataset.hal)));
@@ -2549,6 +2631,9 @@ function gabungMaju() {
 }
 function chipRw(t) {
   if (t.st === "jalan") return t.luar ? `<span class="chip nd">tak terlacak</span>` : (t.kenaTp1 ? `<span class="chip jalan">Jalan 50%</span>` : `<span class="chip jalan">Jalan</span>`);
+  if (t.st === "TP") return `<span class="chip tp">TP</span>`;              // FIB: TP tunggal, bukan TP1+TP2
+  if (t.st === "WAKTU") return `<span class="chip nd">Batas waktu</span>`;  // FIB: 60 lilin 1H tak tersentuh
+  if (t.st === "GAGAL") return `<span class="chip nd">Gagal syarat, jual close</span>`;   // FIB: EMA/dasar gagal sesudah isian
   return t.st === "TP2" ? `<span class="chip tp">TP1+TP2</span>` : t.st === "BE" ? `<span class="chip tp">TP1+BE</span>` : `<span class="chip sl">Kena SL</span>`;
 }
 // Progres pola menuju ambang proyek: >= 30 trade tutup DAN >= 6 bulan sejak trade pertama.
@@ -2648,7 +2733,7 @@ window.gambarRiwayat = function () {
   for (const t of tutup) {
     const x = dapat(t.nama); x.n++; x.u += t.pnl;
     if (t.pnl > 0) { x.m++; x.win += t.pnl; } else x.loss += t.pnl;
-    if (t.st === "TP2") x.tp2++; else if (t.st === "BE") x.be++; else x.sl++;
+    if (t.st === "TP2" || t.st === "TP") x.tp2++; else if (t.st === "BE") x.be++; else x.sl++;
   }
   for (const t of jalan) { const x = dapat(t.nama); x.jalan++; x.uJalan += t.pnl || 0; }
   $("rwPola").innerHTML = Object.entries(per).sort((a, b) => b[1].u - a[1].u).map(([nm, x]) => {
@@ -2673,7 +2758,7 @@ window.gambarRiwayat = function () {
   $("rwList").innerHTML = tampil.map(t => {
     const p = t.pnl === undefined ? pnlTrade(t) : t.pnl;
     return `<div class="jr-tr rw-baris${t.st === "jalan" ? " buka" : ""}${klsSt(t.st === "jalan", p)}" data-k="${t.koin}|${t.masukT}" tabindex="0" role="button"><div style="min-width:0"><div class="nm">${t.koin}</div><div class="sub">${t.nama} · ${jamLokal(t.masukT)}</div></div>` +
-      (KOL.level ? `<div class="lv">E ${fHarga(t.entry)} · SL ${fHarga(t.sl)}<br>TP1 ${fHarga(t.tp1)}${t.kenaTp1 ? " ✓" : ""} · TP2 ${fHarga(t.tp2)}</div>` : "") +
+      (KOL.level ? `<div class="lv">E ${fHarga(t.entry)} · SL ${fHarga(t.sl)}<br>${t.kode === "FIB" ? "TP " + fHarga(t.tp2) : `TP1 ${fHarga(t.tp1)}${t.kenaTp1 ? " ✓" : ""} · TP2 ${fHarga(t.tp2)}`}</div>` : "") +
       (KOL.hasil ? `<div class="ha"><b class="${kl(p)}">${f2(p)}</b>${chipRw(t)}</div>` : "") + `</div>`;
   }).join("") + (rows.length > 300 ? `<div class="kosong">+${rows.length - 300} trade lebih lama tidak ditampilkan.</div>` : "") ||
     `<div class="kosong">Tidak ada trade di sini.</div>`;
