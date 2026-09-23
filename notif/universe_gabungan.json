@@ -1,7 +1,8 @@
 {
  "dibuat": "2026-09-01",
- "n": 109,
+ "n": 111,
  "catatan": "Gabungan universe_A + universe_B + universe.json lama. Dipakai cari_puncak3_sekarang.cjs. A+B saja MENGHILANGKAN 5 koin yang ada di daftar lama - jadi ketiganya digabung.",
+ "ditambah_manual_20260923": "MINA, S ditambahkan atas permintaan user (volume tinggi tapi terlewat watchlist). ETC & TIA sudah ada sebelumnya. TON DITOLAK (status BREAK di Binance spot).",
  "koin": [
   "AAVE",
   "ACE",
@@ -56,6 +57,7 @@
   "LINK",
   "LTC",
   "MEGA",
+  "MINA",
   "MORPHO",
   "MUB",
   "MUBARAK",
@@ -85,6 +87,7 @@
   "RENDER",
   "ROBO",
   "ROSE",
+  "S",
   "SCRT",
   "SEI",
   "SHIB",
