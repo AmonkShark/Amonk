@@ -49,7 +49,7 @@ const atrArr = (h, l, c, n = 14) => {
       p: S.level, sl: S.level - EW.slAtr * atr, tp2: S.level + S.tinggi, atr,
       lahirT: d.t[S.lahirB], sisa: S.sisa, ayun: +S.ayun.toFixed(1) } });
   }
-  const isi = { t: sekarang, aturan: { kedalaman: 0.9, slAtr: EW.slAtr, ayunMin: EW.ayun, tunggu: EW.tunggu, tp1R: 0.75 }, dicek, gagal, koin };
+  const isi = { t: sekarang, aturan: { kedalaman: 0.9, slAtr: EW.slAtr, ayunMin: EW.ayun, gel1Min: EW.gel1Min, tunggu: EW.tunggu, tp1R: 0.75 }, dicek, gagal, koin };
   if (dicek < KOIN.length * 0.5) { console.log(`ELLIOTT: hanya ${dicek}/${KOIN.length} koin terbaca — TIDAK dikirim (bot memakai data lama sampai basi)`); process.exitCode = 1; return; }
   if (DRY) {
     console.log(`DRY: ${dicek} koin dicek, ${gagal.length} gagal, ${koin.length} limit ELLIOTT hidup`);
