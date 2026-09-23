@@ -1066,7 +1066,7 @@ async function muatKoin(k) {
 // Level chart: entry = close bar VALID, SL = garis batal, TP2 = tembus + tinggi,
 // TP1 = entry + 0.75 x jarak SL (atau tengah jalan ke TP2). Tutup di SL / TP2;
 // lilin yang menyentuh keduanya = SL. DB/RC/BF disembunyikan seperti bawaan chart.
-const SEMBUNYI_POLA = new Set(["DB", "RC", "BF"]);
+const SEMBUNYI_POLA = new Set(["DB", "RC", "BF", "CH", "IHS", "PEN"]);
 function atrArr(h, l, c, n = 14) {
   const o = new Array(c.length).fill(null);
   if (c.length <= n) return o;
