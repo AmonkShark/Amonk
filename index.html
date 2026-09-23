@@ -2545,7 +2545,7 @@ $("btForm").addEventListener("submit", async ev => {
   if (!(mp >= 1 && mp <= 20)) { btPesan("Maks entry harus 1 sampai 20.", true); return; }
   const bt = +$("btBatas").value;
   if (!(bt >= 0.1 && bt <= 100)) { btPesan("Batas rugi bot harus 0.1 sampai 100 (% modal).", true); return; }
-  try { const j = await btPanggil("/atur", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modalMaks: v, koin, pola, maksPosisi: mp, batasTrade: bt, fib, kantong }) });
+  try { const j = await btPanggil("/atur", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modalMaks: v, koin, pola, maksPosisi: mp, batasTrade: bt, kantong }) });
     const kini = j.modal && j.modal.kini ? j.modal.kini : j.modalMaks;
     const pesanSimpan = `Tersimpan di bot: modal awal ${j.modalMaks ? Math.round(j.modalMaks).toLocaleString("en-US") + " USDT" : "seluruh saldo testnet"}${j.modal && j.modal.laba ? ` (kini ${Math.round(kini).toLocaleString("en-US")} dengan laba)` : ""} · maks ${j.maksPosisi} entry (±${kini ? Math.round(kini / j.maksPosisi).toLocaleString("en-US") + " USDT" : "saldo ÷ " + j.maksPosisi} per entry) · koin ${j.koin && j.koin.length ? j.koin.map(k => k.replace(/USDT$/, "")).join(", ") : "semua"} · pola ${(j.pola || []).join(", ")}.`; await muatBot(); btPesan(pesanSimpan); }
   catch (e) { btPesan("Gagal menyimpan: " + e.message, true); }
