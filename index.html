@@ -544,7 +544,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
       <li>Panduan lengkap: berkas <code>PANDUAN_AKUN_BINANCE_SENDIRI.md</code> (minta ke pemilik aplikasi).</li>
     </ul></section>
     <section><h3>Elliott Wave (EW) — pola ke-10</h3><ul>
-      <li><b>Apa itu:</b> siklus 0-1-2-3 dari titik ayunan Directional Change 4H (label <b>10 Elliott Wave ✓</b> di chart, warna & huruf sama dengan pola lain). Ini penamaan struktur, bukan teori Elliott Wave lengkap.</li>
+      <li><b>Apa itu:</b> siklus 0-1-2-3 dari titik ayunan Directional Change 4H (label <b>10 Elliott Wave ✓</b> di chart, warna & huruf sama dengan pola lain). Ini penamaan struktur, bukan teori Elliott Wave lengkap. Saringan titik 0 (pilihan user 24-09): gelombang 1 harus >= 25% dari titik 0 (bukan edge terbukti; positif 7/7 irisan tapi kecil +0.027R).</li>
       <li><b>Setup</b> lahir saat puncak 3 sah, gelombang 3 naik ≥ 20% dan lebih tinggi dari puncak 1. <b>Entry = LIMIT BELI</b> di puncak 3 − 0,90 × gelombang 3 (menunggu harga TURUN, bukan tembus). Batal bila lilin dibuka di bawah limit, siklus patah, atau 60 lilin 4H (~10 hari) tak tersentuh.</li>
       <li><b>Sesudah terisi</b> sama dengan pola lain: SL = limit − 2,5 × ATR, 50% di TP1 (0,75R), SL sisa ke entry, 50% di TP2 = puncak 3.</li>
       <li><b>⏳ EW</b> di Terminal = limit yang masih menunggu (harga limit & jarak dari harga sekarang). Bot memasang Elliott sebanyak slot yang tersisa, urut dari yang <b>paling dekat ke harga limit</b> (pilihanmu, peringkat 2 dari 12 cara pilih yang diuji — tidak ada yang terbukti; sebelumnya "termuda"), seri diputus <b>likuiditas</b>. Limit yang menunggu memakai slot & modal sampai ~10 hari.</li>
@@ -709,7 +709,7 @@ function bentuk(P, i) {
 //   VALID = limit TERISI: entry = limit (bukan close), batal = SL = entry - 2.5 ATR bar isian,
 //   level + tinggi = PUNCAK 3 (TP2 buku Elliott). TP1 dihitung pemakai dengan aturan aplikasi.
 // Hanya dijalankan bila opsi.elliott === true, supaya skrip riset lama tetap menghasilkan angka yang sama.
-const EW = { ayun: 20, tunggu: 60, slAtr: 2.5 };
+const EW = { ayun: 20, tunggu: 60, slAtr: 2.5, gel1Min: 0.25 };   // gel1Min: saringan pilihan user 2026-09-24 (gel.1 >= 25% dari titik 0), bukan edge terbukti
 function elliott(d, A, mx) {
   const n = d.c.length, dalam = mx >= 3 ? 0.57 : 0.90;   // Pine: <=1H m 3.5 & 0.57, >=2H m 2.5 & 0.90
   const valid = [], semua = [];        // semua = riwayat tiap limit (untuk uji pemilih; tidak dipakai app/bot)
@@ -757,7 +757,7 @@ function elliott(d, A, mx) {
     // 4. setup di titik 3
     if (titik3 && low0 !== null && low2 !== null && high1 !== null && b0 !== null) {
       const g3 = high3 - low2;
-      const ayunOk = g3 > 0 && low2 > 0 && g3 / low2 * 100 >= EW.ayun;
+      const ayunOk = g3 > 0 && low2 > 0 && g3 / low2 * 100 >= EW.ayun && low0 > 0 && (high1 - low0) / low0 >= EW.gel1Min;
       if (ayunOk && b0 >= p3Lalu) {
         if (!terisi) tutupCur(i); else cur = null;          // limit lama yang belum terisi diganti
         p3Lalu = b3; level = high3 - dalam * g3; tpBuku = high3; lahir = i; terisi = false;
