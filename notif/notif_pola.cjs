@@ -25,7 +25,7 @@ const { peristiwa, elliott } = require("./pola_dc_peristiwa.cjs");
 
 const U = require("./universe_gabungan.json");
 const KOIN = (U.koin || U).map(s => String(s).toUpperCase());
-const SEMBUNYI = new Set(["DB", "RC", "BF"]);          // sama dengan bawaan chart & aplikasi
+const SEMBUNYI = new Set(["DB", "RC", "BF", "CH", "IHS", "PEN"]);          // sama dengan bawaan chart & aplikasi
 const NOMINAL = 1000, BIAYA = 0.002;
 const JENDELA_BAR = +(process.env.JENDELA_BAR || 2);    // pola baru = valid di N lilin 4H tutup terakhir
 const TOKEN = process.env.TELEGRAM_TOKEN || "", CHAT = process.env.TELEGRAM_CHAT || "";
