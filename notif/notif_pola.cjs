@@ -64,7 +64,7 @@ function level(d, e) {
   // Elliott (EW) masuk lewat LIMIT: entry = harga limit (e.entry), bukan close bar isian.
   const entry = e.entry != null ? e.entry : d.c[e.i], sl = e.batal, tp2 = e.level + e.tinggi;
   if (!(entry > sl) || !(tp2 > entry)) return null;
-  let tp1 = entry + 0.75 * (entry - sl); if (tp1 >= tp2) tp1 = entry + 0.5 * (tp2 - entry);
+  let tp1 = entry + (e.kode === "EW" ? 0.5 : 0.75) * (entry - sl); if (tp1 >= tp2) tp1 = entry + 0.5 * (tp2 - entry);
   return { entry, sl, tp1, tp2 };
 }
 // Simulasi aturan aplikasi sampai lilin terakhir; sama dengan simTrade() di aplikasi.
@@ -146,7 +146,7 @@ function pesanBaru(k, e, L, d, vol, uji, ukuran, tf = "4H") {
 // dari ATR lilin sekarang (dihitung ulang saat terisi).
 function pesanSetupEw(k, S, d, vol, ukuran) {
   const n = d.c.length, px = d.c[n - 1], L = { entry: S.level, sl: S.batal, tp2: S.level + S.tinggi };
-  L.tp1 = L.entry + 0.75 * (L.entry - L.sl); if (L.tp1 >= L.tp2) L.tp1 = L.entry + 0.5 * (L.tp2 - L.entry);
+  L.tp1 = L.entry + 0.5 * (L.entry - L.sl); if (L.tp1 >= L.tp2) L.tp1 = L.entry + 0.5 * (L.tp2 - L.entry);
   const habis = d.t[S.lahirB] + 61 * 4 * 3600e3;
   return `<b>AMONK SINYAL · SETUP</b>\n` +
     `◻️◻️◻️◻️◻️\n` +
@@ -521,7 +521,7 @@ async function rekap() {
         const kS = `EWSETUP|${k}|${d.t[S.lahirB]}`;
         if (!status[kS]) {
           const LS = { entry: S.level, sl: S.batal, tp2: S.level + S.tinggi };
-          LS.tp1 = LS.entry + 0.75 * (LS.entry - LS.sl); if (LS.tp1 >= LS.tp2) LS.tp1 = LS.entry + 0.5 * (LS.tp2 - LS.entry);
+          LS.tp1 = LS.entry + 0.5 * (LS.entry - LS.sl); if (LS.tp1 >= LS.tp2) LS.tp1 = LS.entry + 0.5 * (LS.tp2 - LS.entry);
           const volS = d.v.slice(-6).reduce((a, x, q) => a + x * d.c[nB - 6 + q], 0);
           if (LS.sl > 0 && await kirim(pesanSetupEw(k, S, d, volS, null), pesanSetupEw(k, S, d, volS, ukuranTeks(LS, M)))) status[kS] = { t: sekarang, tahap: "tutup" };
         }
