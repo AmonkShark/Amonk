@@ -1100,9 +1100,12 @@ function simTrade(d, e) {
 // SESUDAH isian dicek syaratnya (close < dasar / close ≤ EMA200 / jarak > 3%) — gagal = dijual
 // LANGSUNG di close lilin isian itu (rugi/untung tipis apa adanya), lolos = ditahan ke SL 1xATR /
 // TP 2xATR / batas 60 lilin. Data 1H diambil TERPISAH dari muat 4H (baru dipanggil sekali saat tab
-// Riwayat pertama dibuka), 400 bar (bukan 600) atas permintaan user supaya tidak memperlambat buka
-// aplikasi. emaFib() benih EMA-nya harga PERTAMA (sama seperti modul fwd12), bukan emaArr() bawaan
-// aplikasi yang benih SMA (dipakai utk pola chart) — biar setup FIB di sini identik dgn milik bot.
+// Riwayat pertama dibuka), 600 bar (~25 hari — bukan 400: DICOBA dulu 400 atas permintaan user
+// "lebih ringan", tapi 0 isian di 12 koin fluktuatif x 400 lilin — EMA200 belum cukup pemanasan &
+// jendela terlalu pendek utk leg+retracement+sentuh; 600 lilin baru mulai muncul isian sungguhan,
+// diverifikasi lawan skrip canggih di Node sebelum dipakai). emaFib() benih EMA-nya harga PERTAMA
+// (sama seperti modul fwd12), bukan emaArr() bawaan aplikasi yang benih SMA (dipakai utk pola chart)
+// — biar setup FIB di sini identik dgn milik bot.
 const FIB_UMUM = { minLeg: 30, fib: 0.850, maksEma: 3.0, slAtr: 1.0, tpR: 2.0 };
 const FIB_1H_V = { K: 5, umur: 120, jeda: 12, batas: 60 };
 const BIAYA_FIB = 0.002;
@@ -1145,10 +1148,10 @@ function cariFIBHonest(B) {
 function keFormatRiwayat(B, x) {
   const real = x.keluarPx == null ? 0 : MODAL_POLA * (x.keluarPx / x.entry - 1);
   return { nama: "FIB 1H", kode: "FIB", masukT: B.t[x.bar], umur: B.c.length - 1 - x.bar, entry: x.entry, sl: x.sl, tp1: null, tp2: x.tp,
-    st: x.st, keluarT: x.keluarBar != null ? B.t[x.keluarBar] : null, kenaTp1: false, sisa: x.st === "jalan" ? 1 : 0, real };
+    st: x.st, keluarT: x.keluarBar != null ? B.t[x.keluarBar] : null, keluarPx: x.keluarPx, kenaTp1: false, sisa: x.st === "jalan" ? 1 : 0, real };
 }
 async function muatKoinFib1h(k) {
-  const j = await getJ(`/api/v3/klines?symbol=${k}USDT&interval=1h&limit=400`);
+  const j = await getJ(`/api/v3/klines?symbol=${k}USDT&interval=1h&limit=600`);
   if (!Array.isArray(j) || j.length < 220) return [];
   const sekarang = Date.now();
   const b = j.filter(x => +x[6] < sekarang);
@@ -2580,7 +2583,7 @@ function kumpulRiwayat() {
   const skr = {};
   for (const k of KOIN) for (const t of (data[k] && data[k].riwayat) || [])
     skr[k + "|" + t.masukT] = { koin: k, nama: t.nama, kode: t.kode, masukT: t.masukT, keluarT: t.keluarT, entry: t.entry, sl: t.sl,
-      tp1: t.tp1, tp2: t.tp2, st: t.st, kenaTp1: t.kenaTp1, sisa: t.sisa, real: t.real };
+      tp1: t.tp1, tp2: t.tp2, st: t.st, kenaTp1: t.kenaTp1, sisa: t.sisa, real: t.real, keluarPx: t.keluarPx };
   return skr;
 }
 window.simpanRiwayat = function () {
@@ -2777,10 +2780,16 @@ function rwNorm(t, sumber) {
   if (sumber === "AI") return { ...t, k: t.koin + "|" + t.masuk, grupPola: t.koin };
   const jalan = t.st === "jalan", us = t.pnl === undefined ? pnlTrade(t) : t.pnl;
   const risk = t.entry > t.sl && t.sl > 0 ? MODAL_POLA * (t.entry - t.sl) / t.entry : null;
-  return { koin: t.koin, jenis: t.nama, k: t.koin + "|" + t.masukT, grupPola: t.nama, entry: t.entry, sl: t.sl, tp1: t.tp1, tp: t.tp2, kenaTp1: t.kenaTp1,
-    exit: jalan ? null : t.st === "TP2" ? t.tp2 : t.st === "BE" ? t.entry : t.sl,   // sisa posisi keluar di sini
+  // FIB (kode "FIB"): TP tunggal, dan dua akhir netral yang tidak ada di pola chart — WAKTU (60 lilin
+  // tak tersentuh) & GAGAL (syarat EMA/dasar gagal sesudah isian, dijual di close lilin isian itu juga).
+  const sebab = jalan ? null : t.st === "TP2" ? "TP1+TP2" : t.st === "BE" ? "TP1+BE" : t.st === "TP" ? "TP"
+    : t.st === "WAKTU" ? "WAKTU" : t.st === "GAGAL" ? "Gagal syarat" : "SL";
+  const exit = jalan ? null : t.st === "TP2" || t.st === "TP" ? t.tp2 : t.st === "BE" ? t.entry
+    : t.st === "WAKTU" || t.st === "GAGAL" ? (t.keluarPx ?? t.sl) : t.sl;
+  return { koin: t.koin, jenis: t.nama, kode: t.kode, k: t.koin + "|" + t.masukT, grupPola: t.nama, entry: t.entry, sl: t.sl, tp1: t.tp1, tp: t.tp2, kenaTp1: t.kenaTp1,
+    exit,   // sisa posisi keluar di sini
     mT: t.masukT, kT: jalan ? null : t.keluarT, terbuka: jalan, luar: t.luar, us, R: us != null && risk ? us / risk : null, px: jalan ? hargaKini(t.koin) : null,
-    sebab: jalan ? null : t.st === "TP2" ? "TP1+TP2" : t.st === "BE" ? "TP1+BE" : "SL", jam: ((jalan ? Date.now() : t.keluarT || Date.now()) - t.masukT) / 3600e3,
+    sebab, jam: ((jalan ? Date.now() : t.keluarT || Date.now()) - t.masukT) / 3600e3,
     rr: t.entry > t.sl && t.tp2 > t.entry ? (t.tp2 - t.entry) / (t.entry - t.sl) : null, slPct: t.entry > 0 ? (t.entry - t.sl) / t.entry * 100 : null };
 }
 function popupTampil(judul, html, simpanRiwayat) {
@@ -2827,7 +2836,9 @@ function rwPopupTrade(kunci, dariGrup) {
     (t.tp1 ? `<span>TP1 <b>${fHarga(t.tp1)}</b>${t.kenaTp1 ? " ✓ kena" : ""}</span><span>TP2 <b>${fHarga(t.tp)}</b></span>` : `<span>TP <b>${fHarga(t.tp)}</b></span>`) +
     `<span>${t.terbuka ? "Harga kini" : "Keluar di"} <b>${fHarga(t.terbuka ? t.px : t.exit)}</b></span><span>R:R rencana <b>${t.rr == null ? "—" : "1 : " + t.rr.toFixed(2)}</b></span>` +
     `<span>${S === "AI" ? "Sinyal" : "Pola"} <b>${S === "AI" ? "AI 4H" : t.jenis}</b></span></div>` +
-    `<p class="jr-ket">${S === "AI" ? "Buku AI 4H: 1000 USDT, keluar penuh di SL, TP, atau batas waktu. R = hasil ÷ jarak entry→SL." : "Aturan Terminal: 1000 USDT, 50% di TP1, SL sisa ke entry, 50% di TP2, biaya 0,2%. R = hasil ÷ rugi bila kena SL."}</p>`;
+    `<p class="jr-ket">${S === "AI" ? "Buku AI 4H: 1000 USDT, keluar penuh di SL, TP, atau batas waktu. R = hasil ÷ jarak entry→SL."
+      : t.kode === "FIB" ? "FIB 1H: 1000 USDT, limit di fib 0,85. Sesudah isian: gagal syarat (EMA200/dasar) = jual di close lilin isian; lolos = tahan ke SL 1×ATR / TP 2×ATR / batas 60 lilin. Biaya 0,2%. R = hasil ÷ rugi bila kena SL. Ini TP/SL buku sederhana, bukan exit sungguhan bot (lihat tab Info)."
+      : "Aturan Terminal: 1000 USDT, 50% di TP1, SL sisa ke entry, 50% di TP2, biaya 0,2%. R = hasil ÷ rugi bila kena SL."}</p>`;
   popupTampil(`${t.koin} <small>${S === "AI" ? "AI 4H" : t.jenis} · ${jamLokal(t.mT)}</small>`, html, dariGrup);
 }
 $("rwPola").addEventListener("click", e => { const b = e.target.closest(".rw-pola"); if (b) rwPopupGrup(b.dataset.p); });
