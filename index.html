@@ -448,7 +448,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
       <select id="jnUrut" aria-label="Urutkan"><option value="baru">Urut: terbaru</option><option value="usdtB">Urut: USDT terbesar</option><option value="usdtK">Urut: USDT terkecil</option><option value="r">Urut: R terbesar</option><option value="lama">Urut: tahan terlama</option></select>
       <input id="jnCari" type="search" placeholder="Cari koin" autocomplete="off">
       <button class="btn kecil" type="button" id="jnPolaToggle" aria-expanded="false" aria-controls="jnPolaForm">⚙ Pola</button>
-      <button class="btn kecil" type="button" id="jnKolToggle" aria-expanded="false" aria-controls="jnKolForm">⚙ Kolom</button>
+      <button class="btn kecil" type="button" id="jnPnl" title="Kalender PNL jurnal per tanggal">📅 PNL</button><button class="btn kecil" type="button" id="jnKolToggle" aria-expanded="false" aria-controls="jnKolForm">⚙ Kolom</button>
     </div>
     <div class="ak-set" id="jnPolaForm" hidden></div>
     <div class="ak-set" id="jnKolForm" hidden></div>
@@ -2442,9 +2442,16 @@ $("btModalMaks").addEventListener("click", async () => {
 // Hanya realisasi (trade yang sudah tutup) — posisi berjalan belum dihitung. Angka = hasil bersih USDT tiap trade.
 const PNL_BLN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 const pnlKunci = (y, m, d) => y + "-" + String(m + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+let PNL_MODE = "bot", PNL_SIN = "semua", PNL_Y = 0, PNL_M = 0;
+function pnlSumber() {
+  if (PNL_MODE === "bot") return (BT_S && BT_S.riwayat) || [];
+  const pa = jnPolaAktif();
+  return jnBaris().filter(t => !t.terbuka && t.kT > 0 && (PNL_SIN === "semua" || t.sinyal === PNL_SIN) && (t.sinyal !== "POLA 4H" || !t.jenis || pa.has(t.jenis)))
+    .map(t => ({ keluarT: t.kT, hasil: t.us, hasilPct: t.pc, sym: t.koin, pola: t.sinyal === "AI 4H" ? "AI 4H" : (t.jenis || t.sinyal) }));
+}
 function pnlPeta() {
   const peta = {};
-  for (const r of ((BT_S && BT_S.riwayat) || [])) { if (!(r.keluarT > 0) || !isFinite(r.hasil)) continue;
+  for (const r of pnlSumber()) { if (!(r.keluarT > 0) || !isFinite(r.hasil)) continue;
     const d = new Date(r.keluarT), k = pnlKunci(d.getFullYear(), d.getMonth(), d.getDate());
     (peta[k] = peta[k] || { total: 0, n: 0, list: [] }); peta[k].total += +r.hasil; peta[k].n++; peta[k].list.push(r); }
   return peta;
@@ -2464,15 +2471,25 @@ function pnlKal(y, m, pilih) {
   let det = ""; if (pilih && peta[pilih]) { const x = peta[pilih];
     det = '<div style="margin-top:12px"><b>' + pilih.split("-").reverse().join("/") + '</b> · <span style="color:' + (x.total >= 0 ? "var(--hijau)" : "var(--merah)") + '">' + pnlF(x.total) + ' USDT</span> · ' + x.n + ' trade' +
       x.list.sort((a, b) => b.keluarT - a.keluarT).map(r => '<div class="sub" style="padding:4px 0;border-top:1px solid var(--garis)">' + String(r.sym || "").replace(/USDT$/, "") + ' · ' + (r.pola || r.kode || "") + ' · <b style="color:' + (r.hasil >= 0 ? "var(--hijau)" : "var(--merah)") + '">' + pnlF(r.hasil) + ' USDT</b> (' + pnlF(r.hasilPct || 0) + '%)</div>').join("") + '</div>'; }
-  return '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><button class="btn" type="button" onclick="pnlBulan(' + sebelum[0] + ',' + sebelum[1] + ')">‹</button><b>' + PNL_BLN[m] + " " + y + '</b><button class="btn" type="button" onclick="pnlBulan(' + sesudah[0] + ',' + sesudah[1] + ')">›</button></div>' +
+  const pilihSin = PNL_MODE === "bot" ? "" : '<div style="display:flex;gap:6px;margin-bottom:8px;justify-content:center">' + [["semua", "Semua"], ["POLA 4H", "POLA 4H"], ["AI 4H", "AI 4H"]].map(([v, n]) => '<button class="btn kecil" type="button" aria-pressed="' + (PNL_SIN === v) + '" style="' + (PNL_SIN === v ? 'border-color:var(--teks)' : '') + '" onclick="pnlSin(&quot;' + v + '&quot;)">' + n + '</button>').join("") + '</div>';
+  return pilihSin + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><button class="btn" type="button" onclick="pnlBulan(' + sebelum[0] + ',' + sebelum[1] + ')">‹</button><b>' + PNL_BLN[m] + " " + y + '</b><button class="btn" type="button" onclick="pnlBulan(' + sesudah[0] + ',' + sesudah[1] + ')">›</button></div>' +
     '<div class="sub" style="text-align:center;margin-bottom:8px">PNL bulan ini <b style="color:' + (tot >= 0 ? "var(--hijau)" : "var(--merah)") + '">' + pnlF(tot) + ' USDT</b> · ' + nT + ' trade · ' + hu + ' hari untung / ' + hr + ' rugi</div>' +
     '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-size:10px;color:var(--redup);text-align:center;margin-bottom:3px">' + ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"].map(x => '<div>' + x + '</div>').join("") + '</div>' +
     '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">' + sel + '</div>' + det +
-    '<p class="sub redup" style="margin-top:10px">Hanya trade bot yang sudah TUTUP (hasil bersih setelah biaya), tanggal mengikuti jam perangkat ini. Posisi yang masih berjalan belum dihitung. Bot menyimpan maks 500 trade terakhir.</p>';
+    '<p class="sub redup" style="margin-top:10px">' + (PNL_MODE === "bot" ? 'Hanya trade bot yang sudah TUTUP (hasil bersih setelah biaya), tanggal mengikuti jam perangkat ini. Posisi yang masih berjalan belum dihitung. Bot menyimpan maks 500 trade terakhir.' : 'Simulasi jurnal (nominal tetap per trade, bukan uang asli), hanya trade TUTUP, dikelompokkan menurut tanggal keluar sesuai jam perangkat ini. Mengikuti pengaturan ⚙ Pola di Jurnal.') + '</p>';
 }
-window.pnlBulan = (y, m) => popupTampil('PNL bot <small>per tanggal</small>', pnlKal(y, m, null), false);
-window.pnlHari = (y, m, d) => { popupTampil('PNL bot <small>per tanggal</small>', pnlKal(y, m, pnlKunci(y, m, d)), false); $("popupBadan").scrollTop = $("popupBadan").scrollHeight; };
+const pnlJudul = () => PNL_MODE === "bot" ? 'PNL bot <small>per tanggal</small>' : 'PNL jurnal <small>per tanggal</small>';
+window.pnlBulan = (y, m) => { PNL_Y = y; PNL_M = m; popupTampil(pnlJudul(), pnlKal(y, m, null), false); };
+window.pnlSin = v => { PNL_SIN = v; pnlBulan(PNL_Y, PNL_M); };
+window.pnlHari = (y, m, d) => { PNL_Y = y; PNL_M = m; popupTampil(pnlJudul(), pnlKal(y, m, pnlKunci(y, m, d)), false); $("popupBadan").scrollTop = $("popupBadan").scrollHeight; };
 $("btPnl").addEventListener("click", () => {
+  PNL_MODE = "bot";
+  const p = pnlPeta(), ks = Object.keys(p).sort(), a = ks.length ? new Date(ks[ks.length - 1] + "T12:00:00") : new Date();
+  pnlBulan(a.getFullYear(), a.getMonth());
+});
+$("jnPnl").addEventListener("click", () => {
+  if (!JR) { popupTampil("PNL jurnal", "<p class='sub'>Jurnal belum termuat.</p>", false); return; }
+  PNL_MODE = "jurnal"; PNL_SIN = JN_S.sinyal || "semua";
   const p = pnlPeta(), ks = Object.keys(p).sort(), a = ks.length ? new Date(ks[ks.length - 1] + "T12:00:00") : new Date();
   pnlBulan(a.getFullYear(), a.getMonth());
 });
