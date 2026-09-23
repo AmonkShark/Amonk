@@ -707,7 +707,7 @@ function bentuk(P, i) {
 //   VALID = limit TERISI: entry = limit (bukan close), batal = SL = entry - 2.5 ATR bar isian,
 //   level + tinggi = PUNCAK 3 (TP2 buku Elliott). TP1 dihitung pemakai dengan aturan aplikasi.
 // Hanya dijalankan bila opsi.elliott === true, supaya skrip riset lama tetap menghasilkan angka yang sama.
-const EW = { ayun: 20, tunggu: 60, slAtr: 2.5, gel1Min: 0.25 };   // gel1Min: saringan pilihan user 2026-09-24 (gel.1 >= 25% dari titik 0), bukan edge terbukti
+const EW = { ayun: 20, tunggu: 60, slAtr: 2.5, gel1Min: 0.25, tp1R: 0.5, tp2R: 3 };   // TP Elliott 0.5R / 3R (pilihan user 2026-09-24; uji: 0 lolos ambang, terbaik dari kisi 16 sel)   // gel1Min: saringan pilihan user 2026-09-24 (gel.1 >= 25% dari titik 0), bukan edge terbukti
 function elliott(d, A, mx) {
   const n = d.c.length, dalam = mx >= 3 ? 0.57 : 0.90;   // Pine: <=1H m 3.5 & 0.57, >=2H m 2.5 & 0.90
   const valid = [], semua = [];        // semua = riwayat tiap limit (untuk uji pemilih; tidak dipakai app/bot)
@@ -772,7 +772,7 @@ function elliott(d, A, mx) {
         if (cur) { cur.isiB = i; cur.akhirB = i; cur = null; }
         const sl = level - EW.slAtr * A[i], j = i + C.horizon;
         valid.push({ i, nama: "Elliott Wave", kode: "EW", lewat: false, level, entry: level, batal: sl,
-          tinggi: tpBuku - level, mulaiB: setupB0, lahirB: lahir, ayun: ayunS,
+          tinggi: EW.tp2R * EW.slAtr * A[i], mulaiB: setupB0, lahirB: lahir, ayun: ayunS,
           awal: { hi: false, p: low0, b: setupB0 }, titikAwal: { hi: false, p: low0, b: setupB0 },
           R24: j < n ? (d.c[j] - level) / A[i] : NaN });
       }
@@ -783,7 +783,7 @@ function elliott(d, A, mx) {
   const i = n - 1;
   const setup = level !== null && !terisi && lahir !== null && A[i] > 0
     ? { nama: "Elliott Wave (limit beli)", kode: "EW", limit: true, level, batal: level - EW.slAtr * A[i],
-        lahirB: lahir, umur: i - lahir, sisa: EW.tunggu - (i - lahir), mulaiB: setupB0, tinggi: tpBuku - level, ayun: ayunS }
+        lahirB: lahir, umur: i - lahir, sisa: EW.tunggu - (i - lahir), mulaiB: setupB0, tinggi: EW.tp2R * EW.slAtr * A[i], ayun: ayunS }
     : null;
   return { valid, setup, semua };
 }
@@ -1089,7 +1089,7 @@ function simTrade(d, e) {
   // Elliott (EW) masuk lewat LIMIT: entry = harga limit, bukan close bar isian
   const n = d.c.length, entry = e.entry != null ? e.entry : d.c[e.i], sl = e.batal, tp2 = e.level + e.tinggi;
   let tp1 = null;
-  if (entry > sl && tp2 > entry) { tp1 = entry + 0.75 * (entry - sl); if (tp1 >= tp2) tp1 = entry + 0.5 * (tp2 - entry); }
+  if (entry > sl && tp2 > entry) { tp1 = entry + (e.kode === "EW" ? 0.5 : 0.75) * (entry - sl); if (tp1 >= tp2) tp1 = entry + 0.5 * (tp2 - entry); }
   // KELUAR BERTAHAP (permintaan user 2026-09-21): 50% ditutup di TP1, 50% di TP2;
   // begitu TP1 kena, SL sisa posisi naik ke harga ENTRY (impas). Lilin yang menyentuh
   // SL dan TP1 bersamaan = SL (anggapan terburuk); lilin yang menyentuh TP1 dan TP2
@@ -2358,8 +2358,8 @@ function gambarBot(s) {
     const umurE = EWd.dataT ? Math.round((Date.now() - EWd.dataT) / 60e3) : null;
     baris.push(`<div class="jr-kotak"><h3>Elliott Wave 4H <small>${(PG.polaBoleh || []).includes("EW") ? "dicentang" : "tidak dicentang"} · ${EWd.maks ? "maks " + EWd.maks : "tanpa batas sendiri"}</small></h3><div class="sub">Data dari GitHub: ${umurE == null ? "<b class='turun'>belum pernah diterima</b> — kode bot & GitHub perlu versi elliott" : umurE > 150 ? `<b class='turun'>${umurE} menit lalu (basi)</b>` : umurE + " menit lalu"} · ${EWd.setupAktif || 0} limit hidup · ${(EWd.order || []).length} order menunggu</div>` +
       (EWd.order || []).map(o => {
-        // TP1 = aturan aplikasi/bot (0.75R, dipotong ke separuh jarak TP2); kedaluwarsa = lilin lahir + 61 lilin 4H
-        let tp1 = o.p + 0.75 * (o.p - o.sl); if (tp1 >= o.tp2) tp1 = o.p + 0.5 * (o.tp2 - o.p);
+        // TP1 Elliott = 0.5R (TP2 = 3R); kedaluwarsa = lilin lahir + 61 lilin 4H
+        let tp1 = o.p + 0.5 * (o.p - o.sl); if (tp1 >= o.tp2) tp1 = o.p + 0.5 * (o.tp2 - o.p);
         const px = hargaKini(o.sym.replace(/USDT$/, "")), jarak = px ? (o.p / px - 1) * 100 : null;
         const habis = o.lahirT ? o.lahirT + 61 * 4 * 3600e3 : null, sisaJ = habis ? (habis - Date.now()) / 3600e3 : null;
         const sisaT = sisaJ == null ? "—" : sisaJ <= 0 ? "segera batal" : sisaJ >= 48 ? (sisaJ / 24).toFixed(1) + " hari" : Math.round(sisaJ) + " jam";
