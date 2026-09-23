@@ -485,7 +485,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
     <div class="jr-list" id="akList"></div>
     <div class="jn-kepala" id="akOrderJudul" hidden><h3>Order terbuka <small class="redup" id="akOrderN"></small></h3><button class="btn" type="button" id="akOrderToggle" aria-controls="akOrder" aria-expanded="true">Sembunyikan</button></div>
     <div class="jr-list" id="akOrder"></div>
-    <div class="jn-kepala"><h3>Bot trading otomatis <small class="redup" id="btJaringan">TESTNET · saldo latihan</small></h3><span class="tb"><button class="btn" type="button" id="btJeda" title="Hentikan bot membeli; posisi terbuka tetap dijaga SL/TP">⏸ Jeda bot</button><button class="btn" type="button" id="btTes" title="Cek jalur aplikasi → bot → perantara → Binance dengan kunci bot">🔌 Uji sambungan</button><button class="btn" type="button" id="btMuat">Perbarui</button></span></div>
+    <div class="jn-kepala"><h3>Bot trading otomatis <small class="redup" id="btJaringan">TESTNET · saldo latihan</small></h3><span class="tb"><button class="btn" type="button" id="btPnl" title="Kalender PNL bot per tanggal">📅 PNL</button><button class="btn" type="button" id="btJeda" title="Hentikan bot membeli; posisi terbuka tetap dijaga SL/TP">⏸ Jeda bot</button><button class="btn" type="button" id="btTes" title="Cek jalur aplikasi → bot → perantara → Binance dengan kunci bot">🔌 Uji sambungan</button><button class="btn" type="button" id="btMuat">Perbarui</button></span></div>
     <div class="ak-bar"><button class="btn" type="button" id="btToggle" aria-expanded="true" aria-controls="btForm">⚙ Sembunyikan pengaturan bot</button><span class="ak-pesan" id="btPesanBar"></span></div>
     <p class="ak-pesan kng" id="btKunci" hidden>🔒 Mode lihat — perangkat ini belum memasukkan sandi bot, jadi pengaturan hanya bisa dilihat. Isi <b>Sandi bot</b> lalu tekan <b>Buka kunci</b> untuk mengubah.</p>
     <form class="ak-set" id="btForm" autocomplete="off">
@@ -2436,6 +2436,45 @@ function isiMaks(kolom, v, ket) { kolom.value = v; btPesan(v > 0 ? `${ket}: ${v}
 $("btModalMaks").addEventListener("click", async () => {
   try { btPesan("Membaca saldo Binance…"); isiMaks($("btModal"), await saldoBebasBinance(), "Saldo USDT bebas Binance"); }
   catch (e) { btPesan("Gagal: " + e.message, true); }
+});
+// KALENDER PNL BOT (2026-09-24, user: "pnl pertanggal seperti binance yang muncul ketika aku tekan").
+// Sumber: riwayat trade TUTUP milik bot (BT_S.riwayat, maks 500 terakhir), dikelompokkan per tanggal LOKAL perangkat.
+// Hanya realisasi (trade yang sudah tutup) — posisi berjalan belum dihitung. Angka = hasil bersih USDT tiap trade.
+const PNL_BLN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+const pnlKunci = (y, m, d) => y + "-" + String(m + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+function pnlPeta() {
+  const peta = {};
+  for (const r of ((BT_S && BT_S.riwayat) || [])) { if (!(r.keluarT > 0) || !isFinite(r.hasil)) continue;
+    const d = new Date(r.keluarT), k = pnlKunci(d.getFullYear(), d.getMonth(), d.getDate());
+    (peta[k] = peta[k] || { total: 0, n: 0, list: [] }); peta[k].total += +r.hasil; peta[k].n++; peta[k].list.push(r); }
+  return peta;
+}
+const pnlF = (v, p = 2) => (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(p);
+function pnlKal(y, m, pilih) {
+  const peta = pnlPeta(), n = new Date(y, m + 1, 0).getDate(), awal = (new Date(y, m, 1).getDay() + 6) % 7;   // Senin = 0
+  let tot = 0, hu = 0, hr = 0, nT = 0;
+  for (let d = 1; d <= n; d++) { const x = peta[pnlKunci(y, m, d)]; if (x) { tot += x.total; nT += x.n; if (x.total >= 0) hu++; else hr++; } }
+  const sk = new Date(), hariIni = pnlKunci(sk.getFullYear(), sk.getMonth(), sk.getDate());
+  let sel = ""; for (let i = 0; i < awal; i++) sel += '<div></div>';
+  for (let d = 1; d <= n; d++) { const k = pnlKunci(y, m, d), x = peta[k];
+    const bg = !x ? "transparent" : x.total >= 0 ? "rgba(38,166,154,.18)" : "rgba(239,83,80,.18)", wr = !x ? "var(--redup)" : x.total >= 0 ? "var(--hijau)" : "var(--merah)";
+    sel += '<div ' + (x ? 'role="button" tabindex="0" onclick="pnlHari(' + y + ',' + m + ',' + d + ')" ' : '') + 'style="min-height:52px;padding:4px 3px;border-radius:6px;background:' + bg + ';border:1px solid ' + (k === pilih ? 'var(--teks)' : k === hariIni ? 'var(--garis)' : 'transparent') + ';text-align:center;' + (x ? 'cursor:pointer' : '') + '">' +
+      '<div style="font-size:11px;color:var(--redup)">' + d + '</div>' + (x ? '<div style="font-size:11px;font-weight:600;color:' + wr + '">' + pnlF(x.total, Math.abs(x.total) >= 100 ? 0 : 2) + '</div><div style="font-size:9px;color:var(--redup)">' + x.n + ' trade</div>' : '') + '</div>'; }
+  const sebelum = m === 0 ? [y - 1, 11] : [y, m - 1], sesudah = m === 11 ? [y + 1, 0] : [y, m + 1];
+  let det = ""; if (pilih && peta[pilih]) { const x = peta[pilih];
+    det = '<div style="margin-top:12px"><b>' + pilih.split("-").reverse().join("/") + '</b> · <span style="color:' + (x.total >= 0 ? "var(--hijau)" : "var(--merah)") + '">' + pnlF(x.total) + ' USDT</span> · ' + x.n + ' trade' +
+      x.list.sort((a, b) => b.keluarT - a.keluarT).map(r => '<div class="sub" style="padding:4px 0;border-top:1px solid var(--garis)">' + String(r.sym || "").replace(/USDT$/, "") + ' · ' + (r.pola || r.kode || "") + ' · <b style="color:' + (r.hasil >= 0 ? "var(--hijau)" : "var(--merah)") + '">' + pnlF(r.hasil) + ' USDT</b> (' + pnlF(r.hasilPct || 0) + '%)</div>').join("") + '</div>'; }
+  return '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><button class="btn" type="button" onclick="pnlBulan(' + sebelum[0] + ',' + sebelum[1] + ')">‹</button><b>' + PNL_BLN[m] + " " + y + '</b><button class="btn" type="button" onclick="pnlBulan(' + sesudah[0] + ',' + sesudah[1] + ')">›</button></div>' +
+    '<div class="sub" style="text-align:center;margin-bottom:8px">PNL bulan ini <b style="color:' + (tot >= 0 ? "var(--hijau)" : "var(--merah)") + '">' + pnlF(tot) + ' USDT</b> · ' + nT + ' trade · ' + hu + ' hari untung / ' + hr + ' rugi</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-size:10px;color:var(--redup);text-align:center;margin-bottom:3px">' + ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"].map(x => '<div>' + x + '</div>').join("") + '</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">' + sel + '</div>' + det +
+    '<p class="sub redup" style="margin-top:10px">Hanya trade bot yang sudah TUTUP (hasil bersih setelah biaya), tanggal mengikuti jam perangkat ini. Posisi yang masih berjalan belum dihitung. Bot menyimpan maks 500 trade terakhir.</p>';
+}
+window.pnlBulan = (y, m) => popupTampil('PNL bot <small>per tanggal</small>', pnlKal(y, m, null), false);
+window.pnlHari = (y, m, d) => { popupTampil('PNL bot <small>per tanggal</small>', pnlKal(y, m, pnlKunci(y, m, d)), false); $("popupBadan").scrollTop = $("popupBadan").scrollHeight; };
+$("btPnl").addEventListener("click", () => {
+  const p = pnlPeta(), ks = Object.keys(p).sort(), a = ks.length ? new Date(ks[ks.length - 1] + "T12:00:00") : new Date();
+  pnlBulan(a.getFullYear(), a.getMonth());
 });
 $("btMaksBebas").addEventListener("click", async () => {
   try { btPesan("Membaca saldo Binance…"); isiMaks($("btDana"), await saldoBebasBinance(), "Saldo USDT bebas Binance"); }
