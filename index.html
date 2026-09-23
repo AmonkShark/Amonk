@@ -54,7 +54,10 @@ button.pita-i{cursor:pointer} button.pita-i:hover span{color:var(--teks)}
 .pita-i b.naik{color:var(--hijau)} .pita-i b.turun{color:var(--merah)} .pita-i b.kng{color:var(--kuning)}
 .lampu{width:8px;height:8px;border-radius:50%;background:var(--redup);flex:none}
 .lampu.on{background:var(--hijau);box-shadow:0 0 0 3px rgba(38,166,154,.18)} .lampu.jeda{background:var(--kuning)} .lampu.off{background:var(--merah);box-shadow:0 0 0 3px rgba(239,83,80,.18)}
-@media (max-width:640px){.pita{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:12px;font-size:11px;padding:6px 10px}.pita::-webkit-scrollbar{display:none}.pita-i b{font-size:11px}}
+@media (max-width:640px){.pita{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:12px;font-size:11px;padding:6px 10px;-webkit-mask-image:linear-gradient(to right,#000 90%,transparent 100%);mask-image:linear-gradient(to right,#000 90%,transparent 100%)}.pita::-webkit-scrollbar{display:none}.pita-i b{font-size:11px}}
+/* tanda "masih bisa digeser" (2026-09-23) — scrollbar sengaja disembunyikan di HP, tanpa ini isi di
+   ujung kanan (mis. tab Info) tidak kelihatan ada sama sekali. */
+@media (max-width:760px){.tab{-webkit-mask-image:linear-gradient(to right,#000 92%,transparent 100%);mask-image:linear-gradient(to right,#000 92%,transparent 100%)}}
 /* JALUR POSISI BOT: SL — entry — TP1 — TP2 dengan titik harga kini */
 .bt-jalur{grid-column:1/-1;position:relative;height:26px;margin:4px 2px 0}
 .bt-jalur .rel{position:absolute;left:0;right:0;top:9px;height:6px;border-radius:3px;overflow:hidden;display:flex}
@@ -304,13 +307,17 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
       <button class="btn ikon" id="tema" type="button" title="Ganti tampilan terang / gelap" aria-label="Ganti tema"></button></div>
   </header>
   <!-- BILAH STATUS (2026-09-23): selalu terlihat di semua tab — bot, perantara VPS, harga hidup, modal & laba bot -->
+  <!-- Urutan (2026-09-23, permintaan user "tampilan HP simpel tapi info penting tersampaikan"):
+       yang paling relevan untuk sekilas lihat DULUAN — Bot, Laba hari ini, Posisi — supaya di HP
+       (bilah ini bisa digeser ke samping, scrollbar sengaja disembunyikan) ketiganya tetap kelihatan
+       tanpa perlu geser; Perantara/Harga/Modal (lebih ke diagnostik teknis) di belakang. -->
   <div class="pita" id="pita" role="status" aria-live="polite">
     <button type="button" class="pita-i" id="pitaBot" title="Status bot — ketuk untuk membuka tab Akun"><i class="lampu"></i><span>Bot</span><b>—</b></button>
-    <span class="pita-i" id="pitaVps" title="Perantara VPS Frankfurt (kunci trading)"><i class="lampu"></i><span>Perantara</span><b>—</b></span>
-    <span class="pita-i" id="pitaHarga" title="Harga hidup dari Binance"><i class="lampu"></i><span>Harga</span><b>—</b></span>
-    <span class="pita-i" id="pitaModal"><span>Modal bot</span><b>—</b></span>
     <span class="pita-i" id="pitaHari"><span>Laba hari ini</span><b>—</b></span>
     <span class="pita-i" id="pitaPosisi"><span>Posisi</span><b>—</b></span>
+    <span class="pita-i" id="pitaModal"><span>Modal bot</span><b>—</b></span>
+    <span class="pita-i" id="pitaHarga" title="Harga hidup dari Binance"><i class="lampu"></i><span>Harga</span><b>—</b></span>
+    <span class="pita-i" id="pitaVps" title="Perantara VPS Frankfurt (kunci trading)"><i class="lampu"></i><span>Perantara</span><b>—</b></span>
   </div>
 
   <nav class="tab" role="tablist" aria-label="Halaman">
