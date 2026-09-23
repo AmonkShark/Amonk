@@ -261,6 +261,13 @@ body.popup-buka{overflow:hidden}
 #btForm.terkunci input:disabled{opacity:.7;cursor:not-allowed}
 #akForm[hidden],#akPesan[hidden],#btForm[hidden],#btPesan[hidden],#btPesanBar[hidden]{display:none!important}
 #rwKolForm[hidden],#jnPolaForm[hidden],#jnKolForm[hidden],#akKolForm[hidden],#trmKolForm[hidden]{display:none!important}
+/* RINGKAS DI HP (2026-09-23): tombol lipat hanya tampil di mode HP (body.hp); tersembunyi/statusnya
+   HANYA berlaku di mode HP juga — di desktop, #strip & #alatLain selalu tampil seperti sebelumnya,
+   apa pun status atribut hidden-nya (dibiarkan tak berubah kalau pengguna berpindah mode). */
+.ringkas-toggle,.filter-toggle{display:none}
+body.hp .ringkas-toggle,body.hp .filter-toggle{display:inline-flex;margin-bottom:8px}
+body.hp #strip[hidden],body.hp #alatLain[hidden]{display:none!important}
+#alatLain{display:flex;flex-wrap:wrap;gap:10px;align-items:center;flex:1 1 100%}
 .rp{display:block;font:12px var(--f-num);color:var(--label);margin-top:1px}
 .donat-isi{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .donat-leg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 14px;font-size:12.5px;color:var(--label);min-width:0}
@@ -330,7 +337,12 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
 
   <div class="hal" id="halTerminal">
 
-  <section class="strip" aria-label="Ringkasan pasar">
+  <!-- RINGKAS DI HP (2026-09-23, permintaan user "simpel elegan modern, info penting saja"): di mode
+       HP (otomatis aktif di layar sempit, body.hp), ringkasan pasar & baris kontrol default TERLIPAT,
+       tinggal tombol untuk buka. Di desktop (bukan .hp) tombolnya disembunyikan, semuanya tetap langsung
+       terlihat seperti sebelumnya — tidak ada yang berubah untuk layar lebar. -->
+  <button class="btn kecil ringkas-toggle" type="button" id="stripToggle" aria-expanded="false" aria-controls="strip">📊 Ringkasan pasar</button>
+  <section class="strip" aria-label="Ringkasan pasar" id="strip">
     <div class="utama"><span class="k">BTC</span><span class="v" id="sBtc">—</span><span class="s" id="sBtc24">—</span></div>
     <div><span class="k">Rezim BTC · EMA100 D</span><span class="v" id="sRez">—</span><span class="s" id="sRezS">—</span></div>
     <div><span class="k">Median vs EMA200 4H</span><span class="v" id="sMed">—</span><span class="s" id="sMedS">—</span></div>
@@ -339,26 +351,29 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
   </section>
 
   <div class="alat">
-    <div class="seg" role="group" aria-label="Saring zona">
-      <button id="fSemua" data-f="semua" aria-pressed="true">Semua<span class="n" id="nSemua"></span></button>
-      <button id="fPola" data-f="pola" aria-pressed="false">Pola jalan<span class="n" id="nPola"></span></button>
-    </div>
     <input id="cari" type="search" placeholder="Cari koin" autocomplete="off">
-    <label class="cek"><input id="likuid" type="checkbox" checked> Sembunyikan &lt; $1jt/hari</label>
-    <button class="btn kecil" type="button" id="trmKolToggle" aria-expanded="false" aria-controls="trmKolForm">⚙ Kolom</button>
-    <div class="kanan">
-      <label class="ukuran" for="fs">Huruf <input id="fs" type="range" min="10" max="16" step="0.5" value="13"></label>
-      <label class="ukuran" for="rapat">Jarak <input id="rapat" type="range" min="2" max="12" step="1" value="10"></label>
-      <select id="urutHP" aria-label="Urutkan">
-        <option value="pnl">Urut: PnL terbesar</option>
-        <option value="pnlNaik">Urut: PnL terkecil</option>
-        <option value="polaUmur">Urut: pola terbaru</option>
-        <option value="koin">Urut: nama koin</option>
-        <option value="ch">Urut: 24j terbesar</option>
-      </select>
-      <button class="btn" id="mode" title="Ganti tampilan HP / lengkap">Tampilan lengkap</button>
-      <button class="btn" id="paskan" title="Bagi lebar layar ke semua kolom supaya tidak perlu geser ke kanan">Paskan layar</button>
-      <button class="btn" id="muat">Muat ulang 4H</button>
+    <button class="btn kecil filter-toggle" type="button" id="alatToggle" aria-expanded="false" aria-controls="alatLain">☰ Filter</button>
+    <div id="alatLain">
+      <div class="seg" role="group" aria-label="Saring zona">
+        <button id="fSemua" data-f="semua" aria-pressed="true">Semua<span class="n" id="nSemua"></span></button>
+        <button id="fPola" data-f="pola" aria-pressed="false">Pola jalan<span class="n" id="nPola"></span></button>
+      </div>
+      <label class="cek"><input id="likuid" type="checkbox" checked> Sembunyikan &lt; $1jt/hari</label>
+      <button class="btn kecil" type="button" id="trmKolToggle" aria-expanded="false" aria-controls="trmKolForm">⚙ Kolom</button>
+      <div class="kanan">
+        <label class="ukuran" for="fs">Huruf <input id="fs" type="range" min="10" max="16" step="0.5" value="13"></label>
+        <label class="ukuran" for="rapat">Jarak <input id="rapat" type="range" min="2" max="12" step="1" value="10"></label>
+        <select id="urutHP" aria-label="Urutkan">
+          <option value="pnl">Urut: PnL terbesar</option>
+          <option value="pnlNaik">Urut: PnL terkecil</option>
+          <option value="polaUmur">Urut: pola terbaru</option>
+          <option value="koin">Urut: nama koin</option>
+          <option value="ch">Urut: 24j terbesar</option>
+        </select>
+        <button class="btn" id="mode" title="Ganti tampilan HP / lengkap">Tampilan lengkap</button>
+        <button class="btn" id="paskan" title="Bagi lebar layar ke semua kolom supaya tidak perlu geser ke kanan">Paskan layar</button>
+        <button class="btn" id="muat">Muat ulang 4H</button>
+      </div>
     </div>
   </div>
   <div class="ak-set" id="trmKolForm" hidden>
@@ -1516,6 +1531,13 @@ $("likuid").addEventListener("change", e => { st.likuid = e.target.checked; simp
 $("tbl").classList.toggle("sembunyi-indikator", !KOL.indikator);
 kolPasang("trmKolForm", "trmKolToggle", ["indikator"], () => $("tbl").classList.toggle("sembunyi-indikator", !KOL.indikator));
 $("muat").addEventListener("click", muatSemua);
+// RINGKAS DI HP (2026-09-23): ringkasan pasar & baris filter default terlipat di mode HP saja.
+function stripSet(buka) { $("strip").hidden = !buka; $("stripToggle").setAttribute("aria-expanded", buka ? "true" : "false"); $("stripToggle").textContent = buka ? "📊 Sembunyikan ringkasan" : "📊 Ringkasan pasar"; }
+$("stripToggle").addEventListener("click", () => { const buka = $("strip").hidden; simpan("stripBuka", buka); stripSet(buka); });
+stripSet(baca("stripBuka", false));
+function alatSet(buka) { $("alatLain").hidden = !buka; $("alatToggle").setAttribute("aria-expanded", buka ? "true" : "false"); $("alatToggle").textContent = buka ? "☰ Sembunyikan filter" : "☰ Filter"; }
+$("alatToggle").addEventListener("click", () => { const buka = $("alatLain").hidden; simpan("alatBuka", buka); alatSet(buka); });
+alatSet(baca("alatBuka", false));
 
 // saringan zona (fib/dalam/bawah/atas) dibuang 2026-09-21; pilihan lama yang tersimpan dikembalikan ke "semua"
 // ---- LEBAR KOLOM (2026-09-22, permintaan user: "atur lebar kolomnya agar bisa memuat
