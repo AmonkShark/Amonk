@@ -1,0 +1,30 @@
+# ELLIOTT 4H untuk BOT — tanpa laptop, tanpa alert TradingView.
+# Tiap jam 3 menit sesudah lilin 1H tutup (+ cadangan menit 33): hitung limit Elliott 4H yang masih menunggu
+# dan kirim ke bot (POST /ew). Order dipasang & dikelola oleh bot (cron 5 menit).
+# (Menggantikan fib.yml yang juga mengirim Elliott; FIB sudah dihapus 2026-09-24.)
+# Rahasia (Settings -> Secrets -> Actions): BOT_URL, BOT_KUNCI (= WEBHOOK_KUNCI di Cloudflare).
+name: elliott-4h-bot
+on:
+  schedule:
+    - cron: "3 * * * *"
+    - cron: "33 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: elliott-4h
+  cancel-in-progress: true
+jobs:
+  kirim:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Hitung limit ELLIOTT 4H & kirim ke bot
+        env:
+          BOT_URL: ${{ secrets.BOT_URL }}
+          BOT_KUNCI: ${{ secrets.BOT_KUNCI }}
+        run: node notif/ew_4h.cjs
