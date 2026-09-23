@@ -1085,11 +1085,18 @@ function polaTerakhir(d, semua) {
   const a = semua || polaSemua(d);
   return a.length ? a[a.length - 1] : null;
 }
+// TP per pola (pilihan user 2026-09-24; uji 0 lolos ambang): [TP1 dalam R, TP2 dalam R atau null = target pola]
+const TP_A = { FW: [1.5, null], ST: [1.5, 2], AT: [1, null], TB: [1.5, 3], EW: [0.5, null] };
+function tpAturan(kode, entry, sl, tpBuku) {
+  const [a, t] = TP_A[kode] || [0.75, null], tp2 = t ? entry + t * (entry - sl) : tpBuku;
+  let tp1 = entry + a * (entry - sl); if (tp1 >= tp2) tp1 = entry + 0.5 * (tp2 - entry);
+  return { tp1, tp2 };
+}
 function simTrade(d, e) {
   // Elliott (EW) masuk lewat LIMIT: entry = harga limit, bukan close bar isian
-  const n = d.c.length, entry = e.entry != null ? e.entry : d.c[e.i], sl = e.batal, tp2 = e.level + e.tinggi;
-  let tp1 = null;
-  if (entry > sl && tp2 > entry) { tp1 = entry + (e.kode === "EW" ? 0.5 : 0.75) * (entry - sl); if (tp1 >= tp2) tp1 = entry + 0.5 * (tp2 - entry); }
+  const n = d.c.length, entry = e.entry != null ? e.entry : d.c[e.i], sl = e.batal;
+  let tp1 = null, tp2 = e.level + e.tinggi;
+  if (entry > sl && tp2 > entry) ({ tp1, tp2 } = tpAturan(e.kode, entry, sl, tp2));
   // KELUAR BERTAHAP (permintaan user 2026-09-21): 50% ditutup di TP1, 50% di TP2;
   // begitu TP1 kena, SL sisa posisi naik ke harga ENTRY (impas). Lilin yang menyentuh
   // SL dan TP1 bersamaan = SL (anggapan terburuk); lilin yang menyentuh TP1 dan TP2
