@@ -60,11 +60,18 @@ const atrArr = (h, l, c, n = 14) => {
   for (let i = n + 1; i < c.length; i++) { a = (a * (n - 1) + tr(i)) / n; o[i] = a; }
   return o;
 };
+// TP per pola (pilihan user 2026-09-24; uji 0 lolos ambang): [TP1 dalam R, TP2 dalam R atau null = target pola]
+const TP_A = { FW: [1.5, null], ST: [1.5, 2], AT: [1, null], TB: [1.5, 3], EW: [0.5, null] };
+function tpAturan(kode, entry, sl, tpBuku) {
+  const [a, t] = TP_A[kode] || [0.75, null], tp2 = t ? entry + t * (entry - sl) : tpBuku;
+  let tp1 = entry + a * (entry - sl); if (tp1 >= tp2) tp1 = entry + 0.5 * (tp2 - entry);
+  return { tp1, tp2 };
+}
 function level(d, e) {
   // Elliott (EW) masuk lewat LIMIT: entry = harga limit (e.entry), bukan close bar isian.
-  const entry = e.entry != null ? e.entry : d.c[e.i], sl = e.batal, tp2 = e.level + e.tinggi;
-  if (!(entry > sl) || !(tp2 > entry)) return null;
-  let tp1 = entry + (e.kode === "EW" ? 0.5 : 0.75) * (entry - sl); if (tp1 >= tp2) tp1 = entry + 0.5 * (tp2 - entry);
+  const entry = e.entry != null ? e.entry : d.c[e.i], sl = e.batal, tpB = e.level + e.tinggi;
+  if (!(entry > sl) || !(tpB > entry)) return null;
+  const { tp1, tp2 } = tpAturan(e.kode, entry, sl, tpB);
   return { entry, sl, tp1, tp2 };
 }
 // Simulasi aturan aplikasi sampai lilin terakhir; sama dengan simTrade() di aplikasi.
@@ -406,7 +413,7 @@ async function scanTF(k, tf) {
   }
   for (const [tahap, arr] of [["SETUP", ev.setup || []], ["CALON", ev.calon || []]]) for (const s of arr) {
     if (SEMBUNYI.has(s.kode)) continue;
-    const E = s.level, S = s.batal, T2 = s.level + s.tinggi;
+    const E = s.level, S = s.batal, T2 = (E > S ? tpAturan(s.kode, E, S, s.level + s.tinggi).tp2 : s.level + s.tinggi);
     // pola tembus menunggu harga NAIK ke garis (px < E); Elliott menunggu harga TURUN ke limit (px > E)
     if (!(S > 0) || !(E > S) || !(T2 > E) || !(s.limit ? px > E : px < E)) continue;
     out.hampir.push({ k, tahap, nama: s.nama, kode: s.kode, E, S, T2, px, jarak: (E / px - 1) * 100, sisa: s.sisa, vol });
