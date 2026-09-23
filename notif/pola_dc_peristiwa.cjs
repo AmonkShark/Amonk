@@ -124,7 +124,7 @@ function bentuk(P, i) {
 //   VALID = limit TERISI: entry = limit (bukan close), batal = SL = entry - 2.5 ATR bar isian,
 //   level + tinggi = PUNCAK 3 (TP2 buku Elliott). TP1 dihitung pemakai dengan aturan aplikasi.
 // Hanya dijalankan bila opsi.elliott === true, supaya skrip riset lama tetap menghasilkan angka yang sama.
-const EW = { ayun: 20, tunggu: 60, slAtr: 2.5, gel1Min: 0.25 };   // gel1Min: saringan pilihan user 2026-09-24 (gel.1 >= 25% dari titik 0), bukan edge terbukti
+const EW = { ayun: 20, tunggu: 60, slAtr: 2.5, gel1Min: 0.25, tp1R: 0.5, tp2R: 3 };   // TP Elliott 0.5R / 3R (pilihan user 2026-09-24; uji: 0 lolos ambang, terbaik dari kisi 16 sel)   // gel1Min: saringan pilihan user 2026-09-24 (gel.1 >= 25% dari titik 0), bukan edge terbukti
 function elliott(d, A, mx) {
   const n = d.c.length, dalam = mx >= 3 ? 0.57 : 0.90;   // Pine: <=1H m 3.5 & 0.57, >=2H m 2.5 & 0.90
   const valid = [], semua = [];        // semua = riwayat tiap limit (untuk uji pemilih; tidak dipakai app/bot)
@@ -189,7 +189,7 @@ function elliott(d, A, mx) {
         if (cur) { cur.isiB = i; cur.akhirB = i; cur = null; }
         const sl = level - EW.slAtr * A[i], j = i + C.horizon;
         valid.push({ i, nama: "Elliott Wave", kode: "EW", lewat: false, level, entry: level, batal: sl,
-          tinggi: tpBuku - level, mulaiB: setupB0, lahirB: lahir, ayun: ayunS,
+          tinggi: EW.tp2R * EW.slAtr * A[i], mulaiB: setupB0, lahirB: lahir, ayun: ayunS,
           awal: { hi: false, p: low0, b: setupB0 }, titikAwal: { hi: false, p: low0, b: setupB0 },
           R24: j < n ? (d.c[j] - level) / A[i] : NaN });
       }
@@ -200,7 +200,7 @@ function elliott(d, A, mx) {
   const i = n - 1;
   const setup = level !== null && !terisi && lahir !== null && A[i] > 0
     ? { nama: "Elliott Wave (limit beli)", kode: "EW", limit: true, level, batal: level - EW.slAtr * A[i],
-        lahirB: lahir, umur: i - lahir, sisa: EW.tunggu - (i - lahir), mulaiB: setupB0, tinggi: tpBuku - level, ayun: ayunS }
+        lahirB: lahir, umur: i - lahir, sisa: EW.tunggu - (i - lahir), mulaiB: setupB0, tinggi: EW.tp2R * EW.slAtr * A[i], ayun: ayunS }
     : null;
   return { valid, setup, semua };
 }
