@@ -491,7 +491,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
     <form class="ak-set" id="btForm" autocomplete="off">
       <label for="btUrl">Alamat bot (Cloudflare Worker)<input id="btUrl" type="url" inputmode="url" placeholder="https://amonk-bot.NAMAMU.workers.dev"></label>
       <label for="btSandi">Sandi bot<input id="btSandi" type="password" placeholder="kosong = sama dengan sandi aplikasi"></label>
-      <label for="btModal">Modal awal bot (USDT, laba ikut diputar)<input id="btModal" type="number" step="any" min="0" inputmode="decimal" placeholder="0 = seluruh saldo testnet"><button class="btn" type="button" id="btModalMaks" style="margin-top:4px" title="Isi dengan seluruh USDT bebas di akun Binance">Maks saldo bebas</button></label>
+      <label for="btModal">Modal awal bot (USDT, laba ikut diputar)<span style="display:flex;gap:4px;align-items:stretch"><input id="btModal" type="number" step="any" min="0" inputmode="decimal" placeholder="0 = seluruh saldo testnet" style="flex:1;min-width:0"><button class="btn" type="button" id="btModalMaks" title="Isi dengan seluruh USDT bebas di akun Binance">Maks</button></span></label>
       <label for="btPosisi">Maks entry bersamaan (saldo dibagi ini)<input id="btPosisi" type="number" step="1" min="1" max="20" inputmode="numeric"></label>
       <label for="btBatas">Batas rugi bot per trade (% modal · 100 = tidak dipangkas)<input id="btBatas" type="number" step="any" min="0.1" max="100" inputmode="decimal"></label>
       <div class="bt-dana" style="grid-column:1/-1"><label for="btDana">Tarik / tambah dana bot (USDT) — laba bot TIDAK diulang dari nol<input id="btDana" type="number" step="any" min="0" inputmode="decimal" placeholder="mis. 30"></label>
