@@ -491,11 +491,11 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
     <form class="ak-set" id="btForm" autocomplete="off">
       <label for="btUrl">Alamat bot (Cloudflare Worker)<input id="btUrl" type="url" inputmode="url" placeholder="https://amonk-bot.NAMAMU.workers.dev"></label>
       <label for="btSandi">Sandi bot<input id="btSandi" type="password" placeholder="kosong = sama dengan sandi aplikasi"></label>
-      <label for="btModal">Modal awal bot (USDT, laba ikut diputar)<input id="btModal" type="number" step="any" min="0" inputmode="decimal" placeholder="0 = seluruh saldo testnet"></label>
+      <label for="btModal">Modal awal bot (USDT, laba ikut diputar)<input id="btModal" type="number" step="any" min="0" inputmode="decimal" placeholder="0 = seluruh saldo testnet"><button class="btn" type="button" id="btModalMaks" style="margin-top:4px" title="Isi dengan seluruh USDT bebas di akun Binance">Maks saldo bebas</button></label>
       <label for="btPosisi">Maks entry bersamaan (saldo dibagi ini)<input id="btPosisi" type="number" step="1" min="1" max="20" inputmode="numeric"></label>
       <label for="btBatas">Batas rugi bot per trade (% modal · 100 = tidak dipangkas)<input id="btBatas" type="number" step="any" min="0.1" max="100" inputmode="decimal"></label>
       <div class="bt-dana" style="grid-column:1/-1"><label for="btDana">Tarik / tambah dana bot (USDT) — laba bot TIDAK diulang dari nol<input id="btDana" type="number" step="any" min="0" inputmode="decimal" placeholder="mis. 30"></label>
-        <button class="btn" type="button" id="btTarik">− Tarik dari bot</button><button class="btn" type="button" id="btTambah">+ Tambah ke bot</button>
+        <button class="btn" type="button" id="btMaksBebas" title="Isi kolom dengan seluruh USDT bebas di akun Binance">Maks saldo bebas</button><button class="btn" type="button" id="btMaksTarik" title="Isi kolom dengan seluruh modal bot yang tidak sedang dipakai posisi/order">Maks tarik</button><button class="btn" type="button" id="btTarik">− Tarik dari bot</button><button class="btn" type="button" id="btTambah">+ Tambah ke bot</button>
         <span class="redup" id="btDanaKet"></span></div>
       <label for="btKoin" style="grid-column:span 2">Koin yang diambil bot<input id="btKoin" type="text" autocapitalize="characters" placeholder="kosong = semua koin ber-webhook · contoh: XRP, ETH, SOL"></label>
       <div class="bt-pola" style="grid-column:1/-1"><span>Pola yang diambil bot:</span>
@@ -2423,6 +2423,28 @@ async function ubahDana(tanda) {
     btPesan(`Tersimpan: ${j < 0 ? "ditarik" : "ditambah"} ${v} USDT. Modal bot kini ${Math.round((BT_S && BT_S.modal && BT_S.modal.kini) || 0)} USDT.`);
   } catch (e) { btPesan("Gagal: " + e.message, true); }
 }
+// TOMBOL MAKS (2026-09-24, user): isi kolom dana dengan saldo USDT bebas Binance (GET /tes, wajib sandi) atau
+// dengan modal bot yang tidak terpakai. Dibulatkan KE BAWAH ke sen supaya tidak melebihi saldo.
+const bawah2 = v => Math.floor((+v || 0) * 100) / 100;
+async function saldoBebasBinance() {
+  if (!btCfg().sandi) throw new Error("isi sandi bot dulu (⚙ Pengaturan bot) supaya saldo Binance bisa dibaca");
+  const t = await btPanggil("/tes");
+  if (!t.kunciBekerja) throw new Error(t.galat || "kunci Binance tidak bekerja");
+  return bawah2(t.usdtBebas);
+}
+function isiMaks(kolom, v, ket) { kolom.value = v; btPesan(v > 0 ? `${ket}: ${v} USDT — periksa lalu tekan tombol Tarik/Tambah.` : `${ket}: 0 USDT (tidak ada yang bisa diisi).`, v <= 0); }
+$("btModalMaks").addEventListener("click", async () => {
+  try { btPesan("Membaca saldo Binance…"); isiMaks($("btModal"), await saldoBebasBinance(), "Saldo USDT bebas Binance"); }
+  catch (e) { btPesan("Gagal: " + e.message, true); }
+});
+$("btMaksBebas").addEventListener("click", async () => {
+  try { btPesan("Membaca saldo Binance…"); isiMaks($("btDana"), await saldoBebasBinance(), "Saldo USDT bebas Binance"); }
+  catch (e) { btPesan("Gagal: " + e.message, true); }
+});
+$("btMaksTarik").addEventListener("click", () => {
+  const s = BT_S || {}, MO = s.modal || {}, ew = ((s.ew || {}).order || []).reduce((a, o) => a + (+o.nilai || 0), 0);
+  isiMaks($("btDana"), bawah2(Math.max(0, (+s.modalMaks || +MO.kini || 0) - (+s.terpakai || 0) - ew)), "Modal bot yang tidak terpakai");
+});
 $("btTarik").addEventListener("click", () => ubahDana(-1));
 // JEDA / LANJUTKAN BOT (2026-09-22, user). POST /atur {jeda}. Bot berhenti membeli; posisi terbuka tetap dikelola.
 $("btJeda").addEventListener("click", async () => {
