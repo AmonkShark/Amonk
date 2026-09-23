@@ -500,11 +500,11 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
       <label for="btKoin" style="grid-column:span 2">Koin yang diambil bot<input id="btKoin" type="text" autocapitalize="characters" placeholder="kosong = semua koin ber-webhook · contoh: XRP, ETH, SOL"></label>
       <div class="bt-pola" style="grid-column:1/-1"><span>Pola yang diambil bot:</span>
         <label><input type="checkbox" value="FW"> 1 Falling Wedge</label><label><input type="checkbox" value="ST"> 2 Symmetrical Triangle</label>
-        <label><input type="checkbox" value="PEN"> 3 Bullish Pennant</label><label><input type="checkbox" value="IHS"> 4 Inverse H&amp;S</label>
+        <label style="display:none"><input type="checkbox" value="PEN"> 3 Bullish Pennant</label><label style="display:none"><input type="checkbox" value="IHS"> 4 Inverse H&amp;S</label>
         <label><input type="checkbox" value="AT"> 5 Ascending Triangle</label><label><input type="checkbox" value="TB"> 6 Triple Bottom</label>
-        <label><input type="checkbox" value="CH"> 7 Cup &amp; Handle</label>
+        <label style="display:none"><input type="checkbox" value="CH"> 7 Cup &amp; Handle</label>
         <label title="Limit beli di kedalaman 0.90 gelombang 3 (dihitung GitHub tiap jam). Sesudah terisi sama dengan pola: 50% TP1, SL ke entry, 50% TP2. Tanpa batas jumlah sendiri (ikut maks entry); limit menunggu memakai slot & modal s/d ~10 hari."><input type="checkbox" value="EW"> 10 Elliott Wave (limit)</label></div>
-      <div class="bt-pola" style="grid-column:1/-1"><span>Sinyal lain:</span>
+      <div class="bt-pola" style="grid-column:1/-1" hidden><span>Sinyal lain:</span>
         <label><input type="checkbox" id="btFib"> FIB 1H — limit di fib 0.85, TP 2R, SL 1 ATR, 60 jam (eksploratif, dihitung GitHub tiap jam)</label></div>
       <div class="bt-pola" style="grid-column:1/-1"><span>Cara membagi modal:</span>
         <label title="Modal bot dibagi RATA ke tiap jenis yang dicentang (pola, FIB, Elliott). Tiap kantong tumbuh/menyusut sendiri dari hasil jenis itu, dan tiap jenis hanya boleh punya SATU posisi/order sekaligus. Jumlah slot mengikuti jumlah jenis, bukan Maks entry."><input type="checkbox" id="btKantong"> Modal per jenis sinyal (kantong) — mis. 600 dengan 6 jenis = 100 per jenis</label></div>
@@ -2555,7 +2555,7 @@ $("btForm").addEventListener("submit", async ev => {
   if (BT_S && BT_S.modal && BT_S.modal.awal > 0 && v !== BT_S.modal.awal && BT_S.modal.nTutup > 0 &&
       !confirm(`Modal awal diganti dari ${Math.round(BT_S.modal.awal)} ke ${Math.round(v)} USDT. Laba bot yang sudah tercatat (${BT_S.modal.laba >= 0 ? "+" : ""}${BT_S.modal.laba} USDT) akan mulai dihitung dari nol lagi. Lanjutkan?`)) return;
   const koin = $("btKoin").value.split(/[\s,;]+/).map(x => x.trim().toUpperCase()).filter(Boolean);
-  const pola = [...document.querySelectorAll(".bt-pola input:checked:not(#btFib):not(#btKantong)")].map(c => c.value), fib = $("btFib").checked, kantong = $("btKantong").checked;
+  const pola = [...document.querySelectorAll(".bt-pola input:checked:not(#btFib):not(#btKantong)")].map(c => c.value).filter(v => KODE_TAMPIL.has(v)), fib = $("btFib").checked, kantong = $("btKantong").checked;
   if (!pola.length) { btPesan("Centang minimal satu pola.", true); return; }
   const mp = Math.round(+$("btPosisi").value);
   if (!(mp >= 1 && mp <= 20)) { btPesan("Maks entry harus 1 sampai 20.", true); return; }
