@@ -330,6 +330,25 @@ body:not(.hp) .hp-lipat>summary{display:none}
 .rk-jn{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 12px;padding:16px 12px;border:1px solid var(--garis);border-radius:16px;background:radial-gradient(120% 140% at 0% 0%,rgba(38,166,154,.10),transparent 60%),linear-gradient(155deg,var(--bg1),var(--bg2));box-shadow:0 10px 28px rgba(0,0,0,.16)}
 .rk-jn>div{text-align:center}.rk-jn span{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--redup);margin-bottom:4px}
 .rk-jn b{font:600 clamp(18px,5.4vw,26px) var(--f-num)}.rk-jn .rk-cap{grid-column:1/-1;font-size:11px;color:var(--redup);text-align:center;margin-top:2px}
+
+/* AKUN gaya dasbor (2026-09-25) */
+#akRing,#btRing{display:grid!important;grid-template-columns:1fr;gap:12px;overflow:visible;scroll-snap-type:none;margin-bottom:14px}
+#akRing>.jr-kotak,#btRing>.jr-kotak{flex:none}
+@media(min-width:900px){#akRing{grid-template-columns:repeat(2,minmax(0,1fr))}#akRing>.ak-hero{grid-column:1/-1}#akList,#akOrder{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ak-hero{padding:18px 16px 14px;border:1px solid var(--garis);border-radius:16px;background:radial-gradient(120% 140% at 0% 0%,rgba(66,165,245,.14),transparent 60%),linear-gradient(155deg,var(--bg1),var(--bg2));box-shadow:0 10px 28px rgba(0,0,0,.16)}
+.ak-hero-atas{display:flex;flex-direction:column;gap:2px;margin-bottom:12px}
+.ak-hero-atas span,.ak-hero-bawah span{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--redup)}
+.ak-hero-atas b{font:600 clamp(26px,8vw,38px) var(--f-num)}.ak-hero-atas b small{font-size:14px;color:var(--label);font-weight:500}
+.ak-hero em{font-style:normal;font-size:12px;color:var(--label)}
+.ak-hero-bawah{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-top:12px;border-top:1px solid var(--garis)}
+.ak-hero-bawah>div{display:flex;flex-direction:column}.ak-hero-bawah b{font:600 clamp(15px,4.4vw,19px) var(--f-num)}
+.ak-hero .jr-ket{margin:10px 0 0}
+body.hp .hp-sembunyi{display:none}
+.ak-aset{border-radius:12px;background:linear-gradient(155deg,var(--bg1),var(--bg2))}
+.ak-aset .nm{display:flex;align-items:center;gap:8px}
+.ak-av{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font:600 9px var(--f-ui);font-style:normal;color:#fff;flex:none}
+.ak-pc{margin-left:auto;font:500 11px var(--f-num);color:var(--redup);padding-left:6px}
+.donat.jr-kotak,#akRing>.jr-kotak{border-radius:16px}
 </style>
 </head>
 <body>
@@ -2056,6 +2075,7 @@ function risikoSerentak(baris, total, akun) {
     `<p class="jr-ket">${status} SL dibaca dari order stop Anda di Binance lebih dulu, lalu dari pola 4H yang masih jalan. Beberapa altcoin searah pada dasarnya satu taruhan: kalau BTC turun, biasanya semua kena SL bersamaan.</p></div>`;
 }
 // DONAT ALOKASI (2026-09-22): porsi tiap aset dari total saldo; 6 terbesar + "lainnya".
+const WARNA_AV = n => { let h = 0; for (const c of n) h = (h * 31 + c.charCodeAt(0)) % 360; return `hsl(${h} 45% 38%)`; };
 const WARNA_DONAT = ["#26A69A", "#42A5F5", "#FFB74D", "#AB7DF6", "#EF5350", "#26C6DA", "#8D9AA9"];
 function donatAlokasi(baris, total) {
   if (!(total > 0)) return "";
@@ -2080,15 +2100,16 @@ function gambarAkun(baris, akun) {
   if (total > 0) simpan("modalAkun", total);            // dipakai ukuran posisi di Terminal
   // RUPIAH DI BAWAH USDT (2026-09-22, permintaan user): total saldo & PnL, USDT di atas, Rp di bawah.
   const rpN = v => KURS.idr && v != null ? "≈ Rp " + Math.round(v * KURS.idr).toLocaleString("id-ID") : "";
-  $("akRing").innerHTML = `<div class="jr-kotak"><h3>Saldo spot <small>${baris.length} aset</small></h3>` +
-    `<div class="jr-angka"><div><span>Total saldo</span><b>${total.toFixed(2)} USDT</b><span class="rp">${rpN(total)}</span></div>` +
-    `<div><span>Stablecoin</span><b>${stabil.toFixed(2)}</b><span class="rp">${rpN(stabil)}</span></div>` +
-    `<div><span>PnL koin</span><b class="${kl(pnl)}">${f2(pnl)} USDT</b><span class="rp ${kl(pnl)}">${fRp(pnl)}</span></div></div>` +
-    `<p class="jr-ket">PnL koin = harga kini vs harga beli rata-rata dari 500 trade terakhir tiap koin (belum terealisasi). Koin hasil deposit/transfer tidak punya harga beli.` +
-    (KURS.idr ? ` Rupiah memakai kurs 1 USDT ≈ Rp ${Math.round(KURS.idr).toLocaleString("id-ID")} (${KURS.sumber}, diperbarui tiap jam).` : ` Kurs rupiah gagal diambil — PnL sementara ditampilkan dalam USDT.`) + `</p></div>` +
-    risikoSerentak(baris, total, akun) + donatAlokasi(baris, total);
+  const kaya = baris.filter(b => b.nilai > 0).sort((x, y) => y.nilai - x.nilai);
+  const pctPnl = pnl && total - pnl > 0 ? pnl / (total - pnl) * 100 : null;
+  $("akRing").innerHTML = `<div class="ak-hero"><div class="ak-hero-atas"><span>Total saldo · ${baris.length} aset</span><b>${total.toFixed(2)} <small>USDT</small></b><em>${rpN(total)}</em></div>` +
+    `<div class="ak-hero-bawah"><div><span>Stablecoin</span><b>${stabil.toFixed(2)}</b></div><div><span>Koin</span><b>${(total - stabil).toFixed(2)}</b></div>` +
+    `<div><span>PnL koin</span><b class="${kl(pnl)}">${f2(pnl)}</b>${pctPnl == null ? "" : `<em class="${kl(pnl)}">${f2(pctPnl)}%</em>`}</div></div>` +
+    `<p class="jr-ket hp-sembunyi">PnL koin = harga kini vs harga beli rata-rata dari 500 trade terakhir tiap koin (belum terealisasi). Koin hasil deposit/transfer tidak punya harga beli.` +
+    (KURS.idr ? ` Kurs 1 USDT ≈ Rp ${Math.round(KURS.idr).toLocaleString("id-ID")} (${KURS.sumber}).` : ` Kurs rupiah gagal diambil.`) + `</p></div>` +
+    donatAlokasi(baris, total) + risikoSerentak(baris, total, akun);
   $("akList").innerHTML = baris.sort((a, b) => (b.nilai || 0) - (a.nilai || 0)).map(b =>
-    `<div class="jr-tr${klsSt(false, b.pnl)}"><div style="min-width:0"><div class="nm">${b.aset}</div><div class="sub">${b.jml.toLocaleString("en-US", { maximumFractionDigits: 8 })}${b.terkunci ? ` · ${b.terkunci} terkunci di order` : ""}</div></div>` +
+    `<div class="jr-tr ak-aset${klsSt(false, b.pnl)}"><div style="min-width:0"><div class="nm"><i class="ak-av" style="background:${WARNA_AV(b.aset)}">${b.aset.slice(0, 3)}</i>${b.aset}<span class="ak-pc">${total > 0 && b.nilai > 0 ? (b.nilai / total * 100).toFixed(1) + "%" : ""}</span></div><div class="sub">${b.jml.toLocaleString("en-US", { maximumFractionDigits: 8 })}${b.terkunci ? ` · ${b.terkunci} terkunci di order` : ""}</div></div>` +
     `<div class="lv">${b.px == null ? "harga —" : "Kini " + fHarga(b.px)}${b.rata ? `<br>Beli ${fHarga(b.rata)}${b.sebagian ? " (sebagian)" : ""}` : ""}</div>` +
     `<div class="ha"><b>${b.nilai == null ? "—" : b.nilai.toFixed(2) + " USDT"}</b><span class="rp">${rpN(b.nilai)}</span>` +
     (b.pnl == null || !KOL.akNilai ? "" : `<span class="${kl(b.pnl)}" style="font-size:12px;display:block">${f2(b.pnl)} USDT (${f2(b.pct)}%)</span><span class="rp ${kl(b.pnl)}">${fRp(b.pnl)}</span>`) +
