@@ -2802,7 +2802,6 @@ function periksaAlarm() {
   }
   const t = window.ALARM_TANPA_SL; if (t && t.nilai > 5) A.push(["turun", Math.round(t.nilai).toLocaleString("en-US") + " USDT (" + t.pct.toFixed(0) + "% saldo) tanpa stop-loss: " + t.nama.join(", ") + "."]);
   const d = $("dot"); if (d && d.classList.contains("off")) A.push(["kng", "Harga hidup terputus."]);
-  { const n = Date.now(); if (n >= Date.UTC(2026, 10, 9) && n < Date.UTC(2026, 10, 24)) A.push(["kng", "🗓 PENGINGAT: batas konfirmasi informasi pajak Paymonade = 23 Nov 2026. Anda berencana memindahkan aset ke Indodax sebelum itu (jeda bot & matikan modal otomatis dulu)."]); }   // permintaan user 2026-09-25
   const el = $("alarm"); if (!el) return;
   const kunci = A.map(x => x[1]).join("|");
   if (!A.length || (alarmTunda.k === kunci && Date.now() < alarmTunda.sampai)) { el.hidden = true; return; }
