@@ -357,6 +357,24 @@ body.hp .hp-sembunyi{display:none}
 .strip .k{font-size:11px;letter-spacing:.06em;text-transform:uppercase}
 .tabel{border-radius:14px;box-shadow:0 8px 22px rgba(0,0,0,.14);background:linear-gradient(155deg,var(--bg1),var(--bg2))}
 @media(min-width:900px){th,td{padding-top:10px;padding-bottom:10px}tbody tr:nth-child(even) td{background:transparent}tbody tr:hover td{background:var(--bglbl)}td:first-child,tbody tr:nth-child(even) td:first-child{background:var(--bg1)}}
+
+/* PENGATURAN, JURNAL RINGKAS, PRIVASI (2026-09-25) */
+.set-judul{grid-column:1/-1;display:flex;align-items:baseline;gap:8px;margin-top:6px;padding:8px 2px 4px;border-bottom:1px solid var(--garis);font:600 13px var(--f-ui);color:var(--teks)}
+.set-judul small{font:400 11px var(--f-ui);color:var(--redup)}
+.set-judul:first-child{margin-top:0}
+.ak-set{border-radius:16px;padding:16px;gap:10px 12px;background:linear-gradient(155deg,var(--bg1),var(--bg2));box-shadow:0 8px 22px rgba(0,0,0,.14)}
+.ak-set label{font-size:11.5px;letter-spacing:.02em}
+.ak-set input,.ak-set select{border-radius:10px;padding:9px 11px;transition:border-color .15s,box-shadow .15s}
+.ak-set input:focus,.ak-set select:focus{outline:0;border-color:var(--biru);box-shadow:0 0 0 3px rgba(66,165,245,.18)}
+.ak-set .bt-pola{background:var(--bg2);border:1px solid var(--garis);border-radius:12px;padding:10px 12px}
+.bt-sub-toggle{display:flex;align-items:center;gap:8px}.bt-sub-toggle small{color:var(--redup);font-weight:400}.bt-sub-toggle .btn{margin-left:auto}
+.ukuran,#paskan,#trmKolToggle,#rwKolToggle,#akKolToggle,#jnKolToggle{display:none!important}
+.hp-lipat>summary{display:block!important}
+#jrList .jn-baris:not([aria-expanded="true"]) .lv{display:none}
+#jrList .jn-baris{grid-template-columns:minmax(0,1fr) auto}
+.rp-auto.blok{display:block;margin-top:1px}
+.rp-auto{font:400 .8em var(--f-ui);color:var(--label);white-space:nowrap}
+body.privasi .ak-hero b,body.privasi .jr-angka b,body.privasi .rk-jn b,body.privasi .ha,body.privasi .rp,body.privasi .rp-auto,body.privasi .ak-hero em,body.privasi #pita b{filter:blur(7px);user-select:none}
 </style>
 </head>
 <body>
@@ -506,7 +524,7 @@ body.hp .hp-sembunyi{display:none}
       <select id="jnUrut" aria-label="Urutkan"><option value="baru">Urut: terbaru</option><option value="usdtB">Urut: USDT terbesar</option><option value="usdtK">Urut: USDT terkecil</option><option value="r">Urut: R terbesar</option><option value="lama">Urut: tahan terlama</option></select>
       <input id="jnCari" type="search" placeholder="Cari koin" autocomplete="off">
       <button class="btn kecil" type="button" id="jnPolaToggle" aria-expanded="false" aria-controls="jnPolaForm">⚙ Pola</button>
-      <button class="btn kecil" type="button" id="jnPnl" title="Kalender PNL jurnal per tanggal">📅 PNL</button><button class="btn kecil" type="button" id="jnKolToggle" aria-expanded="false" aria-controls="jnKolForm">⚙ Kolom</button>
+      <button class="btn kecil" type="button" onclick="jnEkspor()" title="Unduh trade yang tampil sebagai CSV">⬇ CSV</button><button class="btn kecil" type="button" id="jnPnl" title="Kalender PNL jurnal per tanggal">📅 PNL</button><button class="btn kecil" type="button" id="jnKolToggle" aria-expanded="false" aria-controls="jnKolForm">⚙ Kolom</button>
     </div>
     <div class="ak-set" id="jnPolaForm" hidden></div>
     <div class="ak-set" id="jnKolForm" hidden></div>
@@ -527,13 +545,13 @@ body.hp .hp-sembunyi{display:none}
   <div class="hal" id="halAkun" hidden>
     <div class="ak-bar"><button class="btn" type="button" id="akToggle" aria-expanded="true" aria-controls="akForm">⚙ Sembunyikan pengaturan</button><span class="ak-pesan" id="akPesanBar"></span></div>
     <form class="ak-set" id="akForm" autocomplete="off">
-      <label for="akUrl">Alamat perantara (Cloudflare Worker)<input id="akUrl" type="url" placeholder="https://amonk-binance.NAMAMU.workers.dev" inputmode="url"></label>
+      <div class="set-judul">🔗 Koneksi Binance <small>hanya baca</small></div><label for="akUrl">Alamat perantara (Cloudflare Worker)<input id="akUrl" type="url" placeholder="https://amonk-binance.NAMAMU.workers.dev" inputmode="url"></label>
       <label for="akSandi">Sandi aplikasi<input id="akSandi" type="password" placeholder="sandi yang kamu isi di Cloudflare"></label>
-      <label for="akCara">Cara ukuran posisi<select id="akCara"><option value="bagi">Bagi saldo jadi N bagian</option><option value="risiko">Risiko % per trade</option></select></label>
+      <div class="set-judul">📈 Trading manual <small>ukuran posisi</small></div><label for="akCara">Cara ukuran posisi<select id="akCara"><option value="bagi">Bagi saldo jadi N bagian</option><option value="risiko">Risiko % per trade</option></select></label>
       <label for="akBagi" id="lbBagi">Saldo dibagi jadi (bagian)<input id="akBagi" type="number" step="1" min="1" max="20" inputmode="numeric"></label>
       <label for="akRisiko" id="lbRisiko">Risiko per trade (%)<input id="akRisiko" type="number" step="0.1" min="0.1" max="5" inputmode="decimal"></label>
       <label for="akModal">Modal untuk ukuran (USDT)<input id="akModal" type="number" step="any" min="0" inputmode="decimal" placeholder="kosong = saldo Binance"></label>
-      <label for="akBatasTrade">Batas rugi per trade (% saldo)<input id="akBatasTrade" type="number" step="0.1" min="0.1" max="20" inputmode="decimal"></label>
+      <div class="set-judul">🛡 Batas risiko &amp; jeda</div><label for="akBatasTrade">Batas rugi per trade (% saldo)<input id="akBatasTrade" type="number" step="0.1" min="0.1" max="20" inputmode="decimal"></label>
       <label for="akBatasSerentak">Batas rugi serentak (% saldo)<input id="akBatasSerentak" type="number" step="0.5" min="0.5" max="50" inputmode="decimal"></label>
       <label for="akJedaN">Jeda bila rugi berturut (kali)<input id="akJedaN" type="number" step="1" min="1" max="20" inputmode="numeric"></label>
       <label for="akJedaPct">Jeda bila rugi 7 hari (% saldo)<input id="akJedaPct" type="number" step="0.5" min="0.5" max="50" inputmode="decimal"></label>
@@ -550,22 +568,22 @@ body.hp .hp-sembunyi{display:none}
     <div class="ak-bar"><button class="btn" type="button" id="btToggle" aria-expanded="true" aria-controls="btForm">⚙ Sembunyikan pengaturan bot</button><span class="ak-pesan" id="btPesanBar"></span></div>
     <p class="ak-pesan kng" id="btKunci" hidden>🔒 Mode lihat — perangkat ini belum memasukkan sandi bot, jadi pengaturan hanya bisa dilihat. Isi <b>Sandi bot</b> lalu tekan <b>Buka kunci</b> untuk mengubah.</p>
     <form class="ak-set" id="btForm" autocomplete="off">
-      <label for="btUrl">Alamat bot (Cloudflare Worker)<input id="btUrl" type="url" inputmode="url" placeholder="https://amonk-bot.NAMAMU.workers.dev"></label>
+      <div class="set-judul">🔗 Koneksi bot</div><label for="btUrl">Alamat bot (Cloudflare Worker)<input id="btUrl" type="url" inputmode="url" placeholder="https://amonk-bot.NAMAMU.workers.dev"></label>
       <label for="btSandi">Sandi bot<input id="btSandi" type="password" placeholder="kosong = sama dengan sandi aplikasi"></label>
-      <label for="btModal">Modal awal bot (USDT, laba ikut diputar)<span style="display:flex;gap:4px;align-items:stretch"><input id="btModal" type="number" step="any" min="0" inputmode="decimal" placeholder="0 = seluruh saldo testnet" style="flex:1;min-width:0"><button class="btn" type="button" id="btModalMaks" title="Isi dengan seluruh USDT bebas di akun Binance">Maks</button></span></label>
+      <div class="set-judul">💰 Modal &amp; posisi bot</div><label for="btModal">Modal awal bot (USDT, laba ikut diputar)<span style="display:flex;gap:4px;align-items:stretch"><input id="btModal" type="number" step="any" min="0" inputmode="decimal" placeholder="0 = seluruh saldo testnet" style="flex:1;min-width:0"><button class="btn" type="button" id="btModalMaks" title="Isi dengan seluruh USDT bebas di akun Binance">Maks</button></span></label>
       <label for="btPosisi">Maks entry bersamaan (saldo dibagi ini)<input id="btPosisi" type="number" step="1" min="1" max="20" inputmode="numeric"></label>
       <label for="btBatas">Batas rugi bot per trade (% modal · 100 = tidak dipangkas)<input id="btBatas" type="number" step="any" min="0.1" max="100" inputmode="decimal"></label>
       <div class="bt-dana" style="grid-column:1/-1"><label for="btDana">Tarik / tambah dana bot (USDT) — laba bot TIDAK diulang dari nol<input id="btDana" type="number" step="any" min="0" inputmode="decimal" placeholder="mis. 30"></label>
         <button class="btn" type="button" id="btMaksBebas" title="Isi kolom dengan seluruh USDT bebas di akun Binance">Maks saldo bebas</button><button class="btn" type="button" id="btMaksTarik" title="Isi kolom dengan seluruh modal bot yang tidak sedang dipakai posisi/order">Maks tarik</button><button class="btn" type="button" id="btTarik">− Tarik dari bot</button><button class="btn" type="button" id="btTambah">+ Tambah ke bot</button>
         <span class="redup" id="btDanaKet"></span></div>
-      <label for="btKoin" style="grid-column:span 2">Koin yang diambil bot<input id="btKoin" type="text" autocapitalize="characters" placeholder="kosong = semua koin ber-webhook · contoh: XRP, ETH, SOL"></label>
+      <div class="set-judul">🎯 Koin &amp; pola yang diambil bot</div><label for="btKoin" style="grid-column:span 2">Koin yang diambil bot<input id="btKoin" type="text" autocapitalize="characters" placeholder="kosong = semua koin ber-webhook · contoh: XRP, ETH, SOL"></label>
       <div class="bt-pola" style="grid-column:1/-1"><span>Pola yang diambil bot:</span>
         <label><input type="checkbox" value="FW"> 1 Falling Wedge</label><label><input type="checkbox" value="ST"> 2 Symmetrical Triangle</label>
         <label style="display:none"><input type="checkbox" value="PEN"> 3 Bullish Pennant</label><label style="display:none"><input type="checkbox" value="IHS"> 4 Inverse H&amp;S</label>
         <label><input type="checkbox" value="AT"> 5 Ascending Triangle</label><label><input type="checkbox" value="TB"> 6 Triple Bottom</label>
         <label style="display:none"><input type="checkbox" value="CH"> 7 Cup &amp; Handle</label>
         <label title="Limit beli di kedalaman 0.90 gelombang 3 (dihitung GitHub tiap jam). Sesudah terisi sama dengan pola: 50% TP1, SL ke entry, 50% TP2. Tanpa batas jumlah sendiri (ikut maks entry); limit menunggu memakai slot & modal s/d ~10 hari."><input type="checkbox" value="EW"> 10 Elliott Wave (limit)</label></div>
-      <div class="bt-pola" style="grid-column:1/-1"><span>Cara membagi modal:</span>
+      <div class="set-judul">🧩 Pembagian modal</div><div class="bt-pola" style="grid-column:1/-1"><span>Cara membagi modal:</span>
         <label title="Modal bot dibagi RATA ke tiap jenis yang dicentang (pola, Elliott). Tiap kantong tumbuh/menyusut sendiri dari hasil jenis itu, dan tiap jenis hanya boleh punya SATU posisi/order sekaligus. Jumlah slot mengikuti jumlah jenis, bukan Maks entry."><input type="checkbox" id="btKantong"> Modal per jenis sinyal (kantong) — mis. 600 dengan 6 jenis = 100 per jenis</label></div>
       <div class="tb"><button class="btn" type="submit" id="btSimpan">Simpan ke bot</button></div>
     </form>
@@ -1605,7 +1623,7 @@ tbl.addEventListener("mouseover", e => { const td = e.target.closest("td"); if (
 // mode tampilan: bawaan HP kalau layar sempit; pilihan manual disimpan
 function pasangMode(hp) {
   modeHP = hp; document.body.classList.toggle("hp", hp);
-  document.querySelectorAll(".hp-lipat").forEach(d => { d.open = !hp; });   // HP: alat & statistik terlipat; laptop: terbuka
+  document.querySelectorAll(".hp-lipat").forEach(d => { d.open = false; });   // Jurnal ringkas: alat & statistik terlipat
   $("mode").textContent = hp ? "Tampilan lengkap" : "Tampilan HP";
   gambar(); if (!hp && window.paskanOtomatis) window.paskanOtomatis();
 }
@@ -1624,12 +1642,14 @@ $("hpList").addEventListener("click", e => {
 // tombol ⚙ di header selalu ada untuk mengubah / mengembalikan tampilan lengkap.
 const TP_TAB = [["Terminal", "Terminal"], ["Riwayat", "Riwayat"], ["Jurnal", "Jurnal"], ["Akun", "Akun"], ["Info", "Info"]];
 const TP_PITA = [["pitaBot", "Status bot"], ["pitaHari", "Laba hari ini"], ["pitaPosisi", "Posisi"], ["pitaModal", "Modal bot"], ["pitaHarga", "Harga hidup"], ["pitaVps", "Perantara VPS"]];
-const TP_LENGKAP = { tab: { Terminal: true, Riwayat: true, Jurnal: true, Akun: true, Info: true }, pita: { pitaBot: true, pitaHari: true, pitaPosisi: true, pitaModal: true, pitaHarga: true, pitaVps: true }, pitaAda: true };
+const TP_LENGKAP = { tab: { Terminal: true, Riwayat: true, Jurnal: true, Akun: true, Info: false }, pita: { pitaBot: true, pitaHari: true, pitaPosisi: true, pitaModal: true, pitaHarga: true, pitaVps: true }, pitaAda: true };
 const TP_SIMPEL = { tab: { Terminal: true, Riwayat: true, Jurnal: false, Akun: true, Info: false }, pita: { pitaBot: true, pitaHari: true, pitaPosisi: true, pitaModal: false, pitaHarga: false, pitaVps: false }, pitaAda: true };
 let TAMPIL = (() => { const s = baca("tampilan", null); if (s && s.tab && s.pita) return s;
   return JSON.parse(JSON.stringify(window.innerWidth <= 760 ? TP_SIMPEL : TP_LENGKAP)); })();
 function terapkanTampilan() {
   for (const [h, id] of TP_TAB) { const b = $("tb" + id); if (b) b.hidden = !TAMPIL.tab[h]; }
+  document.body.classList.toggle("privasi", !!TAMPIL.privasi);
+  window.rpPasang && window.rpPasang();
   for (const [id] of TP_PITA) { const e = $(id); if (e) e.hidden = !TAMPIL.pita[id]; }
   $("pita").hidden = !TAMPIL.pitaAda || TP_PITA.every(([id]) => !TAMPIL.pita[id]);
   const terlihat = TP_TAB.map(([h]) => h).filter(h => TAMPIL.tab[h]);
@@ -1637,7 +1657,7 @@ function terapkanTampilan() {
 }
 function tampilanUbah(jenis, kunci, nilai) {
   if (jenis === "tab") { const sisa = TP_TAB.filter(([h]) => h !== kunci && TAMPIL.tab[h]).length; if (!nilai && !sisa) { bukaPengaturanTampilan(); return; } TAMPIL.tab[kunci] = nilai; }
-  else if (jenis === "pita") TAMPIL.pita[kunci] = nilai; else if (jenis === "pitaAda") TAMPIL.pitaAda = nilai;
+  else if (jenis === "opsi") TAMPIL[kunci] = nilai; else if (jenis === "pita") TAMPIL.pita[kunci] = nilai; else if (jenis === "pitaAda") TAMPIL.pitaAda = nilai;
   simpan("tampilan", TAMPIL); terapkanTampilan();
 }
 window.tampilanUbah = tampilanUbah;
@@ -1645,11 +1665,64 @@ window.tampilanPreset = n => { TAMPIL = JSON.parse(JSON.stringify(n === "simpel"
 function bukaPengaturanTampilan() {
   const baris = (jenis, kunci, nama, nilai) => '<label class="tp-baris"><input type="checkbox" ' + (nilai ? "checked " : "") + 'onchange="tampilanUbah(&quot;' + jenis + '&quot;,&quot;' + kunci + '&quot;,this.checked)"><span>' + nama + '</span></label>';
   popupTampil('Pengaturan tampilan', '<div style="display:flex;gap:8px;margin-bottom:6px"><button class="btn" type="button" onclick="tampilanPreset(&quot;simpel&quot;)">Simpel (HP)</button><button class="btn" type="button" onclick="tampilanPreset(&quot;lengkap&quot;)">Lengkap</button></div>' +
+    '<div class="tp-judul">Angka</div>' + baris("opsi", "rp", "Tampilkan Rupiah di samping USDT", TAMPIL.rp !== false) + baris("opsi", "privasi", "Mode privasi (kaburkan angka uang)", !!TAMPIL.privasi) +
     '<div class="tp-judul">Tab yang ditampilkan</div>' + TP_TAB.map(([h, id]) => baris("tab", h, id, TAMPIL.tab[h])).join("") +
     '<div class="tp-judul">Bilah status di atas</div>' + baris("pitaAda", "x", "Tampilkan bilah status", TAMPIL.pitaAda) + TP_PITA.map(([id, n]) => baris("pita", id, n, TAMPIL.pita[id])).join("") +
     '<p class="sub redup" style="margin-top:12px">Pengaturan tersimpan di perangkat ini. Minimal satu tab harus tampil. Tombol ⚙ di pojok atas selalu ada untuk mengubahnya kembali.</p>', false);
 }
 $("tampilanBtn").addEventListener("click", bukaPengaturanTampilan);
+// RUPIAH OTOMATIS (2026-09-25, permintaan user): tiap angka "... USDT" (profit/saldo/modal) diberi ≈ Rp di sampingnya.
+// Harga koin tidak ikut (bukan ber-USDT). Label, tombol, catatan panjang dan tabel harga dilewati.
+(function () {
+  const RE = /([+\-−]?\d[\d,]*(?:\.\d+)?)(\s*USDT)/g, LEWAT = "script,style,textarea,input,select,option,svg,th,label,button,.k,.jr-ket,.catatan,.info,.rp,.rp-auto,.hp-sembunyi,.sub,.set-judul,.tp-baris";
+  const fmt = v => { const a = Math.abs(v) * KURS.idr; const t = a >= 1e9 ? (a / 1e9).toFixed(2).replace(".", ",") + " M" : a >= 1e7 ? (a / 1e6).toFixed(1).replace(".", ",") + " jt" : Math.round(a).toLocaleString("id-ID");
+    return (v < 0 ? "−" : "") + "Rp " + t; };
+  function proses(akar) {
+    if (!KURS.idr || TAMPIL.rp === false) return;
+    const w = document.createTreeWalker(akar, NodeFilter.SHOW_TEXT), sasaran = [];
+    for (let n = w.nextNode(); n; n = w.nextNode()) {
+      const p = n.parentElement; if (!p || !/USDT/.test(n.nodeValue) || p.closest(LEWAT)) continue;
+      if (n.nextSibling && n.nextSibling.classList && n.nextSibling.classList.contains("rp-auto")) continue;
+      if (/Rp\s?\d/.test(p.parentElement ? p.parentElement.textContent : p.textContent)) continue;
+      sasaran.push(n);
+    }
+    for (const n of sasaran) {
+      const m = [...n.nodeValue.matchAll(RE)]; if (!m.length) continue;
+      const x = m[m.length - 1], v = parseFloat(x[1].replace(/,/g, "").replace("−", "-")); if (!isFinite(v) || Math.abs(v) < 0.005) continue;
+      const sisa = n.splitText(x.index + x[0].length), sp = document.createElement("span");
+      sp.className = "rp-auto"; sp.textContent = " (≈ " + fmt(v) + ")"; sisa.parentNode.insertBefore(sp, sisa);
+    }
+  }
+  // angka profit tanpa tulisan USDT (baris jurnal/riwayat, total profit, kolom PnL Terminal)
+  function prosesAngka(akar) {
+    if (!KURS.idr || TAMPIL.rp === false) return;
+    for (const el of akar.querySelectorAll("td.pnl, #jrList .ha>b, #rwList .ha>b, .rk-jn>div:first-child>b, .ak-hero-bawah>div:nth-child(3)>b")) {
+      if (el.querySelector(".rp-auto")) continue;
+      const n = [...el.childNodes].find(x => x.nodeType === 3 && x.nodeValue.trim()); if (!n) continue;
+      const m = /^\s*([+\-−]?\d[\d,]*\.?\d*)/.exec(n.nodeValue); if (!m) continue;
+      const v = parseFloat(m[1].replace(/,/g, "").replace("−", "-")); if (!isFinite(v) || Math.abs(v) < 0.005) continue;
+      const sp = document.createElement("span"); sp.className = "rp-auto blok"; sp.textContent = "≈ " + fmt(v); n.parentNode.insertBefore(sp, n.nextSibling);
+    }
+  }
+  let tm = null;
+  window.rpPasang = () => { clearTimeout(tm); tm = setTimeout(() => {
+    document.querySelectorAll(".rp-auto").forEach(e => e.remove());
+    if (TAMPIL.rp === false) return;
+    for (const id of ["halTerminal", "halRiwayat", "halJurnal", "halAkun", "pita"]) { const e = document.getElementById(id); if (e && !e.hidden) { proses(e); prosesAngka(e); } } mo.takeRecords(); }, 80); };
+  const mo = new MutationObserver(() => window.rpPasang());
+  mo.observe(document.body, { childList: true, subtree: true });
+  setInterval(window.rpPasang, 5000);
+})();
+// EKSPOR jurnal ke CSV (2026-09-25): trade sesuai saringan yang sedang aktif
+window.jnEkspor = function () {
+  const rows = jnSaring(jnBaris()).sort((a, b) => a.mT - b.mT);
+  const q = v => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+  const baris = [["sinyal", "koin", "jenis", "masuk", "keluar", "entry", "sl", "tp", "exit", "usdt", "R", "status", "sebab"].join(",")];
+  for (const t of rows) baris.push([t.sinyal, t.koin, t.jenis, new Date(t.mT).toISOString(), t.kT ? new Date(t.kT).toISOString() : "", t.entry, t.sl, t.tp, t.px, t.us == null ? "" : t.us.toFixed(2), t.R == null ? "" : t.R.toFixed(2), t.terbuka ? "jalan" : "tutup", t.sebab || ""].map(q).join(","));
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + baris.join("\n")], { type: "text/csv" }));
+  a.download = "jurnal_amonk_" + new Date().toISOString().slice(0, 10) + ".csv"; document.body.appendChild(a); a.click(); a.remove();
+};
+
 setTimeout(terapkanTampilan, 0);   // sesudah seluruh skrip dimuat (halAktif/pindahHal didefinisikan lebih bawah)
 
 // TEMA (2026-09-22): "gelap" | "terang" | null (ikut sistem). Tombol berputar sistem→terang→gelap.
@@ -2476,8 +2549,8 @@ function gambarBot(s) {
     `<div class="pb"><span>waktu</span><div><i style="width:${Math.min(1, blnBot / AMBANG_BULAN) * 100}%"></i></div><span>${blnBot.toFixed(1)}/${AMBANG_BULAN} bln</span></div>` +
     `<span class="rw-vonis" style="color:var(--label)">${R.length >= AMBANG_N && blnBot >= AMBANG_BULAN ? "Cukup data untuk dinilai" : "Belum cukup data untuk menilai bot"}</span></div>` +
     kurvaModalBot(MO, R) +
-    (asli ? `<p class="jr-ket">Akun ASLI: hasil di sini uang sungguhan, termasuk komisi & selip nyata. Trade bot di akun asli TIDAK dihitung sebagai trade Anda di "Anda vs bot".</p></div>`
-      : `<p class="jr-ket">Saldo testnet adalah uang latihan dan harganya bisa berbeda dari pasar asli. Hasil di sini menguji mekanisme (order, TP/SL, SL ke entry), bukan biaya eksekusi nyata.</p></div>`) + kotakBanding(s);
+    (asli ? `<p class="jr-ket">Akun ASLI: hasil di sini uang sungguhan, termasuk komisi & selip nyata.</p></div>`
+      : `<p class="jr-ket">Saldo testnet adalah uang latihan dan harganya bisa berbeda dari pasar asli. Hasil di sini menguji mekanisme (order, TP/SL, SL ke entry), bukan biaya eksekusi nyata.</p></div>`) + "";
   const baris = [];
   // POSISI TERBUKA: harga kini diambil dari harga pasar asli yang sudah dimuat Terminal (bukan testnet),
   // jadi PnL berjalan di sini perkiraan. R = PnL ÷ rugi bila kena SL di SL awal.
@@ -2491,8 +2564,9 @@ function gambarBot(s) {
       `<div class="ha">${pnl == null ? `<span class="chip jalan">Jalan</span>` : `<b class="${kl(pnl)}">${f2(pnl)} USDT</b><span class="rp">${risk ? f2(pnl / risk) + " R" : ""}</span>`}</div>` +
       jalurPosisi(p, px) + `</div>`);
   }
-  if (R.length) baris.push(`<h4 class="bt-sub">Riwayat bot</h4>`);
-  for (const r of R.slice(0, 20)) { const rr = rBot(r);
+  const rwBuka = !!baca("btRiwBuka", true);
+  if (R.length) baris.push(`<h4 class="bt-sub bt-sub-toggle">Riwayat bot <small>${R.length} trade</small><button class="btn kecil" type="button" id="btRiwToggle" aria-expanded="${rwBuka}">${rwBuka ? "Sembunyikan" : "Tampilkan"}</button></h4>`);
+  for (const r of (rwBuka ? R.slice(0, 20) : [])) { const rr = rBot(r);
     baris.push(`<div class="jr-tr bt-baris${klsSt(false, r.hasil)}"><div style="min-width:0"><div class="nm">${r.sym.replace(/USDT$/, "")} <span class="jn-label">${r.kode}</span></div><div class="sub">${r.pola} · tutup ${jamLokal(r.keluarT)} · ${r.catatan || ""}</div></div>` +
       `<div class="lv">Isi ${fHarga(r.isi)} · selip ${r.selip}%<br>${Math.round(r.beliUsdt)} → ${Math.round(r.jualUsdt)} USDT</div><div class="ha"><b class="${kl(r.hasil)}">${f2(r.hasil)} USDT</b><span class="rp">${f2(r.hasilPct)}%${rr != null ? " · " + f2(rr) + " R" : ""}</span></div></div>`); }
   // KANTONG PER JENIS (2026-09-23): isi tiap kantong = bagian modal + hasil jenis itu sendiri
@@ -2542,6 +2616,7 @@ function gambarBot(s) {
       l.jenis === "pengaturan" ? `pola ${l.pola || "—"} · koin ${l.koin || "semua"}` : ""].filter(Boolean).join(" · ")}</span></div>`).join("") + `</div>`);
   $("btList").innerHTML = baris.join("") || `<div class="kosong">Belum ada posisi atau riwayat bot.</div>`;
 }
+$("btList").addEventListener("click", e => { if (e.target.closest("#btRiwToggle")) { simpan("btRiwBuka", !baca("btRiwBuka", true)); if (BT_S) gambarBot(BT_S); } });
 async function muatBot() {
   try { btPesan("Membaca bot…"); const s = await btPanggil("/status"); gambarBot(s);
     const lihat = s.bolehUbah === false; kunciBot(lihat);                // bot lama tanpa field ini = boleh ubah
