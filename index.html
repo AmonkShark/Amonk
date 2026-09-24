@@ -308,6 +308,23 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
 @media (max-width:760px){ body{font-size:15px} .tab{overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap} .tab::-webkit-scrollbar{display:none} .tab button{padding:11px 10px;font-size:14px;flex:none} .tab button svg{width:17px;height:17px}
   .seg button,.btn{padding:8px 12px;font-size:14px} .chip{font-size:13px;padding:3px 9px} .kartu .nm{font-size:17px} .kartu .pnlB{font-size:17px}
   .strip{grid-template-columns:repeat(2,minmax(0,1fr))} .strip>div.utama:first-child{grid-column:1/-1} }
+
+/* TAMPILAN BARU (2026-09-25): kartu bergaya dasbor, carousel geser untuk pola/sinyal, ringkasan besar */
+.rw-tabel{display:flex!important;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 2px 12px;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.rw-tabel::-webkit-scrollbar{display:none}
+.rw-tabel>.rw-pola{flex:0 0 min(86%,330px);scroll-snap-align:center}
+@media(min-width:900px){.rw-tabel>.rw-pola{flex-basis:300px}}
+.rw-pola,.jr-kotak{background:linear-gradient(155deg,var(--bg1),var(--bg2));border-radius:14px;box-shadow:0 8px 22px rgba(0,0,0,.14);transition:box-shadow .15s,border-color .15s}
+.rw-pola[aria-pressed="true"]{border-color:var(--biru);box-shadow:0 0 0 1.5px var(--biru) inset,0 10px 26px rgba(66,165,245,.16)}
+.sp{display:block;width:100%;height:38px;margin:0 0 2px}
+.geser-info{font-size:11px;color:var(--redup);margin:-2px 2px 6px;letter-spacing:.02em}
+.jr-ring{display:flex!important;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.jr-ring::-webkit-scrollbar{display:none}
+.jr-ring>.jr-kotak{flex:0 0 min(90%,380px);scroll-snap-align:center}
+#jrRing{display:none!important}
+.rk-jn{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 12px;padding:16px 12px;border:1px solid var(--garis);border-radius:16px;background:radial-gradient(120% 140% at 0% 0%,rgba(38,166,154,.10),transparent 60%),linear-gradient(155deg,var(--bg1),var(--bg2));box-shadow:0 10px 28px rgba(0,0,0,.16)}
+.rk-jn>div{text-align:center}.rk-jn span{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--redup);margin-bottom:4px}
+.rk-jn b{font:600 clamp(18px,5.4vw,26px) var(--f-num)}.rk-jn .rk-cap{grid-column:1/-1;font-size:11px;color:var(--redup);text-align:center;margin-top:2px}
 </style>
 </head>
 <body>
@@ -426,7 +443,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
       <button data-m="maju" aria-pressed="false">Maju sejak 22-09-2026</button>
       <button data-m="semua" aria-pressed="true">Semua (dihitung ulang ~100 hari)</button>
     </div>
-    <div class="rw-judul" id="rwJudulPer">Hasil per pola <small>ketuk pola untuk melihat trade-nya · urut dari total USDT terbesar</small></div>
+    <div class="rw-judul" id="rwJudulPer">Hasil per pola <small>geser ‹ › untuk pola lain · ketuk untuk melihat trade-nya</small></div>
     <div class="rw-tabel" id="rwPola"></div>
     <div class="jr-pilih seg" role="group" aria-label="Saring riwayat">
       <button data-r="semua" aria-pressed="true">Semua</button>
@@ -442,6 +459,9 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
 
   <div class="hal" id="halJurnal" hidden>
     <div class="jr-ring" id="jrRing"><div class="kosong">Memuat jurnal…</div></div>
+    <div class="rk-jn" id="jnRingkas" hidden></div>
+    <div class="geser-info">‹ geser untuk melihat pola / sinyal lain · ketuk kartu untuk menyaring daftar ›</div>
+    <div class="rw-tabel" id="jnPolaKartu"></div>
     <div class="jn-alat">
       <div class="seg" role="group" aria-label="Sinyal" id="jnSinyal">
         <button data-v="semua">Semua sinyal</button><button data-v="POLA 4H">POLA 4H</button><button data-v="AI 4H">AI 4H</button>
@@ -1642,6 +1662,49 @@ async function muatJurnal() {
 }
 const hargaKini = k => (data[k] && data[k].harga) || null;
 const uangJ = (e, px) => e > 0 && px > 0 ? JR.nominal * (px / e - 1) - JR.nominal * JR.biaya : null;
+// sparkline kumulatif kecil (tanpa sumbu) untuk kartu pola/sinyal
+function sparkMini(vals) {
+  if (!vals || vals.length < 2) return '<svg class="sp" viewBox="0 0 200 38" aria-hidden="true"><line x1="0" x2="200" y1="19" y2="19" stroke="var(--garis)" stroke-dasharray="3 3"/></svg>';
+  const c = [0]; for (const x of vals) c.push(c[c.length - 1] + (+x || 0));
+  const lo = Math.min(0, ...c), hi = Math.max(0, ...c), rg = (hi - lo) || 1, W = 200, H = 38;
+  const px = i => (2 + i / (c.length - 1) * (W - 4)).toFixed(1), py = v => (3 + (hi - v) / rg * (H - 6)).toFixed(1);
+  const pts = c.map((v, i) => px(i) + "," + py(v)).join(" "), w = c[c.length - 1] >= 0 ? "var(--hijau)" : "var(--merah)";
+  return '<svg class="sp" viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="' + W + '" y1="' + py(0) + '" y2="' + py(0) + '" stroke="var(--garis)" stroke-dasharray="3 3"/>' +
+    '<polygon points="' + px(0) + "," + py(0) + " " + pts + " " + px(c.length - 1) + "," + py(0) + '" fill="' + w + '" opacity=".14"/><polyline points="' + pts + '" fill="none" stroke="' + w + '" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+}
+// PANEL JURNAL (2026-09-25): ringkasan besar + kartu geser (Semua / AI 4H / tiap pola). Mengikuti saringan yang sudah ada.
+function jnPanel(daftar) {
+  const f2 = v => v == null || !isFinite(v) ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
+  const tutupD = daftar.filter(t => !t.terbuka), H = jnHitung(tutupD);
+  const judul = JN_S.grup ? JN_S.grup : JN_S.sinyal === "semua" ? "Semua sinyal" : JN_S.sinyal;
+  $("jnRingkas").hidden = false;
+  $("jnRingkas").innerHTML = '<div><span>Total profit</span><b class="' + kl(H.tot) + '">' + (H.n ? f2(H.tot) : "—") + '</b></div><div><span>Win rate</span><b>' + (H.n ? Math.round(H.wr) + "%" : "—") + '</b></div><div><span>Trade tutup</span><b>' + H.n + '</b></div>' +
+    '<div class="rk-cap">' + judul + " · USDT per nominal " + (JR ? JR.nominal : 1000) + " · " + daftar.filter(t => t.terbuka).length + " masih jalan</div>";
+  const semua = jnBaris(), pa = jnPolaAktif(), batas = +JN_S.periode ? Date.now() - +JN_S.periode * 864e5 : 0;
+  const dasar = semua.filter(t => t.mT >= batas && (t.sinyal !== "POLA 4H" || !t.jenis || pa.has(t.jenis)));
+  const kartu = (id, nama, arr, aktif) => {
+    const tt = arr.filter(t => !t.terbuka), hh = jnHitung(tt), jalan = arr.length - tt.length;
+    const seq = tt.slice().sort((a, b) => (a.kT || a.mT) - (b.kT || b.mT)).map(t => t.us || 0);
+    return '<button type="button" class="rw-pola" data-p="' + id + '" aria-pressed="' + aktif + '"><div class="j"><b>' + nama + '</b><span class="' + kl(hh.tot) + '">' + (hh.n ? f2(hh.tot) : "—") + "</span></div>" + sparkMini(seq) +
+      '<div class="d"><span><em>' + hh.n + "</em> tutup</span><span>WR <em>" + (hh.n ? Math.round(hh.wr) : 0) + '%</em></span><span>rata <em class="' + kl(hh.rata) + '">' + f2(hh.rata) + "</em></span>" + (jalan ? "<span>jalan <em>" + jalan + "</em></span>" : "") + "</div></button>";
+  };
+  const pola = dasar.filter(t => t.sinyal === "POLA 4H"), per = {};
+  for (const t of pola) (per[t.jenis || "—"] = per[t.jenis || "—"] || []).push(t);
+  const urut = Object.entries(per).sort((a, b) => jnHitung(b[1].filter(t => !t.terbuka)).tot - jnHitung(a[1].filter(t => !t.terbuka)).tot);
+  const semuaAktif = JN_S.sinyal === "semua" && !JN_S.grup, aiAktif = JN_S.sinyal === "AI 4H" && !JN_S.grup;
+  $("jnPolaKartu").innerHTML = kartu("__semua", "Semua sinyal", dasar, semuaAktif) + kartu("__ai", "AI 4H", dasar.filter(t => t.sinyal === "AI 4H"), aiAktif) +
+    urut.map(([nm, arr]) => kartu(nm, nm, arr, JN_S.sinyal === "POLA 4H" && JN_S.grup === nm)).join("");
+  const sel = $("jnPolaKartu").querySelector('[aria-pressed="true"]'); if (sel) { const c = $("jnPolaKartu"); c.scrollTo({ left: sel.offsetLeft - (c.clientWidth - sel.clientWidth) / 2, behavior: "smooth" }); }
+}
+$("jnPolaKartu").addEventListener("click", e => {
+  const b = e.target.closest(".rw-pola"); if (!b) return; const p = b.dataset.p;
+  if (p === "__semua") { JN_S.sinyal = "semua"; JN_S.grup = null; }
+  else if (p === "__ai") { JN_S.sinyal = "AI 4H"; JN_S.grup = null; }
+  else { JN_S.sinyal = "POLA 4H"; JN_S.rinci = "jenis"; JN_S.grup = p; }
+  simpan("jnS", JN_S);
+  document.querySelectorAll("#jnSinyal button").forEach(x => x.setAttribute("aria-pressed", x.dataset.v === JN_S.sinyal ? "true" : "false"));
+  gambarJurnal();
+});
 function kurvaJ(tutup) {
   const u = tutup.slice().sort((a, b) => ((a.keluar || a.masuk || "") < (b.keluar || b.masuk || "") ? -1 : 1)).map(t => t.usdt);
   if (u.length < 2) return "";
@@ -1672,6 +1735,7 @@ function gambarJurnal() {
   $("jnStat").innerHTML = jnStatHtml(rows);
   $("jnRinci").innerHTML = jnRinciHtml(rows);
   let daftar = JN_S.grup ? rows.filter(t => jnKunciGrup(t, JN_S.rinci) === JN_S.grup) : rows;
+  jnPanel(daftar);
   const urut = { baru: (a, b) => b.mT - a.mT, usdtB: (a, b) => (b.us ?? -1e9) - (a.us ?? -1e9), usdtK: (a, b) => (a.us ?? 1e9) - (b.us ?? 1e9),
     r: (a, b) => (b.R ?? -1e9) - (a.R ?? -1e9), lama: (a, b) => b.jam - a.jam }[JN_S.urut] || ((a, b) => b.mT - a.mT);
   daftar = daftar.slice().sort((a, b) => (a.terbuka !== b.terbuka && JN_S.urut === "baru" ? (a.terbuka ? -1 : 1) : urut(a, b)));
@@ -2807,7 +2871,7 @@ window.gambarRiwayat = function () {
   const ai = rwSumber === "AI";
   $("rwPeriode").hidden = ai; $("rwKetAI").hidden = !ai; $("rwKetPola").hidden = ai;
   $("rwJudulPer").innerHTML = ai ? `Hasil per koin <small>ketuk koin untuk melihat trade-nya · urut dari total USDT terbesar</small>`
-    : `Hasil per pola <small>ketuk pola untuk melihat trade-nya · urut dari total USDT terbesar</small>`;
+    : `Hasil per pola <small>geser ‹ › untuk pola lain · ketuk untuk melihat trade-nya</small>`;
   if (ai) return gambarRiwayatAI();
   const semuaRw = Object.values(RW);
   if (rwMode === "maju" && !MAJU_GH.t) ambilMajuGH();
@@ -2833,9 +2897,9 @@ window.gambarRiwayat = function () {
     `<div><span>USDT jalan</span><b class="${kl(totJ)}">${f2(totJ)}</b></div></div>` + kurva + `</div>`;
   // ---- PER POLA (2026-09-22, "riwayat per pola agar tau mana yang lebih menghasilkan")
   const per = {};
-  const dapat = nm => per[nm] = per[nm] || { n: 0, m: 0, u: 0, tp2: 0, be: 0, sl: 0, jalan: 0, uJalan: 0, win: 0, loss: 0 };
+  const dapat = nm => per[nm] = per[nm] || { n: 0, m: 0, u: 0, tp2: 0, be: 0, sl: 0, jalan: 0, uJalan: 0, win: 0, loss: 0, seq: [] };
   for (const t of tutup) {
-    const x = dapat(t.nama); x.n++; x.u += t.pnl;
+    const x = dapat(t.nama); x.n++; x.u += t.pnl; x.seq.push([t.keluarT || t.masukT || 0, t.pnl]);
     if (t.pnl > 0) { x.m++; x.win += t.pnl; } else x.loss += t.pnl;
     if (t.st === "TP2" || t.st === "TP") x.tp2++; else if (t.st === "BE") x.be++; else x.sl++;
   }
@@ -2845,13 +2909,14 @@ window.gambarRiwayat = function () {
     const avgW = x.m ? x.win / x.m : null, avgL = x.n - x.m ? x.loss / (x.n - x.m) : null;
     const w = v => x.n ? (v / x.n * 100).toFixed(1) + "%" : "0";
     return `<button type="button" class="rw-pola" data-p="${nm}" aria-pressed="${rwPola === nm}">` +
-      `<div class="j"><b>${nm}</b><span class="${kl(x.u)}">${x.n ? f2(x.u) : "—"}</span></div>` +
+      `<div class="j"><b>${nm}</b><span class="${kl(x.u)}">${x.n ? f2(x.u) : "—"}</span></div>` + sparkMini(x.seq.sort((a, b) => a[0] - b[0]).map(s => s[1])) +
       `<div class="bar" title="TP1+TP2 (atau trailing) / TP1+BE / SL"><i style="width:${w(x.tp2)};background:var(--hijau)"></i><i style="width:${w(x.be)};background:rgba(38,166,154,.45)"></i><i style="width:${w(x.sl)};background:var(--merah)"></i></div>` +
       `<div class="d"><span><em>${x.n}</em> tutup</span><span>WR <em>${wr}%</em></span><span>rata <em class="${kl(rata)}">${f2(rata)}</em></span></div>` +
       `<div class="d"><span>TP1+TP2/trailing <em>${x.tp2}</em></span><span>TP1+BE <em>${x.be}</em></span><span>SL <em>${x.sl}</em></span>${x.jalan ? `<span>jalan <em>${x.jalan}</em></span>` : ""}</div>` +
       `<div class="d"><span>rata untung <em class="naik">${f2(avgW)}</em></span><span>rata rugi <em class="turun">${f2(avgL)}</em></span></div>` +
       (rwMode === "maju" ? majuHtml(nm, x, semua) : (x.n < 30 ? `<div class="kecil2">sampel kecil (&lt;30 trade) — belum bisa disimpulkan</div>` : "")) + `</button>`;
   }).join("");
+  { const sel = $("rwPola").querySelector('[aria-pressed="true"]'); if (sel) { const c = $("rwPola"); c.scrollTo({ left: sel.offsetLeft - (c.clientWidth - sel.clientWidth) / 2, behavior: "smooth" }); } }
   RW_TAMPIL = { sumber: "POLA", semua };                             // dipakai pop-up
   let rows = semua.slice();
   if (rwPola) rows = rows.filter(t => t.nama === rwPola);
