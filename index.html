@@ -266,6 +266,10 @@ body.popup-buka{overflow:hidden}
    apa pun status atribut hidden-nya (dibiarkan tak berubah kalau pengguna berpindah mode). */
 .ringkas-toggle,.filter-toggle{display:none}
 body.hp .ringkas-toggle,body.hp .filter-toggle{display:inline-flex;margin-bottom:8px}
+.tab button[hidden],.pita-i[hidden],#pita[hidden]{display:none!important}
+.tp-baris{display:flex;align-items:center;gap:10px;padding:9px 2px;border-top:1px solid var(--garis);font-size:14px}
+.tp-baris:first-of-type{border-top:0}.tp-baris input{width:20px;height:20px;flex:none}
+.tp-judul{margin:14px 0 4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--redup)}
 body.hp #strip[hidden],body.hp #alatLain[hidden]{display:none!important}
 #alatLain{display:flex;flex-wrap:wrap;gap:10px;align-items:center;flex:1 1 100%}
 .rp{display:block;font:12px var(--f-num);color:var(--label);margin-top:1px}
@@ -311,7 +315,8 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
   <header>
     <h1>AMONK <b>MONITOR</b></h1>
     <div class="status"><span class="dot" id="dot"></span><span id="stat">menyambung…</span>
-      <button class="btn ikon" id="tema" type="button" title="Ganti tampilan terang / gelap" aria-label="Ganti tema"></button></div>
+      <button class="btn ikon" id="tema" type="button" title="Ganti tampilan terang / gelap" aria-label="Ganti tema"></button>
+      <button class="btn ikon" id="tampilanBtn" type="button" title="Atur tab & bagian yang ditampilkan" aria-label="Atur tampilan">⚙</button></div>
   </header>
   <!-- BILAH STATUS (2026-09-23): selalu terlihat di semua tab — bot, perantara VPS, harga hidup, modal & laba bot -->
   <!-- Urutan (2026-09-23, permintaan user "tampilan HP simpel tapi info penting tersampaikan"):
@@ -1556,6 +1561,39 @@ $("hpList").addEventListener("click", e => {
   const n = k.dataset.k; bukaHP.has(n) ? bukaHP.delete(n) : bukaHP.add(n); gambar();
 });
 { const simpanan = baca("modeHP", null); pasangMode(simpanan === null ? window.innerWidth <= 760 : !!simpanan); }
+
+// PENGATURAN TAMPILAN (2026-09-25, user: "lebih simpel, ada pengaturan menyembunyikan tab, HP hanya info penting").
+// Disimpan di perangkat (localStorage "tampilan"). Bawaan di HP = SIMPEL (tab Terminal, Riwayat, Akun; bilah status Bot, Laba, Posisi);
+// tombol ⚙ di header selalu ada untuk mengubah / mengembalikan tampilan lengkap.
+const TP_TAB = [["Terminal", "Terminal"], ["Riwayat", "Riwayat"], ["Jurnal", "Jurnal"], ["Akun", "Akun"], ["Info", "Info"]];
+const TP_PITA = [["pitaBot", "Status bot"], ["pitaHari", "Laba hari ini"], ["pitaPosisi", "Posisi"], ["pitaModal", "Modal bot"], ["pitaHarga", "Harga hidup"], ["pitaVps", "Perantara VPS"]];
+const TP_LENGKAP = { tab: { Terminal: true, Riwayat: true, Jurnal: true, Akun: true, Info: true }, pita: { pitaBot: true, pitaHari: true, pitaPosisi: true, pitaModal: true, pitaHarga: true, pitaVps: true }, pitaAda: true };
+const TP_SIMPEL = { tab: { Terminal: true, Riwayat: true, Jurnal: false, Akun: true, Info: false }, pita: { pitaBot: true, pitaHari: true, pitaPosisi: true, pitaModal: false, pitaHarga: false, pitaVps: false }, pitaAda: true };
+let TAMPIL = (() => { const s = baca("tampilan", null); if (s && s.tab && s.pita) return s;
+  return JSON.parse(JSON.stringify(window.innerWidth <= 760 ? TP_SIMPEL : TP_LENGKAP)); })();
+function terapkanTampilan() {
+  for (const [h, id] of TP_TAB) { const b = $("tb" + id); if (b) b.hidden = !TAMPIL.tab[h]; }
+  for (const [id] of TP_PITA) { const e = $(id); if (e) e.hidden = !TAMPIL.pita[id]; }
+  $("pita").hidden = !TAMPIL.pitaAda || TP_PITA.every(([id]) => !TAMPIL.pita[id]);
+  const terlihat = TP_TAB.map(([h]) => h).filter(h => TAMPIL.tab[h]);
+  if (terlihat.length && !terlihat.includes(halAktif)) pindahHal(terlihat[0]);
+}
+function tampilanUbah(jenis, kunci, nilai) {
+  if (jenis === "tab") { const sisa = TP_TAB.filter(([h]) => h !== kunci && TAMPIL.tab[h]).length; if (!nilai && !sisa) { bukaPengaturanTampilan(); return; } TAMPIL.tab[kunci] = nilai; }
+  else if (jenis === "pita") TAMPIL.pita[kunci] = nilai; else if (jenis === "pitaAda") TAMPIL.pitaAda = nilai;
+  simpan("tampilan", TAMPIL); terapkanTampilan();
+}
+window.tampilanUbah = tampilanUbah;
+window.tampilanPreset = n => { TAMPIL = JSON.parse(JSON.stringify(n === "simpel" ? TP_SIMPEL : TP_LENGKAP)); simpan("tampilan", TAMPIL); terapkanTampilan(); bukaPengaturanTampilan(); };
+function bukaPengaturanTampilan() {
+  const baris = (jenis, kunci, nama, nilai) => '<label class="tp-baris"><input type="checkbox" ' + (nilai ? "checked " : "") + 'onchange="tampilanUbah(&quot;' + jenis + '&quot;,&quot;' + kunci + '&quot;,this.checked)"><span>' + nama + '</span></label>';
+  popupTampil('Pengaturan tampilan', '<div style="display:flex;gap:8px;margin-bottom:6px"><button class="btn" type="button" onclick="tampilanPreset(&quot;simpel&quot;)">Simpel (HP)</button><button class="btn" type="button" onclick="tampilanPreset(&quot;lengkap&quot;)">Lengkap</button></div>' +
+    '<div class="tp-judul">Tab yang ditampilkan</div>' + TP_TAB.map(([h, id]) => baris("tab", h, id, TAMPIL.tab[h])).join("") +
+    '<div class="tp-judul">Bilah status di atas</div>' + baris("pitaAda", "x", "Tampilkan bilah status", TAMPIL.pitaAda) + TP_PITA.map(([id, n]) => baris("pita", id, n, TAMPIL.pita[id])).join("") +
+    '<p class="sub redup" style="margin-top:12px">Pengaturan tersimpan di perangkat ini. Minimal satu tab harus tampil. Tombol ⚙ di pojok atas selalu ada untuk mengubahnya kembali.</p>', false);
+}
+$("tampilanBtn").addEventListener("click", bukaPengaturanTampilan);
+setTimeout(terapkanTampilan, 0);   // sesudah seluruh skrip dimuat (halAktif/pindahHal didefinisikan lebih bawah)
 
 // TEMA (2026-09-22): "gelap" | "terang" | null (ikut sistem). Tombol berputar sistem→terang→gelap.
 const IK_SURYA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
