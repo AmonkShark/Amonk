@@ -1480,7 +1480,7 @@ function gambarAksi(semua) {
     if (r.ew && r.ewJarak != null && Math.abs(r.ewJarak) <= 2) jk(r.koin, "⏳", "limit Elliott " + fHarga(r.ew.level) + " (" + fPct(r.ewJarak, 1) + " dari harga)", "", 3);
   }
   const el = $("trmAksi");
-  if (!A.length) { el.hidden = true; return; }
+  if (!A.length) { el.hidden = false; el.innerHTML = '<div class="aksi-kepala"><b>🔔 Perlu tindakan <small>0</small></b><span class="redup" style="font-size:12.5px">Tidak ada yang mendesak sekarang ✓</span></div>'; return; }
   A.sort((a, b) => a.u - b.u);
   const buka = !!baca("aksiBuka", true);
   el.hidden = false;
