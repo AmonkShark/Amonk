@@ -373,8 +373,24 @@ body.hp .hp-sembunyi{display:none}
 #jrList .jn-baris:not([aria-expanded="true"]) .lv{display:none}
 #jrList .jn-baris{grid-template-columns:minmax(0,1fr) auto}
 .rp-auto.blok{display:block;margin-top:1px}
-.rp-auto{font:400 .8em var(--f-ui);color:var(--label);white-space:nowrap}
+.rp-auto{text-transform:none!important;letter-spacing:0!important;font:400 .8em var(--f-ui);color:var(--label);white-space:nowrap}
 body.privasi .ak-hero b,body.privasi .jr-angka b,body.privasi .rk-jn b,body.privasi .ha,body.privasi .rp,body.privasi .rp-auto,body.privasi .ak-hero em,body.privasi #pita b{filter:blur(7px);user-select:none}
+
+/* JURNAL TRADE NYATA: grid & kelompok, PNL Rupiah (2026-09-25) */
+#jnRing.jr-ring{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px;overflow:visible;scroll-snap-type:none}
+#jnRing.jr-ring>.jr-kotak{flex:none;min-width:0;position:relative;padding-top:26px}
+#jnRing .jr-angka{grid-template-columns:repeat(auto-fit,minmax(92px,1fr))}
+#jnRing .jr-angka b{font-size:clamp(14px,4.2vw,17px);overflow-wrap:anywhere}
+#jnRing .jr-ket{display:none}#jnRing .jr-kotak.info .jr-ket{display:block}
+#jnRing .jr-kotak[data-grup]::before{content:attr(data-grup);position:absolute;top:8px;left:14px;font:600 10px var(--f-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--biru)}
+#jnRing h3{flex-wrap:wrap;gap:4px 8px}
+.info-btn{margin-left:auto;background:none;border:1px solid var(--garis);border-radius:50%;width:22px;height:22px;color:var(--label);font:12px var(--f-ui);cursor:pointer;padding:0}
+.jn-kartu-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px}
+.jn-kartu-l{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--redup)}
+.chip-k{font:12px var(--f-ui);padding:5px 11px;border-radius:999px;border:1px solid var(--garis);background:var(--bg2);color:var(--label);cursor:pointer}
+.chip-k[aria-pressed="true"]{border-color:var(--biru);color:var(--teks);background:rgba(66,165,245,.12)}
+td.pnl .rp-auto.blok{font-size:.72em}
+.rk-jn .rp-auto.blok{font-size:12px;margin-top:2px}
 </style>
 </head>
 <body>
@@ -1696,7 +1712,7 @@ $("tampilanBtn").addEventListener("click", bukaPengaturanTampilan);
   // angka profit tanpa tulisan USDT (baris jurnal/riwayat, total profit, kolom PnL Terminal)
   function prosesAngka(akar) {
     if (!KURS.idr || TAMPIL.rp === false) return;
-    for (const el of akar.querySelectorAll("td.pnl, #jrList .ha>b, #rwList .ha>b, .rk-jn>div:first-child>b, .ak-hero-bawah>div:nth-child(3)>b")) {
+    for (const el of akar.querySelectorAll("td.pnl, #sPola, #jrList .ha>b, #rwList .ha>b, .rk-jn>div:first-child>b, .ak-hero-bawah>div:nth-child(3)>b")) {
       if (el.querySelector(".rp-auto")) continue;
       const n = [...el.childNodes].find(x => x.nodeType === 3 && x.nodeValue.trim()); if (!n) continue;
       const m = /^\s*([+\-−]?\d[\d,]*\.?\d*)/.exec(n.nodeValue); if (!m) continue;
@@ -1708,7 +1724,7 @@ $("tampilanBtn").addEventListener("click", bukaPengaturanTampilan);
   window.rpPasang = () => { clearTimeout(tm); tm = setTimeout(() => {
     document.querySelectorAll(".rp-auto").forEach(e => e.remove());
     if (TAMPIL.rp === false) return;
-    for (const id of ["halTerminal", "halRiwayat", "halJurnal", "halAkun", "pita"]) { const e = document.getElementById(id); if (e && !e.hidden) { proses(e); prosesAngka(e); } } mo.takeRecords(); }, 80); };
+    for (const id of ["halTerminal", "halRiwayat", "halJurnal", "halAkun", "pita", "popupBadan"]) { const e = document.getElementById(id); if (e && !e.hidden) { proses(e); prosesAngka(e); } } mo.takeRecords(); }, 80); };
   const mo = new MutationObserver(() => window.rpPasang());
   mo.observe(document.body, { childList: true, subtree: true });
   setInterval(window.rpPasang, 5000);
@@ -1788,8 +1804,8 @@ function jnPanel(daftar) {
   const tutupD = daftar.filter(t => !t.terbuka), H = jnHitung(tutupD);
   const judul = JN_S.grup ? JN_S.grup : JN_S.sinyal === "semua" ? "Semua sinyal" : JN_S.sinyal;
   $("jnRingkas").hidden = false;
-  $("jnRingkas").innerHTML = '<div><span>Total profit</span><b class="' + kl(H.tot) + '">' + (H.n ? f2(H.tot) : "—") + '</b></div><div><span>Win rate</span><b>' + (H.n ? Math.round(H.wr) + "%" : "—") + '</b></div><div><span>Trade tutup</span><b>' + H.n + '</b></div>' +
-    '<div class="rk-cap">' + judul + " · USDT per nominal " + (JR ? JR.nominal : 1000) + " · " + daftar.filter(t => t.terbuka).length + " masih jalan</div>";
+  $("jnRingkas").innerHTML = '<div><span>Total profit (USDT)</span><b class="' + kl(H.tot) + '">' + (H.n ? f2(H.tot) : "—") + '</b></div><div><span>Win rate</span><b>' + (H.n ? Math.round(H.wr) + "%" : "—") + '</b></div><div><span>Trade tutup</span><b>' + H.n + '</b></div>' +
+    '<div class="rk-cap">' + judul + " · PROFIT bersih trade tutup, BUKAN modal + profit · tiap trade disimulasikan " + (JR ? JR.nominal : 1000) + " USDT" + (H.n && JR ? " · rata-rata " + f2(H.tot / (H.n * JR.nominal) * 100) + "% per trade" : "") + " · " + daftar.filter(t => t.terbuka).length + " masih jalan</div>";
   const semua = jnBaris(), pa = jnPolaAktif(), batas = +JN_S.periode ? Date.now() - +JN_S.periode * 864e5 : 0;
   const dasar = semua.filter(t => t.mT >= batas && (t.sinyal !== "POLA 4H" || !t.jenis || pa.has(t.jenis)));
   const kartu = (id, nama, arr, aktif) => {
@@ -2617,6 +2633,28 @@ function gambarBot(s) {
   $("btList").innerHTML = baris.join("") || `<div class="kosong">Belum ada posisi atau riwayat bot.</div>`;
 }
 $("btList").addEventListener("click", e => { if (e.target.closest("#btRiwToggle")) { simpan("btRiwBuka", !baca("btRiwBuka", true)); if (BT_S) gambarBot(BT_S); } });
+
+// KARTU JURNAL TRADE NYATA rapi (2026-09-25): grid, dikelompokkan, tiap kartu bisa disembunyikan (chip), penjelasan lewat tombol ⓘ
+(function () {
+  const GRUP = { "Trade nyata": "Hasil", "Sesuai sinyal vs di luar sinyal": "Hasil", "Aturan jeda": "Disiplin", "Biaya nyata": "Biaya" };
+  const tutup = () => new Set(baca("jnKartuSembunyi", []));
+  const judulKartu = k => { const h = k.querySelector("h3"); const n = h && [...h.childNodes].find(x => x.nodeType === 3 && x.nodeValue.trim()); return n ? n.nodeValue.trim() : (h ? h.textContent.trim() : ""); };
+  function rapikan() {
+    const ring = $("jnRing"), kartu = [...ring.querySelectorAll(":scope > .jr-kotak")]; if (!kartu.length) { const b = $("jnKartuBar"); if (b) b.hidden = true; return; }
+    const sembunyi = tutup(); let bar = $("jnKartuBar");
+    if (!bar) { bar = document.createElement("div"); bar.id = "jnKartuBar"; bar.className = "jn-kartu-bar"; ring.parentNode.insertBefore(bar, ring); }
+    bar.hidden = false;
+    const daftar = kartu.map(k => { const j = judulKartu(k); k.dataset.judul = j; k.dataset.grup = GRUP[j] || "Lain"; k.hidden = sembunyi.has(j);
+      if (!k.querySelector(".info-btn") && k.querySelector(".jr-ket")) { const b = document.createElement("button"); b.type = "button"; b.className = "info-btn"; b.textContent = "ⓘ"; b.title = "Penjelasan"; k.querySelector("h3").appendChild(b); }
+      return j; });
+    bar.innerHTML = '<span class="jn-kartu-l">Kartu:</span>' + daftar.map(j => '<button type="button" class="chip-k" aria-pressed="' + !sembunyi.has(j) + '" data-j="' + j.replace(/"/g, "&quot;") + '">' + j + '</button>').join("");
+  }
+  new MutationObserver(rapikan).observe($("jnRing"), { childList: true });
+  $("jnRing").addEventListener("click", e => { const b = e.target.closest(".info-btn"); if (b) b.closest(".jr-kotak").classList.toggle("info"); });
+  document.addEventListener("click", e => { const c = e.target.closest("#jnKartuBar .chip-k"); if (!c) return;
+    const t = tutup(); const j = c.dataset.j; if (t.has(j)) t.delete(j); else t.add(j); simpan("jnKartuSembunyi", [...t]); rapikan(); });
+  rapikan();
+})();
 async function muatBot() {
   try { btPesan("Membaca bot…"); const s = await btPanggil("/status"); gambarBot(s);
     const lihat = s.bolehUbah === false; kunciBot(lihat);                // bot lama tanpa field ini = boleh ubah
@@ -2704,6 +2742,8 @@ function pnlPeta() {
     (peta[k] = peta[k] || { total: 0, n: 0, list: [] }); peta[k].total += +r.hasil; peta[k].n++; peta[k].list.push(r); }
   return peta;
 }
+const rpS = v => { if (!KURS.idr || v == null || !isFinite(v)) return ""; const a = Math.abs(v) * KURS.idr, t = a >= 1e9 ? (a / 1e9).toFixed(2).replace(".", ",") + "M" : a >= 1e6 ? (a / 1e6).toFixed(a >= 1e7 ? 1 : 2).replace(".", ",") + "jt" : a >= 1e3 ? Math.round(a / 1e3) + "rb" : Math.round(a) + "";
+  return (v < 0 ? "−" : "+") + "Rp" + t; };
 const pnlF = (v, p = 2) => (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(p);
 function pnlKal(y, m, pilih) {
   const peta = pnlPeta(), n = new Date(y, m + 1, 0).getDate(), awal = (new Date(y, m, 1).getDay() + 6) % 7;   // Senin = 0
@@ -2714,7 +2754,7 @@ function pnlKal(y, m, pilih) {
   for (let d = 1; d <= n; d++) { const k = pnlKunci(y, m, d), x = peta[k];
     const bg = !x ? "transparent" : x.total >= 0 ? "rgba(38,166,154,.18)" : "rgba(239,83,80,.18)", wr = !x ? "var(--redup)" : x.total >= 0 ? "var(--hijau)" : "var(--merah)";
     sel += '<div ' + (x ? 'role="button" tabindex="0" onclick="pnlHari(' + y + ',' + m + ',' + d + ')" ' : '') + 'style="min-height:52px;padding:4px 3px;border-radius:6px;background:' + bg + ';border:1px solid ' + (k === pilih ? 'var(--teks)' : k === hariIni ? 'var(--garis)' : 'transparent') + ';text-align:center;' + (x ? 'cursor:pointer' : '') + '">' +
-      '<div style="font-size:11px;color:var(--redup)">' + d + '</div>' + (x ? '<div style="font-size:11px;font-weight:600;color:' + wr + '">' + pnlF(x.total, Math.abs(x.total) >= 100 ? 0 : 2) + '</div><div style="font-size:9px;color:var(--redup)">' + x.n + ' trade</div>' : '') + '</div>'; }
+      '<div style="font-size:11px;color:var(--redup)">' + d + '</div>' + (x ? '<div style="font-size:11px;font-weight:600;color:' + wr + '">' + pnlF(x.total, Math.abs(x.total) >= 100 ? 0 : 2) + '</div><div style="font-size:8.5px;color:' + wr + '">' + rpS(x.total) + '</div><div style="font-size:9px;color:var(--redup)">' + x.n + ' trade</div>' : '') + '</div>'; }
   const sebelum = m === 0 ? [y - 1, 11] : [y, m - 1], sesudah = m === 11 ? [y + 1, 0] : [y, m + 1];
   let det = ""; if (pilih && peta[pilih]) { const x = peta[pilih];
     det = '<div style="margin-top:12px"><b>' + pilih.split("-").reverse().join("/") + '</b> · <span style="color:' + (x.total >= 0 ? "var(--hijau)" : "var(--merah)") + '">' + pnlF(x.total) + ' USDT</span> · ' + x.n + ' trade' +
@@ -2724,7 +2764,7 @@ const pilihAkun = "";   // bot dan manual DIPISAH (dua tombol di header Akun), t
   const semuaT = pnlSumber().filter(r => r.keluarT > 0 && isFinite(r.hasil)), sk2 = Date.now(), awalHari = new Date(); awalHari.setHours(0, 0, 0, 0);
   const jml = t0 => semuaT.filter(r => r.keluarT >= t0).reduce((a, r) => a + +r.hasil, 0), warnaP = v => v >= 0 ? "var(--hijau)" : "var(--merah)";
   const ringkas = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:10px;text-align:center;font-size:11px">' +
-    [["Hari ini", jml(awalHari.getTime())], ["7 hari", jml(sk2 - 7 * 864e5)], ["30 hari", jml(sk2 - 30 * 864e5)], ["Total", jml(0)]].map(([n, v]) => '<div style="padding:6px 2px;border-radius:6px;background:var(--bg2)"><div style="color:var(--redup)">' + n + '</div><b style="color:' + warnaP(v) + '">' + pnlF(v) + '</b></div>').join("") + '</div>' +
+    [["Hari ini", jml(awalHari.getTime())], ["7 hari", jml(sk2 - 7 * 864e5)], ["30 hari", jml(sk2 - 30 * 864e5)], ["Total", jml(0)]].map(([n, v]) => '<div style="padding:6px 2px;border-radius:6px;background:var(--bg2)"><div style="color:var(--redup)">' + n + '</div><b style="color:' + warnaP(v) + '">' + pnlF(v) + '</b><div style="font-size:10px;color:' + warnaP(v) + '">' + rpS(v) + '</div></div>').join("") + '</div>' +
     (PNL_MODE === "manual" && !(JN && JN.trade) ? '<div class="sub" style="color:var(--kuning);margin-bottom:8px;text-align:center">Belum ada data trade nyata: tekan "Muat dari Binance" di Akun → Jurnal trade nyata, lalu buka kalender ini lagi.</div>' : "");
   const pilihSin = PNL_MODE !== "jurnal" ? "" : '<div style="display:flex;gap:6px;margin-bottom:8px;justify-content:center">' + [["semua", "Semua"], ["POLA 4H", "POLA 4H"], ["AI 4H", "AI 4H"]].map(([v, n]) => '<button class="btn kecil" type="button" aria-pressed="' + (PNL_SIN === v) + '" style="' + (PNL_SIN === v ? 'border-color:var(--teks)' : '') + '" onclick="pnlSin(&quot;' + v + '&quot;)">' + n + '</button>').join("") + '</div>';
   return pilihAkun + pilihSin + ringkas + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><button class="btn" type="button" onclick="pnlBulan(' + sebelum[0] + ',' + sebelum[1] + ')">‹</button><b>' + PNL_BLN[m] + " " + y + '</b><button class="btn" type="button" onclick="pnlBulan(' + sesudah[0] + ',' + sesudah[1] + ')">›</button></div>' +
