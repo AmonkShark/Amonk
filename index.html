@@ -321,6 +321,11 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
 .jr-ring{display:flex!important;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
 .jr-ring::-webkit-scrollbar{display:none}
 .jr-ring>.jr-kotak{flex:0 0 min(90%,380px);scroll-snap-align:center}
+.jr-ring>.jr-kotak:only-child{flex-basis:100%}
+.hp-lipat{margin:0 0 10px}.hp-lipat>summary{cursor:pointer;list-style:none;padding:11px 14px;border:1px solid var(--garis);border-radius:12px;background:linear-gradient(155deg,var(--bg1),var(--bg2));font-size:13px;color:var(--teks)}
+.hp-lipat>summary::-webkit-details-marker{display:none}
+.hp-lipat[open]>summary{margin-bottom:10px}
+body:not(.hp) .hp-lipat>summary{display:none}
 #jrRing{display:none!important}
 .rk-jn{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 12px;padding:16px 12px;border:1px solid var(--garis);border-radius:16px;background:radial-gradient(120% 140% at 0% 0%,rgba(38,166,154,.10),transparent 60%),linear-gradient(155deg,var(--bg1),var(--bg2));box-shadow:0 10px 28px rgba(0,0,0,.16)}
 .rk-jn>div{text-align:center}.rk-jn span{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--redup);margin-bottom:4px}
@@ -462,6 +467,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
     <div class="rk-jn" id="jnRingkas" hidden></div>
     <div class="geser-info">‹ geser untuk melihat pola / sinyal lain · ketuk kartu untuk menyaring daftar ›</div>
     <div class="rw-tabel" id="jnPolaKartu"></div>
+    <details class="hp-lipat" id="jnLipatAlat"><summary>☰ Filter &amp; alat</summary>
     <div class="jn-alat">
       <div class="seg" role="group" aria-label="Sinyal" id="jnSinyal">
         <button data-v="semua">Semua sinyal</button><button data-v="POLA 4H">POLA 4H</button><button data-v="AI 4H">AI 4H</button>
@@ -477,12 +483,15 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
     </div>
     <div class="ak-set" id="jnPolaForm" hidden></div>
     <div class="ak-set" id="jnKolForm" hidden></div>
+    </details>
+    <details class="hp-lipat" id="jnLipatStat"><summary>📊 Statistik &amp; rincian</summary>
     <div id="jnStat"></div>
     <div class="rw-judul">Rincian <small>ketuk baris untuk menyaring daftar trade</small></div>
     <div class="seg" role="group" aria-label="Rincian" id="jnRinciPilih" style="margin-bottom:8px">
       <button data-v="bulan">Per bulan</button><button data-v="minggu">Per minggu</button><button data-v="jenis">Per pola/jenis</button><button data-v="koin">Per koin</button><button data-v="sebab">Per cara keluar</button><button data-v="hari">Per hari masuk</button>
     </div>
     <div id="jnRinci"></div>
+    </details>
     <div class="rw-judul" style="margin-top:12px">Daftar trade <small id="jnJumlah"></small></div>
     <div class="jr-list" id="jrList"></div>
     <p class="jr-ket" id="jrWaktu" style="margin-top:10px"></p>
@@ -1569,6 +1578,7 @@ tbl.addEventListener("mouseover", e => { const td = e.target.closest("td"); if (
 // mode tampilan: bawaan HP kalau layar sempit; pilihan manual disimpan
 function pasangMode(hp) {
   modeHP = hp; document.body.classList.toggle("hp", hp);
+  document.querySelectorAll(".hp-lipat").forEach(d => { d.open = !hp; });   // HP: alat & statistik terlipat; laptop: terbuka
   $("mode").textContent = hp ? "Tampilan lengkap" : "Tampilan HP";
   gambar(); if (!hp && window.paskanOtomatis) window.paskanOtomatis();
 }
