@@ -370,8 +370,8 @@ body.hp .hp-sembunyi{display:none}
 .bt-sub-toggle{display:flex;align-items:center;gap:8px}.bt-sub-toggle small{color:var(--redup);font-weight:400}.bt-sub-toggle .btn{margin-left:auto}
 .ukuran,#paskan,#trmKolToggle,#rwKolToggle,#akKolToggle,#jnKolToggle{display:none!important}
 .hp-lipat>summary{display:block!important}
-#jrList .jn-baris:not([aria-expanded="true"]) .lv{display:none}
-#jrList .jn-baris{grid-template-columns:minmax(0,1fr) auto}
+@media(max-width:899px){#jrList .jn-baris:not([aria-expanded="true"]) .lv{display:none}#jrList .jn-baris{grid-template-columns:minmax(0,1fr) auto}}
+@media(min-width:900px){#jrList .jn-baris{grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr) minmax(150px,auto)}#jrList .jn-baris .lv{font-size:12.5px;line-height:1.6}}
 .rp-auto.blok{display:block;margin-top:1px}
 .rp-auto{text-transform:none!important;letter-spacing:0!important;font:400 .8em var(--f-ui);color:var(--label);white-space:nowrap}
 body.privasi .ak-hero b,body.privasi .jr-angka b,body.privasi .rk-jn b,body.privasi .ha,body.privasi .rp,body.privasi .rp-auto,body.privasi .ak-hero em,body.privasi #pita b{filter:blur(7px);user-select:none}
