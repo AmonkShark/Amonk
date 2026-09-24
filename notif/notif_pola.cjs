@@ -62,6 +62,8 @@ const atrArr = (h, l, c, n = 14) => {
 };
 // TP per pola (pilihan user 2026-09-24; uji 0 lolos ambang): [TP1 dalam R, TP2 dalam R atau null = target pola]
 const TP_A = { FW: [1.5, null], ST: [1.5, 2], AT: [1, null], TB: [1.5, 3], EW: [0.5, null] };
+// TRAILING sesudah TP1 (user 2026-09-24): FW, TB, EW trailing 15% dari puncak (stop mulai di entry), tanpa TP2; ST & AT tetap TP2
+const TRAIL_K = new Set(["FW", "TB", "EW"]), TRAIL_P = 0.15;
 function tpAturan(kode, entry, sl, tpBuku) {
   const [a, t] = TP_A[kode] || [0.75, null], tp2 = t ? entry + t * (entry - sl) : tpBuku;
   let tp1 = entry + a * (entry - sl); if (tp1 >= tp2) tp1 = entry + 0.5 * (tp2 - entry);
@@ -72,25 +74,30 @@ function level(d, e) {
   const entry = e.entry != null ? e.entry : d.c[e.i], sl = e.batal, tpB = e.level + e.tinggi;
   if (!(entry > sl) || !(tpB > entry)) return null;
   const { tp1, tp2 } = tpAturan(e.kode, entry, sl, tpB);
-  return { entry, sl, tp1, tp2 };
+  return { entry, sl, tp1, tp2, trailP: TRAIL_K.has(e.kode) ? TRAIL_P : 0 };
 }
 // Simulasi aturan aplikasi sampai lilin terakhir; sama dengan simTrade() di aplikasi.
 function simTahap(d, i, L) {
   const n = d.c.length;
   let st = "jalan", kenaTp1 = false, sisa = 1, real = 0, tTp1 = null, keluarT = null;
   const tutup = (w, px) => { real += w * NOMINAL * (px / L.entry - 1); sisa -= w; };
+  let puncak = 0, keluarPx = null; const trail = L.trailP > 0;
   for (let k = i + 1; k < n && st === "jalan"; k++) {
     if (!kenaTp1) {
       if (d.l[k] <= L.sl) { tutup(1, L.sl); st = "SL"; keluarT = d.t[k]; }
       else if (d.h[k] >= L.tp1) {
-        tutup(0.5, L.tp1); kenaTp1 = true; tTp1 = d.t[k];
-        if (d.h[k] >= L.tp2) { tutup(sisa, L.tp2); st = "TP2"; keluarT = d.t[k]; }
+        tutup(0.5, L.tp1); kenaTp1 = true; tTp1 = d.t[k]; puncak = Math.max(L.tp1, d.h[k]);
+        if (!trail && d.h[k] >= L.tp2) { tutup(sisa, L.tp2); st = "TP2"; keluarT = d.t[k]; }
       }
+    } else if (trail) {
+      const stop = Math.max(L.entry, puncak * (1 - L.trailP));
+      if (d.l[k] <= stop) { tutup(sisa, stop); keluarPx = stop; st = stop > L.entry * 1.0005 ? "TP2" : "BE"; keluarT = d.t[k]; }
+      else if (d.h[k] > puncak) puncak = d.h[k];
     } else if (d.l[k] <= L.entry) { tutup(sisa, L.entry); st = "BE"; keluarT = d.t[k]; }
     else if (d.h[k] >= L.tp2) { tutup(sisa, L.tp2); st = "TP2"; keluarT = d.t[k]; }
   }
   if (Math.abs(sisa) < 1e-9) sisa = 0;
-  return { st, kenaTp1, tTp1, keluarT, sisa, real, usdt: sisa === 0 ? real - NOMINAL * BIAYA : null };
+  return { st, kenaTp1, tTp1, keluarT, sisa, real, trail, keluarPx, usdt: sisa === 0 ? real - NOMINAL * BIAYA : null };
 }
 const fx = p => { const a = Math.abs(p); const dp = a >= 1000 ? 1 : a >= 10 ? 3 : a >= 1 ? 4 : a >= 0.01 ? 5 : a >= 0.0001 ? 7 : 9; return p.toFixed(dp); };
 const pc = (x, e) => ((x / e - 1) * 100 >= 0 ? "+" : "") + ((x / e - 1) * 100).toFixed(1) + "%";
@@ -141,7 +148,7 @@ function pesanBaru(k, e, L, d, vol, uji, ukuran, tf = "4H") {
     `📐 Pola: <b>${PERINGKAT(e.kode)} ${esc(e.nama)}</b>\n` +
     (e.kode === "EW" ? `✅ Limit terisi: <b>${fx(L.entry)}</b>  (Elliott masuk lewat LIMIT beli, bukan tembus)\n` : `✅ Entry: <b>${fx(L.entry)}</b>\n`) +
     `🎯 TP1: ${fx(L.tp1)}  (${pc(L.tp1, L.entry)})  ambil 50%, SL naik ke entry\n` +
-    `🎯 TP2: ${fx(L.tp2)}  (${pc(L.tp2, L.entry)})\n` +
+    (L.trailP ? `🔁 Sisa 50%: trailing ${Math.round(L.trailP * 100)}% dari puncak (stop mulai di entry, naik mengikuti harga) — tanpa TP2\n` : `🎯 TP2: ${fx(L.tp2)}  (${pc(L.tp2, L.entry)})\n`) +
     `‼️ SL: ${fx(L.sl)}  (${pc(L.sl, L.entry)})\n` +
     (ukuran || "") +
     `🕒 valid ${wib(d.t[e.i] + (tf === "1D" ? 864e5 : 4 * 3600e3))}${vol != null && vol < 1e6 ? "\n⚠️ likuiditas tipis (< $1jt/hari)" : ""}\n` +
@@ -152,7 +159,7 @@ function pesanBaru(k, e, L, d, vol, uji, ukuran, tf = "4H") {
 // Belum ada posisi: pasang limit beli sendiri bila mau. Level sama dengan chart (ELLIOTT ✓) & bot; SL perkiraan
 // dari ATR lilin sekarang (dihitung ulang saat terisi).
 function pesanSetupEw(k, S, d, vol, ukuran) {
-  const n = d.c.length, px = d.c[n - 1], L = { entry: S.level, sl: S.batal, tp2: S.level + S.tinggi };
+  const n = d.c.length, px = d.c[n - 1], L = { entry: S.level, sl: S.batal, tp2: S.level + S.tinggi, trailP: TRAIL_P };
   L.tp1 = L.entry + 0.5 * (L.entry - L.sl); if (L.tp1 >= L.tp2) L.tp1 = L.entry + 0.5 * (L.tp2 - L.entry);
   const habis = d.t[S.lahirB] + 61 * 4 * 3600e3;
   return `<b>AMONK SINYAL · SETUP</b>\n` +
@@ -163,7 +170,7 @@ function pesanSetupEw(k, S, d, vol, ukuran) {
     `📐 Pola: <b>${PERINGKAT("EW")} Elliott Wave</b> — setup baru (ayunan gel.3 ${S.ayun.toFixed(0)}%)\n` +
     `⏳ Limit beli: <b>${fx(L.entry)}</b>  (${pc(L.entry, px)} dari harga ${fx(px)})\n` +
     `🎯 TP1: ${fx(L.tp1)}  (${pc(L.tp1, L.entry)})  ambil 50%, SL naik ke entry\n` +
-    `🎯 TP2: ${fx(L.tp2)}  (${pc(L.tp2, L.entry)})\n` +
+    (L.trailP ? `🔁 Sisa 50%: trailing ${Math.round(L.trailP * 100)}% dari puncak (stop mulai di entry, naik mengikuti harga) — tanpa TP2\n` : `🎯 TP2: ${fx(L.tp2)}  (${pc(L.tp2, L.entry)})\n`) +
     `‼️ SL: ${fx(L.sl)}  (${pc(L.sl, L.entry)})  perkiraan, dihitung ulang saat terisi\n` +
     (ukuran || "") +
     `⌛ Batal bila tidak tersentuh s/d ${wib(habis)} (60 lilin 4H) atau siklus patah\n` +
@@ -205,7 +212,8 @@ function pesanExit(k, nama, kode, L, s, jenis, validT) {
   const kepala = `<b>AMONK SINYAL · UPDATE</b>\n💰 <b>${esc(k)}/USDT</b> · 4H · ${PERINGKAT(kode)} ${esc(nama)}\n`;
   const hasil = s.usdt != null ? `\n📊 Hasil trade: <b>${(s.usdt >= 0 ? "+" : "") + (s.usdt / NOMINAL * 100).toFixed(2)}%</b> (${(s.usdt >= 0 ? "+" : "") + s.usdt.toFixed(2)} USDT per 1000, sesudah biaya)` : "";
   const isi = {
-    TP1: `🎯 <b>TP1 TERCAPAI</b> di ${fx(L.tp1)} (${pc(L.tp1, L.entry)})\n👉 Ambil 50%, <b>pindahkan SL sisa ke entry ${fx(L.entry)}</b>\n🎯 Sisa menunggu TP2 ${fx(L.tp2)}`,
+    TP1: `🎯 <b>TP1 TERCAPAI</b> di ${fx(L.tp1)} (${pc(L.tp1, L.entry)})\n👉 Ambil 50%, <b>pindahkan SL sisa ke entry ${fx(L.entry)}</b>\n` + (L.trailP ? `🔁 Sisa: trailing ${Math.round(L.trailP * 100)}% dari puncak (stop naik mengikuti harga, tanpa TP2)` : `🎯 Sisa menunggu TP2 ${fx(L.tp2)}`),
+    TRAIL: `🔁🏁 <b>TRAILING ${Math.round(L.trailP * 100)}% KENA</b> di ~${s.keluarPx ? fx(s.keluarPx) : "?"} (${s.keluarPx ? pc(s.keluarPx, L.entry) : ""}) — sisa 50% keluar, trade selesai\nTP1 ${fx(L.tp1)} (50%) · sisa dengan trailing`,
     TP2: `🏁 <b>TP2 TERCAPAI</b> di ${fx(L.tp2)} (${pc(L.tp2, L.entry)}) — trade selesai`,
     TP1TP2: `🎯🏁 <b>TP1 & TP2 TERCAPAI</b> — trade selesai\nTP1 ${fx(L.tp1)} · TP2 ${fx(L.tp2)}`,
     BE: `↩️ <b>Sisa 50% keluar di entry</b> ${fx(L.entry)} (impas) — trade selesai`,
@@ -287,7 +295,7 @@ async function pembanding(tutup, cache) {
     const rel = { sl: tr.sl / tr.entry, tp1: tr.tp1 / tr.entry, tp2: tr.tp2 / tr.entry };
     for (let b = 0; b < SET; b++) {
       const r = i0 + Math.floor(Math.random() * (i1 - i0 + 1)), E = d.c[r];
-      const s = simTahap(d, r, { entry: E, sl: E * rel.sl, tp1: E * rel.tp1, tp2: E * rel.tp2 });
+      const s = simTahap(d, r, { entry: E, sl: E * rel.sl, tp1: E * rel.tp1, tp2: E * rel.tp2, trailP: tr.trailP || 0 });
       acak[b] += s.usdt != null ? s.usdt : s.real + s.sisa * NOMINAL * (d.c[d.c.length - 1] / E - 1) - NOMINAL * BIAYA;   // masih jalan: nilai di lilin terakhir
     }
   }
@@ -424,17 +432,17 @@ function pesanScan(tf, V, H, dicek) {
   const tfT = tf === "1d" ? "1D" : "4H", tipis = x => x.vol < 1e6 ? " ⚠️tipis" : "";
   const bV = V.sort((a, b) => a.r - b.r).slice(0, SCAN_MAKS).map(x =>
     `• <b>${esc(x.k)}</b> ${PERINGKAT(x.kode)} ${esc(x.nama)} · valid ${lokal(x.validT).teks.slice(0, 5)}\n` +
-    `   E ${fx(x.L.entry)} (kini ${pc(x.px, x.L.entry)}) · SL ${fx(x.L.sl)} (${pc(x.L.sl, x.L.entry)}) · TP1 ${fx(x.L.tp1)} · TP2 ${fx(x.L.tp2)}${tipis(x)}`).join("\n");
+    `   E ${fx(x.L.entry)} (kini ${pc(x.px, x.L.entry)}) · SL ${fx(x.L.sl)} (${pc(x.L.sl, x.L.entry)}) · TP1 ${fx(x.L.tp1)} · ${x.L.trailP ? "sisa trailing " + Math.round(x.L.trailP * 100) + "%" : "TP2 " + fx(x.L.tp2)}${tipis(x)}`).join("\n");
   const bH = H.sort((a, b) => Math.abs(a.jarak) - Math.abs(b.jarak)).slice(0, SCAN_MAKS).map(x =>
     `• <b>${esc(x.k)}</b> ${PERINGKAT(x.kode)} ${esc(x.nama)}${x.tahap === "CALON" ? " <i>(calon)</i>" : ""} · ${x.kode === "EW" ? "limit beli" : "tembus"} ${fx(x.E)} (<b>${x.jarak >= 0 ? "+" : ""}${x.jarak.toFixed(1)}%</b>)\n` +
-    `   SL ${fx(x.S)} (${pc(x.S, x.E)}) · TP2 ${fx(x.T2)} (${pc(x.T2, x.E)})${tipis(x)}`).join("\n");
+    `   SL ${fx(x.S)} (${pc(x.S, x.E)}) · ${TRAIL_K.has(x.kode) ? "sisa trailing " + Math.round(TRAIL_P * 100) + "%" : "TP2 " + fx(x.T2) + " (" + pc(x.T2, x.E) + ")"}${tipis(x)}`).join("\n");
   return `<b>AMONK SINYAL · SCAN HARIAN ${tfT}</b>\n◻️◻️◻️◻️◻️\n📅 ${lokal(Date.now()).teks} waktu ${esc(KOTA)} · ${dicek} koin\n\n` +
     `✅ <b>Valid, masih di area entry</b> (≤ +${SCAN_AREA_R}R, belum TP1/SL): ${V.length}\n${bV || "   — tidak ada"}` +
     (V.length > SCAN_MAKS ? `\n   … +${V.length - SCAN_MAKS} lagi` : "") + `\n\n` +
     `⏳ <b>Hampir valid</b> — menunggu lilin ${tfT} TUTUP di atas garis tembus: ${H.length}\n${bH || "   — tidak ada"}` +
     (H.length > SCAN_MAKS ? `\n   … +${H.length - SCAN_MAKS} lagi` : "") + `\n\n` +
     `<i>Hampir valid BELUM sinyal: entry hanya sesudah lilin tutup di atas garis tembus. Calon = lembah terakhir belum sah, bisa berubah. Elliott Wave = limit beli: entry saat harga TURUN menyentuh limit (batal bila 60 lilin tak tersentuh).` +
-    (tf === "1d" ? ` Pola 1D di uji proyek tidak lebih baik dari entry acak — info saja; SL 1D lebar, hitung ukuran dari rugi-bila-SL.` : ` Level: 50% TP1, SL ke entry, 50% TP2.`) + `</i>`;
+    (tf === "1d" ? ` Pola 1D di uji proyek tidak lebih baik dari entry acak — info saja; SL 1D lebar, hitung ukuran dari rugi-bila-SL.` : ` Level: 50% TP1, SL ke entry, sisa: TP2 (ST, AT) atau trailing ${Math.round(TRAIL_P * 100)}% (FW, TB, EW).`) + `</i>`;
 }
 async function scanHarian() {
   const L0 = lokal(Date.now());
@@ -527,7 +535,7 @@ async function rekap() {
       if (S && S.umur < JENDELA_BAR && d.c[nB - 1] > S.level) {
         const kS = `EWSETUP|${k}|${d.t[S.lahirB]}`;
         if (!status[kS]) {
-          const LS = { entry: S.level, sl: S.batal, tp2: S.level + S.tinggi };
+          const LS = { entry: S.level, sl: S.batal, tp2: S.level + S.tinggi, trailP: TRAIL_P };
           LS.tp1 = LS.entry + 0.5 * (LS.entry - LS.sl); if (LS.tp1 >= LS.tp2) LS.tp1 = LS.entry + 0.5 * (LS.tp2 - LS.entry);
           const volS = d.v.slice(-6).reduce((a, x, q) => a + x * d.c[nB - 6 + q], 0);
           if (LS.sl > 0 && await kirim(pesanSetupEw(k, S, d, volS, null), pesanSetupEw(k, S, d, volS, ukuranTeks(LS, M)))) status[kS] = { t: sekarang, tahap: "tutup" };
@@ -557,7 +565,7 @@ async function rekap() {
       if (!S || S.tahap === "tutup") continue;
       let jenis = null, tahapBaru = S.tahap;
       if (s.st === "SL") { jenis = "SL"; tahapBaru = "tutup"; }
-      else if (s.st === "TP2") { jenis = S.tahap === "tp1" ? "TP2" : "TP1TP2"; tahapBaru = "tutup"; }
+      else if (s.st === "TP2") { jenis = s.trail ? "TRAIL" : S.tahap === "tp1" ? "TP2" : "TP1TP2"; tahapBaru = "tutup"; }
       else if (s.st === "BE") { jenis = S.tahap === "tp1" ? "BE" : "TP1BE"; tahapBaru = "tutup"; }
       else if (s.kenaTp1 && S.tahap === "baru") { jenis = "TP1"; tahapBaru = "tp1"; }
       if (jenis && await kirim(pesanExit(k, e.nama, e.kode, L, s, jenis, validT))) { S.tahap = tahapBaru; S.u = sekarang; keluar++; }
