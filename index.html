@@ -639,7 +639,7 @@ td.kosong{border:0;border-radius:0}
       <div class="set-judul">🛑 Jeda otomatis (circuit breaker)</div><label for="btBrHari">Jeda bila rugi 24 jam (% modal)<input id="btBrHari" type="number" step="any" min="0.1" max="50" inputmode="decimal"></label>
       <label for="btBrMinggu">Jeda bila rugi 7 hari (% modal)<input id="btBrMinggu" type="number" step="any" min="0.1" max="90" inputmode="decimal"></label>
       <label for="btBrBerturut">Jeda bila rugi berturut (kali)<input id="btBrBerturut" type="number" step="1" min="1" max="30" inputmode="decimal"></label>
-      <label class="cek" style="flex-direction:row;align-items:center;gap:8px"><input id="btBrAktif" type="checkbox"> Circuit breaker aktif</label>
+      <label class="cek" style="flex-direction:row;align-items:center;gap:8px"><input id="btBrAktif" type="checkbox"> Circuit breaker aktif (bawaan mati: bot jalan terus)</label>
       <div class="set-judul">🎯 Koin &amp; pola yang diambil bot</div><label for="btKoin" style="grid-column:span 2">Koin yang diambil bot<input id="btKoin" type="text" autocapitalize="characters" placeholder="kosong = semua koin ber-webhook · contoh: XRP, ETH, SOL"></label>
       <div class="bt-pola" style="grid-column:1/-1"><span>Pola yang diambil bot:</span>
         <label><input type="checkbox" value="FW"> 1 Falling Wedge</label><label><input type="checkbox" value="ST"> 2 Symmetrical Triangle</label>
@@ -2671,9 +2671,9 @@ function gambarBot(s) {
   if (document.activeElement !== $("btKoin")) $("btKoin").value = (PG.koin || []).map(k => k.replace(/USDT$/, "")).join(", ");
   if (document.activeElement !== $("btPosisi")) $("btPosisi").value = PG.maksPosisi || 3;
   if (document.activeElement !== $("btBatas")) $("btBatas").value = PG.batasTrade || 1;
-  { const BR = PG.breaker || { aktif: true, hari: 3, minggu: 6, berturut: 4 };
+  { const BR = PG.breaker || { aktif: false, hari: 3, minggu: 6, berturut: 4 };
     for (const [id, v] of [["btBrHari", BR.hari], ["btBrMinggu", BR.minggu], ["btBrBerturut", BR.berturut]]) if (document.activeElement !== $(id)) $(id).value = v;
-    if (document.activeElement !== $("btBrAktif")) $("btBrAktif").checked = BR.aktif !== false; }
+    if (document.activeElement !== $("btBrAktif")) $("btBrAktif").checked = BR.aktif === true; }
   document.querySelectorAll(".bt-pola input:not(#btKantong)").forEach(c => { c.checked = (PG.polaBoleh || []).includes(c.value); });
   if (document.activeElement !== $("btKantong")) $("btKantong").checked = !!PG.kantong;
   // TAMPILAN BOT dirapikan 2026-09-22 (permintaan user "lebih profesional"): status jadi lencana di judul,
