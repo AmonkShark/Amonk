@@ -10,7 +10,67 @@
   "theme_color": "#0b0e13",
   "lang": "id",
   "icons": [
-    { "src": "ikon-192.png?v=2", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "ikon-512.png?v=2", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+    {
+      "src": "ikon-192.png?v=2",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "ikon-512.png?v=2",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Terminal",
+      "short_name": "Terminal",
+      "url": "./#Terminal",
+      "icons": [
+        {
+          "src": "ikon-192.png?v=2",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Riwayat",
+      "short_name": "Riwayat",
+      "url": "./#Riwayat",
+      "icons": [
+        {
+          "src": "ikon-192.png?v=2",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Jurnal",
+      "short_name": "Jurnal",
+      "url": "./#Jurnal",
+      "icons": [
+        {
+          "src": "ikon-192.png?v=2",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Akun",
+      "short_name": "Akun",
+      "url": "./#Akun",
+      "icons": [
+        {
+          "src": "ikon-192.png?v=2",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }
