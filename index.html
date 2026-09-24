@@ -1102,15 +1102,21 @@ function simTrade(d, e) {
   // SL dan TP1 bersamaan = SL (anggapan terburuk); lilin yang menyentuh TP1 dan TP2
   // bersamaan = keduanya tertutup. Sesudah TP1, sentuhan entry menutup sisa di entry (BE).
   let st = "jalan", kenaTp1 = false, sisa = 1, real = 0, keluarT = null;
+  // TRAILING sesudah TP1 (user 2026-09-24): FW, TB, EW; ST & AT tetap TP2. p = (TP1-entry)/TP1, stop mulai di entry
+  const trail = ["FW", "TB", "EW"].includes(e.kode) && tp1 != null, tp = trail ? (tp1 - entry) / tp1 : 0; let puncak = 0;
   const tutup = (w, px) => { real += w * MODAL_POLA * (px / entry - 1); sisa -= w; };
   for (let k = e.i + 1; k < n && st === "jalan"; k++) {
     if (!kenaTp1) {
       if (sl != null && d.l[k] <= sl) { tutup(1, sl); st = "SL"; keluarT = d.t[k]; }
       else if (tp1 == null) { if (d.h[k] >= tp2) { tutup(1, tp2); st = "TP2"; keluarT = d.t[k]; } }
       else if (d.h[k] >= tp1) {
-        tutup(0.5, tp1); kenaTp1 = true;
-        if (d.h[k] >= tp2) { tutup(sisa, tp2); st = "TP2"; keluarT = d.t[k]; }
+        tutup(0.5, tp1); kenaTp1 = true; puncak = Math.max(tp1, d.h[k]);
+        if (!trail && d.h[k] >= tp2) { tutup(sisa, tp2); st = "TP2"; keluarT = d.t[k]; }
       }
+    } else if (trail) {
+      const stop = Math.max(entry, puncak * (1 - tp));
+      if (d.l[k] <= stop) { tutup(sisa, stop); st = stop > entry * 1.0005 ? "TP2" : "BE"; keluarT = d.t[k]; }
+      else if (d.h[k] > puncak) puncak = d.h[k];
     } else if (d.l[k] <= entry) { tutup(sisa, entry); st = "BE"; keluarT = d.t[k]; }
     else if (d.h[k] >= tp2) { tutup(sisa, tp2); st = "TP2"; keluarT = d.t[k]; }
   }
