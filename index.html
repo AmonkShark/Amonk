@@ -408,6 +408,28 @@ td.kosong{border:0;border-radius:0}
 .kosong.memuat{color:transparent;position:relative;overflow:hidden;min-height:56px;background:var(--bg2);border-style:solid}
 .kosong.memuat::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 20%,rgba(128,140,160,.18) 50%,transparent 80%);transform:translateX(-100%);animation:kilau 1.3s infinite}
 @keyframes kilau{to{transform:translateX(100%)}}
+
+/* TERMINAL: aksi, chip, jalur mini, ringkas (2026-09-25) */
+.aksi{margin:0 0 12px;padding:12px 14px;border:1px solid var(--garis);border-radius:14px;background:linear-gradient(155deg,var(--bg1),var(--bg2));box-shadow:0 8px 22px rgba(0,0,0,.14)}
+.aksi[hidden]{display:none!important}
+.aksi-kepala{display:flex;align-items:center;justify-content:space-between;gap:8px}.aksi-kepala small{color:var(--redup);font-weight:400;margin-left:4px}
+.aksi-daftar{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.aksi-i{font:12.5px var(--f-ui);color:var(--teks);background:var(--bg2);border:1px solid var(--garis);border-left:3px solid var(--biru);border-radius:10px;padding:7px 11px;cursor:pointer;text-align:left}
+.aksi-i.turun{border-left-color:var(--merah)}.aksi-i.naik{border-left-color:var(--hijau)}
+.aksi-i:hover{border-color:var(--biru)}
+.chip-bar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.chip-bar .chip-k .n{opacity:.6;font-size:11px;margin-left:2px}
+.chip.bot{background:rgba(66,165,245,.15);color:var(--biru);border:1px solid rgba(66,165,245,.4);margin-left:4px}
+.jm{position:relative;height:6px;width:92px;margin-top:6px;border-radius:3px;overflow:visible;background:var(--bg2)}
+.jm .jm-r,.jm .jm-g{position:absolute;top:0;bottom:0}.jm .jm-r{left:0;background:rgba(239,83,80,.5);border-radius:3px 0 0 3px}.jm .jm-g{background:rgba(38,166,154,.5);border-radius:0 3px 3px 0}
+.jm .jm-t{position:absolute;top:-2px;bottom:-2px;width:1px;background:var(--label)}
+.jm .jm-k{position:absolute;top:-3px;width:8px;height:12px;margin-left:-4px;border-radius:3px;background:var(--teks);box-shadow:0 0 0 2px var(--bg1)}
+#tbl th:nth-child(8),#tbl td:nth-child(8){display:none}
+@media(min-width:1200px){.tabel{overflow:clip}}
+.strip .v{white-space:normal;overflow:visible;text-overflow:clip}
+.strip>div.utama .v{font-size:clamp(18px,5.6vw,24px)}
+.strip .v small{font-size:11px}
+@media(max-width:760px){.strip{grid-template-columns:repeat(2,minmax(0,1fr))}.strip>div{padding:12px}}
 </style>
 </head>
 <body>
@@ -456,6 +478,7 @@ td.kosong{border:0;border-radius:0}
     <div class="utama"><span class="k">Lilin 4H berikut</span><span class="v" id="sJam">—</span><span class="s" id="sMuat">indikator dari lilin tutup</span></div>
   </section>
   <div class="trm-alok" id="trmAlok" hidden></div></div>
+  <div class="aksi" id="trmAksi" hidden></div>
 
   <div class="alat">
     <input id="cari" type="search" placeholder="Cari koin" autocomplete="off">
@@ -483,6 +506,7 @@ td.kosong{border:0;border-radius:0}
       </div>
     </div>
   </div>
+  <div class="chip-bar" id="chipBar"></div>
   <div class="ak-set" id="trmKolForm" hidden>
   </div>
 
@@ -504,7 +528,7 @@ td.kosong{border:0;border-radius:0}
         <th tabindex="-1" style="cursor:default">TP1</th>
         <th tabindex="-1" style="cursor:default">TP2</th>
         <th data-k="pnl" tabindex="0">PnL 1000 USDT</th>
-        <th tabindex="-1" style="cursor:default" title="Ukuran posisi per trade (atur caranya di tab Akun)">Ukuran posisi</th>
+        <th tabindex="-1" style="cursor:default" title="Berapa USDT yang dibeli per trade (atur caranya di tab Akun)">Beli berapa</th>
       </tr></thead>
       <tbody id="tb"><tr><td colspan="14" class="kosong memuat">Mengambil lilin 4H dari Binance…</td></tr></tbody>
     </table>
@@ -1096,6 +1120,7 @@ const simpan = (k, v) => { try { localStorage.setItem("amonkTerm." + k, JSON.str
 // "level" & "hasil" dipakai bersama oleh Riwayat & Jurnal (bentuk barisnya sama persis).
 const KOL_BAWAAN = { level: true, hasil: true, indikator: true, akNilai: true };
 const KOL = Object.assign({ ...KOL_BAWAAN }, baca("kolom", {}));
+if (!baca("kolomV2", false)) { KOL.indikator = false; simpan("kolom", KOL); simpan("kolomV2", true); }   // 2026-09-25: RSI & Likuid disembunyikan bawaan
 const kolSimpan = () => simpan("kolom", KOL);
 // dipasang belakangan (elemen checkbox dibuat per-tab) — lihat kolPasang()
 function kolChecklist(kunci) {
@@ -1109,7 +1134,7 @@ function kolPasang(idForm, idToggle, kunci, gambarUlang) {
 }
 
 // Kolom vs EMA200, ATR%, Ongkos R, vs EMA100, dan grafik 7 hari DIBUANG 2026-09-22 atas permintaan user.
-const st = { saring: baca("saring", "semua"), urut: baca("urut", "pnl"), arah: baca("arah", -1), cari: "", likuid: baca("likuid", true) };
+const st = { chip: baca("chip", "semua"), saring: baca("saring", "semua"), urut: baca("urut", "pnl"), arah: baca("arah", -1), cari: "", likuid: baca("likuid", true) };
 if (["d", "atrp", "ongkos", "d100", "zonaUrut"].includes(st.urut)) { st.urut = "pnl"; st.arah = -1; }
 const data = {};   // koin -> { ema, atr, rsi, closes[], emas[], harga, open24, q, ok }
 KOIN.forEach(k => data[k] = { ok: false });
@@ -1376,6 +1401,8 @@ function gambar() {
   if (st.saring === "bawah") rs = rs.filter(r => r.zona === "bawah" || r.zona === "dalam");
   else if (st.saring === "pola") rs = rs.filter(r => r.p && r.p.st === "jalan");
   else if (st.saring !== "semua") rs = rs.filter(r => r.zona === st.saring);
+  gambarChip(semua); gambarAksi(semua);
+  if (st.chip && st.chip !== "semua") rs = rs.filter(r => chipCocok(r, st.chip));
   const K = st.urut, A = st.arah;
   rs.sort((a, b) => {
     const x = a[K], y = b[K];
@@ -1414,11 +1441,73 @@ function gambar() {
 let modeHP = false;
 const bukaHP = new Set();
 const URUT_HP = { pnl: ["pnl", -1], pnlNaik: ["pnl", 1], polaUmur: ["polaUmur", 1], koin: ["koin", 1], ch: ["ch", -1] };
+
+// ===== TERMINAL: tanda bot, chip filter, daftar "Perlu tindakan", jalur mini (2026-09-25) =====
+function btS() { try { return BT_S; } catch (e) { return null; } }
+function botPegang(k) {
+  let s = null; try { s = BT_S; } catch (e) {} if (!s) return null;   // BT_S bisa belum diinisialisasi saat render pertama
+  if ((s.posisi || []).some(p => p.sym === k + "USDT")) return "posisi";
+  if (((s.ew || {}).order || []).some(o => o.sym === k + "USDT")) return "order";
+  return null;
+}
+const CHIPS = [["semua", "Semua"], ["jalan", "Jalan"], ["tp1", "TP1 ✓"], ["baru", "Baru"], ["ew", "Elliott"], ["bot", "🤖 Bot"], ["FW", "FW"], ["ST", "ST"], ["AT", "AT"], ["TB", "TB"]];
+function chipCocok(r, c) {
+  const P = r.p;
+  switch (c) {
+    case "jalan": return !!P && P.st === "jalan";
+    case "tp1": return !!P && P.st === "jalan" && !!P.kenaTp1;
+    case "baru": return !!P && P.umur <= 3;
+    case "ew": return !!r.ew || (!!P && P.kode === "EW");
+    case "bot": return !!botPegang(r.koin);
+    default: return !!P && P.kode === c;
+  }
+}
+function gambarChip(semua) {
+  $("chipBar").innerHTML = CHIPS.map(([c, n]) => {
+    const jml = c === "semua" ? semua.length : semua.filter(r => chipCocok(r, c)).length;
+    return '<button type="button" class="chip-k" data-c="' + c + '" aria-pressed="' + (st.chip === c) + '">' + n + (c === "semua" ? "" : ' <span class="n">' + jml + "</span>") + "</button>";
+  }).join("");
+}
+$("chipBar").addEventListener("click", e => { const b = e.target.closest(".chip-k"); if (!b) return; st.chip = b.dataset.c; simpan("chip", st.chip); gambar(); });
+function gambarAksi(semua) {
+  const A = [], jk = (k, ikon, teks, kls, u) => A.push({ u, k, ikon, teks, kls });
+  for (const r of semua) {
+    const P = r.p, h = r.harga; if (!h) continue;
+    if (P && P.st === "jalan") {
+      const slEf = P.kenaTp1 ? P.entry : P.sl, jSl = (h / slEf - 1) * 100;
+      if (jSl <= 2) jk(r.koin, "⚠", "harga " + Math.abs(jSl).toFixed(1) + "% dari " + (P.kenaTp1 ? "BE (entry)" : "SL") + " " + fHarga(slEf), "turun", 0);
+      if (!P.kenaTp1 && P.tp1) { const jT = (P.tp1 / h - 1) * 100; if (jT <= 1.5 && jT > -1) jk(r.koin, "🎯", "tinggal " + Math.max(0, jT).toFixed(1) + "% ke TP1 " + fHarga(P.tp1), "naik", 1); }
+      if (P.umur <= 1 && !P.kenaTp1) jk(r.koin, "🆕", P.nama + " baru valid · entry " + fHarga(P.entry), "", 2);
+    }
+    if (r.ew && r.ewJarak != null && Math.abs(r.ewJarak) <= 2) jk(r.koin, "⏳", "limit Elliott " + fHarga(r.ew.level) + " (" + fPct(r.ewJarak, 1) + " dari harga)", "", 3);
+  }
+  const el = $("trmAksi");
+  if (!A.length) { el.hidden = true; return; }
+  A.sort((a, b) => a.u - b.u);
+  const buka = !!baca("aksiBuka", true);
+  el.hidden = false;
+  el.innerHTML = '<div class="aksi-kepala"><b>🔔 Perlu tindakan <small>' + A.length + '</small></b><button type="button" class="btn kecil" id="aksiToggle" aria-expanded="' + buka + '">' + (buka ? "Sembunyikan" : "Tampilkan") + "</button></div>" +
+    (buka ? '<div class="aksi-daftar">' + A.slice(0, 8).map(x => '<button type="button" class="aksi-i ' + x.kls + '" data-k="' + x.k + '"><b>' + x.k + "</b> " + x.ikon + " " + x.teks + "</button>").join("") + (A.length > 8 ? '<span class="redup">+' + (A.length - 8) + " lagi</span>" : "") + "</div>" : "");
+}
+$("trmAksi").addEventListener("click", e => {
+  if (e.target.closest("#aksiToggle")) { simpan("aksiBuka", !baca("aksiBuka", true)); gambar(); return; }
+  const b = e.target.closest(".aksi-i"); if (!b) return;
+  $("cari").value = b.dataset.k; $("cari").dispatchEvent(new Event("input", { bubbles: true }));
+});
+function jalurMini(P, px) {
+  const sl = P.kenaTp1 ? P.entry : P.sl, e = P.entry, t2 = P.tp2 > P.tp1 ? P.tp2 : P.tp1 * 1.03; if (!(e >= sl && t2 > e && px)) return "";
+  const pos = v => Math.max(0, Math.min(100, (v - sl) / (t2 - sl) * 100));
+  return '<div class="jm" title="' + (P.kenaTp1 ? "BE " : "SL ") + fHarga(sl) + " · entry " + fHarga(e) + " · TP1 " + fHarga(P.tp1) + " · TP2 " + fHarga(t2) + " · kini " + fHarga(px) + '">' +
+    '<i class="jm-r" style="width:' + pos(e) + '%"></i><i class="jm-g" style="left:' + pos(e) + '%;right:0"></i>' +
+    '<span class="jm-t" style="left:' + pos(e) + '%"></span><span class="jm-t" style="left:' + pos(P.tp1) + '%"></span>' +
+    '<span class="jm-k" style="left:' + pos(px) + '%"></span></div>';
+}
 function chipEw(r) {
-  if (!r.ew) return "";
+  const bp = botPegang(r.koin), botChip = bp ? '<span class="chip bot" title="' + (bp === "posisi" ? "Bot MEMEGANG koin ini — jangan jual manual" : "Bot punya order limit menunggu di koin ini") + '">🤖</span>' : "";
+  if (!r.ew) return botChip;
   const E = r.ew, sisaH = Math.max(0, E.sisa) * 4 / 24;
   const tip = `Limit beli Elliott 4H menunggu: ${fHarga(E.level)} · SL ${fHarga(E.sl)} · sisa trailing 15% · batal bila ${E.sisa} lilin (~${sisaH.toFixed(1)} hari) tak tersentuh`;
-  return `<span class="chip ew" title="${tip}">⏳ EW ${fHarga(E.level)}${r.ewJarak == null ? "" : " (" + fPct(r.ewJarak, 1) + ")"}</span>`;
+  return botChip + `<span class="chip ew" title="${tip}">⏳ EW ${fHarga(E.level)}${r.ewJarak == null ? "" : " (" + fPct(r.ewJarak, 1) + ")"}</span>`;
 }
 function chipPola(P) {
   return P.st === "jalan" ? (P.kenaTp1 ? `<span class="chip jalan">Jalan 50%</span>` : `<span class="chip jalan">Jalan</span>`)
@@ -1497,7 +1586,7 @@ function ukuranTeks(P, pendek) {
   const q = u.qty.toLocaleString("en-US", { maximumFractionDigits: u.qty < 10 ? 4 : 0 });
   const lewat = u.rugiPct > batasTrade();   // peringatan: rugi bila SL melewati batas per trade
   const awas = lewat ? ` title="Rugi bila SL ${u.rugiPct.toFixed(1)}% saldo melewati batas ${batasTrade()}% — kecilkan posisi"` : "";
-  return pendek ? `${Math.round(u.nilai).toLocaleString("en-US")} <span class="redup">USDT</span>` +
+  return pendek ? `${Math.round(u.nilai).toLocaleString("en-US")} <span class="redup">USDT</span>` + (KURS.idr ? `<span class="rp">≈ ${rpS(u.nilai).replace(/^\+/, "")}</span>` : "") +
       `<span class="rp${lewat ? " turun" : ""}"${awas}>${lewat ? "⚠ " : ""}rugi bila SL ${u.rugi.toFixed(0)} (${u.rugiPct.toFixed(1)}%)</span>`
     : `${q} koin ≈ ${Math.round(u.nilai).toLocaleString("en-US")} USDT · <span class="${lewat ? "turun" : ""}"${awas}>${lewat ? "⚠ " : ""}rugi bila SL ≈ ${u.rugi.toFixed(2)} USDT (${u.rugiPct.toFixed(1)}% saldo${lewat ? `, lewat batas ${batasTrade()}%` : ""})</span>${u.batas ? " · dibatasi modal" : ""}`;
 }
@@ -1511,7 +1600,7 @@ function selPola(r) {
     : P.st === "TP2" ? `<span class="chip tp">TP1 + TP2</span>` : P.st === "BE" ? `<span class="chip tp">TP1 + BE</span>` : `<span class="chip sl">Kena SL</span>`;
   const masuk = new Date(P.masukT).toISOString().slice(5, 16).replace("T", " ") + " UTC";
   return `<td class="kiri grup" title="Valid ${masuk}">${P.nama}</td>` +
-    `<td class="kiri">${chip}${P.kenaTp1 && P.st === "jalan" ? '<span class="tp1">TP1 ✓ · SL = entry</span>' : ""}</td>` +
+    `<td class="kiri">${chip}${P.kenaTp1 && P.st === "jalan" ? '<span class="tp1">TP1 ✓ · SL = entry</span>' : ""}${P.st === "jalan" ? jalurMini(P, r.harga) : ""}</td>` +
     `<td>${P.umur} bar</td><td>${fHarga(P.entry)}</td><td>${P.kenaTp1 ? `<s class="redup">${fHarga(P.sl)}</s> ${fHarga(P.entry)} <span class="redup">BE</span>` : fHarga(P.sl) + pct(P.sl)}</td>` +
     `<td>${fHarga(P.tp1)}${pct(P.tp1)}</td><td>${TRAIL_TAMPIL.has(P.kode) ? "trailing 15%" : fHarga(P.tp2) + pct(P.tp2)}</td>` +
     `<td class="pnl ${r.pnl == null ? "" : r.pnl >= 0 ? "naik" : "turun"}">${r.pnl == null ? "—" : (r.pnl >= 0 ? "+" : "") + r.pnl.toFixed(2)} ` +
@@ -1692,7 +1781,7 @@ function terapkanTampilan() {
 }
 function tampilanUbah(jenis, kunci, nilai) {
   if (jenis === "tab") { const sisa = TP_TAB.filter(([h]) => h !== kunci && TAMPIL.tab[h]).length; if (!nilai && !sisa) { bukaPengaturanTampilan(); return; } TAMPIL.tab[kunci] = nilai; }
-  else if (jenis === "opsi") TAMPIL[kunci] = nilai; else if (jenis === "pita") TAMPIL.pita[kunci] = nilai; else if (jenis === "pitaAda") TAMPIL.pitaAda = nilai;
+  else if (jenis === "kol") { KOL[kunci] = nilai; simpan("kolom", KOL); $("tbl").classList.toggle("sembunyi-indikator", !KOL.indikator); } else if (jenis === "opsi") TAMPIL[kunci] = nilai; else if (jenis === "pita") TAMPIL.pita[kunci] = nilai; else if (jenis === "pitaAda") TAMPIL.pitaAda = nilai;
   simpan("tampilan", TAMPIL); terapkanTampilan();
 }
 window.tampilanUbah = tampilanUbah;
@@ -1701,6 +1790,7 @@ function bukaPengaturanTampilan() {
   const baris = (jenis, kunci, nama, nilai) => '<label class="tp-baris"><input type="checkbox" ' + (nilai ? "checked " : "") + 'onchange="tampilanUbah(&quot;' + jenis + '&quot;,&quot;' + kunci + '&quot;,this.checked)"><span>' + nama + '</span></label>';
   popupTampil('Pengaturan tampilan', '<div style="display:flex;gap:8px;margin-bottom:6px"><button class="btn" type="button" onclick="tampilanPreset(&quot;simpel&quot;)">Simpel (HP)</button><button class="btn" type="button" onclick="tampilanPreset(&quot;lengkap&quot;)">Lengkap</button></div>' +
     '<div class="tp-judul">Angka</div>' + baris("opsi", "rp", "Tampilkan Rupiah di samping USDT", TAMPIL.rp !== false) + baris("opsi", "privasi", "Mode privasi (kaburkan angka uang)", !!TAMPIL.privasi) +
+    '<div class="tp-judul">Kolom tabel Terminal</div>' + baris("kol", "indikator", "Tampilkan RSI 4H &amp; Likuid 24j", !!KOL.indikator) +
     '<div class="tp-judul">Tab yang ditampilkan</div>' + TP_TAB.map(([h, id]) => baris("tab", h, id, TAMPIL.tab[h])).join("") +
     '<div class="tp-judul">Bilah status di atas</div>' + baris("pitaAda", "x", "Tampilkan bilah status", TAMPIL.pitaAda) + TP_PITA.map(([id, n]) => baris("pita", id, n, TAMPIL.pita[id])).join("") +
     '<p class="sub redup" style="margin-top:12px">Pengaturan tersimpan di perangkat ini. Minimal satu tab harus tampil. Tombol ⚙ di pojok atas selalu ada untuk mengubahnya kembali.</p>', false);
@@ -1825,7 +1915,7 @@ function jnPanel(daftar) {
   const judul = JN_S.grup ? JN_S.grup : JN_S.sinyal === "semua" ? "Semua sinyal" : JN_S.sinyal;
   $("jnRingkas").hidden = false;
   $("jnRingkas").innerHTML = '<div><span>Total profit (USDT)</span><b class="' + kl(H.tot) + '">' + (H.n ? f2(H.tot) : "—") + '</b></div><div><span>Win rate</span><b>' + (H.n ? Math.round(H.wr) + "%" : "—") + '</b></div><div><span>Trade tutup</span><b>' + H.n + '</b></div>' +
-    '<div class="rk-cap">' + judul + " · PROFIT bersih trade tutup, BUKAN modal + profit · tiap trade disimulasikan " + (JR ? JR.nominal : 1000) + " USDT" + (H.n && JR ? " · rata-rata " + f2(H.tot / (H.n * JR.nominal) * 100) + "% per trade" : "") + " · " + daftar.filter(t => t.terbuka).length + " masih jalan" + (typeof BT_S !== "undefined" && BT_S && BT_S.modal && BT_S.modal.awal > 0 ? "<br>Modal bot sungguhan: awal " + Math.round(BT_S.modal.awal).toLocaleString("en-US") + " → kini " + Math.round(BT_S.modal.kini).toLocaleString("en-US") + " USDT (" + f2((BT_S.modal.kini / BT_S.modal.awal - 1) * 100) + "% dari modal awal)" : "") + "</div>";
+    '<div class="rk-cap">' + judul + " · PROFIT bersih trade tutup, BUKAN modal + profit · tiap trade disimulasikan " + (JR ? JR.nominal : 1000) + " USDT" + (H.n && JR ? " · rata-rata " + f2(H.tot / (H.n * JR.nominal) * 100) + "% per trade" : "") + " · " + daftar.filter(t => t.terbuka).length + " masih jalan" + ((btS() || {}).modal && btS().modal.awal > 0 ? "<br>Modal bot sungguhan: awal " + Math.round(BT_S.modal.awal).toLocaleString("en-US") + " → kini " + Math.round(BT_S.modal.kini).toLocaleString("en-US") + " USDT (" + f2((BT_S.modal.kini / BT_S.modal.awal - 1) * 100) + "% dari modal awal)" : "") + "</div>";
   const semua = jnBaris(), pa = jnPolaAktif(), batas = +JN_S.periode ? Date.now() - +JN_S.periode * 864e5 : 0;
   const dasar = semua.filter(t => t.mT >= batas && (t.sinyal !== "POLA 4H" || !t.jenis || pa.has(t.jenis)));
   const kartu = (id, nama, arr, aktif) => {
@@ -2691,7 +2781,7 @@ $("btList").addEventListener("click", e => { if (e.target.closest("#btRiwToggle"
 let alarmTunda = baca("alarmTunda", { k: "", sampai: 0 });
 function periksaAlarm() {
   const A = [], esc = v => String(v).replace(/[<>&]/g, "");
-  const s = typeof BT_S !== "undefined" ? BT_S : null;
+  let s = null; try { s = BT_S; } catch (e) {}
   if (btCfg().url) {
     if (!s) A.push(["turun", "Bot tidak terbaca — cek Cloudflare atau koneksi."]);
     else { const PG = s.pengaturan || {}, asli = s.jaringan === "asli";
