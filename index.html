@@ -1092,6 +1092,9 @@ function tpAturan(kode, entry, sl, tpBuku) {
   let tp1 = entry + a * (entry - sl); if (tp1 >= tp2) tp1 = entry + 0.5 * (tp2 - entry);
   return { tp1, tp2 };
 }
+// Teks TP2 di tampilan: FW/TB/EW = sisa trailing 15% (tanpa TP2), ST/AT = harga TP2
+const TRAIL_TAMPIL = new Set(["FW", "TB", "EW"]);
+const tp2T = (kode, v) => TRAIL_TAMPIL.has(kode) ? "trailing 15%" : fHarga(v);
 function simTrade(d, e) {
   // Elliott (EW) masuk lewat LIMIT: entry = harga limit, bukan close bar isian
   const n = d.c.length, entry = e.entry != null ? e.entry : d.c[e.i], sl = e.batal;
@@ -1103,7 +1106,7 @@ function simTrade(d, e) {
   // bersamaan = keduanya tertutup. Sesudah TP1, sentuhan entry menutup sisa di entry (BE).
   let st = "jalan", kenaTp1 = false, sisa = 1, real = 0, keluarT = null;
   // TRAILING sesudah TP1 (user 2026-09-24): FW, TB, EW; ST & AT tetap TP2. p = 15% dari puncak, stop mulai di entry
-  const trail = ["FW", "TB", "EW"].includes(e.kode) && tp1 != null, tp = trail ? 0.15 : 0; let puncak = 0;
+  const trail = ["FW", "TB", "EW"].includes(e.kode) && tp1 != null, tp = trail ? 0.15 : 0; let puncak = 0, keluarPx = null;
   const tutup = (w, px) => { real += w * MODAL_POLA * (px / entry - 1); sisa -= w; };
   for (let k = e.i + 1; k < n && st === "jalan"; k++) {
     if (!kenaTp1) {
@@ -1115,13 +1118,13 @@ function simTrade(d, e) {
       }
     } else if (trail) {
       const stop = Math.max(entry, puncak * (1 - tp));
-      if (d.l[k] <= stop) { tutup(sisa, stop); st = stop > entry * 1.0005 ? "TP2" : "BE"; keluarT = d.t[k]; }
+      if (d.l[k] <= stop) { tutup(sisa, stop); keluarPx = stop; st = stop > entry * 1.0005 ? "TP2" : "BE"; keluarT = d.t[k]; }
       else if (d.h[k] > puncak) puncak = d.h[k];
     } else if (d.l[k] <= entry) { tutup(sisa, entry); st = "BE"; keluarT = d.t[k]; }
     else if (d.h[k] >= tp2) { tutup(sisa, tp2); st = "TP2"; keluarT = d.t[k]; }
   }
   if (Math.abs(sisa) < 1e-9) sisa = 0;
-  return { nama: e.nama, kode: e.kode, masukT: d.t[e.i], umur: n - 1 - e.i, entry, sl, tp1, tp2, st, keluarT, kenaTp1, sisa, real };
+  return { nama: e.nama, kode: e.kode, masukT: d.t[e.i], umur: n - 1 - e.i, entry, sl, tp1, tp2, st, keluarT, kenaTp1, sisa, real, trail, keluarPx };
 }
 
 async function muatBtcHarian() {
@@ -1300,12 +1303,12 @@ const URUT_HP = { pnl: ["pnl", -1], pnlNaik: ["pnl", 1], polaUmur: ["polaUmur", 
 function chipEw(r) {
   if (!r.ew) return "";
   const E = r.ew, sisaH = Math.max(0, E.sisa) * 4 / 24;
-  const tip = `Limit beli Elliott 4H menunggu: ${fHarga(E.level)} · SL ${fHarga(E.sl)} · TP2 ${fHarga(E.tp2)} · batal bila ${E.sisa} lilin (~${sisaH.toFixed(1)} hari) tak tersentuh`;
+  const tip = `Limit beli Elliott 4H menunggu: ${fHarga(E.level)} · SL ${fHarga(E.sl)} · sisa trailing 15% · batal bila ${E.sisa} lilin (~${sisaH.toFixed(1)} hari) tak tersentuh`;
   return `<span class="chip ew" title="${tip}">⏳ EW ${fHarga(E.level)}${r.ewJarak == null ? "" : " (" + fPct(r.ewJarak, 1) + ")"}</span>`;
 }
 function chipPola(P) {
   return P.st === "jalan" ? (P.kenaTp1 ? `<span class="chip jalan">Jalan 50%</span>` : `<span class="chip jalan">Jalan</span>`)
-    : P.st === "TP2" ? `<span class="chip tp">TP1+TP2</span>` : P.st === "BE" ? `<span class="chip tp">TP1+BE</span>` : `<span class="chip sl">Kena SL</span>`;
+    : P.st === "TP2" ? `<span class="chip tp">${TRAIL_TAMPIL.has(P.kode) ? "TP1+Trailing" : "TP1+TP2"}</span>` : P.st === "BE" ? `<span class="chip tp">TP1+BE</span>` : `<span class="chip sl">Kena SL</span>`;
 }
 function gambarHP(rs) {
   const [K, A] = URUT_HP[$("urutHP").value] || URUT_HP.pnl;
@@ -1325,13 +1328,13 @@ function gambarHP(rs) {
       (P ? `<span>Entry <b>${fHarga(P.entry)}</b></span>` +
            `<span>SL <b>${P.kenaTp1 ? fHarga(P.entry) + " (BE)" : fHarga(P.sl)}</b></span>` +
            `<span>TP1 <b>${fHarga(P.tp1)}${P.kenaTp1 ? " ✓" : ""}</b></span>` +
-           `<span>TP2 <b>${fHarga(P.tp2)}</b></span>` +
+           `<span>${TRAIL_TAMPIL.has(P.kode) ? "Sisa" : "TP2"} <b>${tp2T(P.kode, P.tp2)}</b></span>` +
            `<span>Umur <b>${P.umur} bar</b></span>` +
            `<span style="grid-column:1/-1">Ukuran ${labelUkuran()} <b>${ukuranTeks(P, false)}</b></span>` : "") +
       `<span>24j <b class="${kls(r.ch)}">${fPct(r.ch)}</b></span>` +
       `<span>RSI 4H <b>${r.rsi == null ? "—" : r.rsi.toFixed(0)}</b></span>` +
       `<span>Likuid <b>${fUsd(r.q)}</b></span>` +
-      (r.ew ? `<span style="grid-column:1/-1">⏳ Limit Elliott <b>${fHarga(r.ew.level)}</b> · SL ${fHarga(r.ew.sl)} · TP2 ${fHarga(r.ew.tp2)} · sisa ${r.ew.sisa} lilin</span>` : "") +
+      (r.ew ? `<span style="grid-column:1/-1">⏳ Limit Elliott <b>${fHarga(r.ew.level)}</b> · SL ${fHarga(r.ew.sl)} · sisa trailing 15% · sisa ${r.ew.sisa} lilin</span>` : "") +
       `<a href="${url}" target="_blank" rel="noopener">Buka chart 4H di TradingView →</a></div>`;
     const dK = data[r.koin] || {};
     return `<div class="kartu${P ? klsSt(P.st === "jalan", r.pnl) : ""}" data-k="${r.koin}">` +
@@ -1396,7 +1399,7 @@ function selPola(r) {
   return `<td class="kiri grup" title="Valid ${masuk}">${P.nama}</td>` +
     `<td class="kiri">${chip}${P.kenaTp1 && P.st === "jalan" ? '<span class="tp1">TP1 ✓ · SL = entry</span>' : ""}</td>` +
     `<td>${P.umur} bar</td><td>${fHarga(P.entry)}</td><td>${P.kenaTp1 ? `<s class="redup">${fHarga(P.sl)}</s> ${fHarga(P.entry)} <span class="redup">BE</span>` : fHarga(P.sl) + pct(P.sl)}</td>` +
-    `<td>${fHarga(P.tp1)}${pct(P.tp1)}</td><td>${fHarga(P.tp2)}${pct(P.tp2)}</td>` +
+    `<td>${fHarga(P.tp1)}${pct(P.tp1)}</td><td>${TRAIL_TAMPIL.has(P.kode) ? "trailing 15%" : fHarga(P.tp2) + pct(P.tp2)}</td>` +
     `<td class="pnl ${r.pnl == null ? "" : r.pnl >= 0 ? "naik" : "turun"}">${r.pnl == null ? "—" : (r.pnl >= 0 ? "+" : "") + r.pnl.toFixed(2)} ` +
     `<span class="redup">${r.pnl == null ? "" : fPct(r.pnl / MODAL_POLA * 100, 1)}</span></td>` +
     `<td>${ukuranTeks(P, true)}</td>`;
@@ -1886,7 +1889,7 @@ function polaAkun(aset) {
   const tg = jamLokal(P.masukT + 4 * 3600e3);
   return `<div class="ak-pola"><span>Pola 4H: <b>${PERINGKAT_APP(P.kode)} ${P.nama}</b></span>${chipPola(P)}` +
     `<span>E ${fHarga(P.entry)}</span><span>SL ${P.kenaTp1 ? fHarga(P.entry) + " (BE)" : fHarga(P.sl)}</span>` +
-    `<span>TP1 ${fHarga(P.tp1)}${P.kenaTp1 ? " ✓" : ""}</span><span>TP2 ${fHarga(P.tp2)}</span>` +
+    `<span>TP1 ${fHarga(P.tp1)}${P.kenaTp1 ? " ✓" : ""}</span><span>${TRAIL_TAMPIL.has(P.kode) ? "Sisa" : "TP2"} ${tp2T(P.kode, P.tp2)}</span>` +
     `<span>valid ${tg} ${ZONA} · ${P.umur} lilin lalu</span></div>`;
 }
 // RISIKO SERENTAK (2026-09-22, disetujui user): kalau SEMUA posisi terbuka kena SL bersamaan,
@@ -2343,7 +2346,7 @@ function gambarBot(s) {
     const risk = +p.rugiBilaSl > 0 ? +p.rugiBilaSl : p.isi > p.sl ? (p.beliUsdt || 0) * (p.isi - p.sl) / p.isi : null;
     baris.push(`<div class="jr-tr buka j bt-baris"><div style="min-width:0"><div class="nm">${p.sym.replace(/USDT$/, "")} <span class="jn-label sinyal">${p.kode}</span></div>` +
       `<div class="sub">${p.pola} · masuk ${jamLokal(p.t)} · ${p.tahap === "tp1" ? "TP1 ✓, SL di entry" : p.tahap === "tunggu-close" ? "menunggu close lilin isian" : "menunggu TP1"}</div></div>` +
-      `<div class="lv">Isi ${fHarga(p.isi)} · ${Math.round(p.beliUsdt)} USDT · kini ${px ? fHarga(px) : "—"}<br>SL ${fHarga(p.sl)}${p.tp1 ? " · TP1 " + fHarga(p.tp1) : ""} · TP2 ${fHarga(p.tp2)}</div>` +
+      `<div class="lv">Isi ${fHarga(p.isi)} · ${Math.round(p.beliUsdt)} USDT · kini ${px ? fHarga(px) : "—"}<br>SL ${fHarga(p.sl)}${p.tp1 ? " · TP1 " + fHarga(p.tp1) : ""} · ${TRAIL_TAMPIL.has(p.kode) ? "sisa trailing 15%" : "TP2 " + fHarga(p.tp2)}</div>` +
       `<div class="ha">${pnl == null ? `<span class="chip jalan">Jalan</span>` : `<b class="${kl(pnl)}">${f2(pnl)} USDT</b><span class="rp">${risk ? f2(pnl / risk) + " R" : ""}</span>`}</div>` +
       jalurPosisi(p, px) + `</div>`);
   }
@@ -2378,7 +2381,7 @@ function gambarBot(s) {
         const sisaT = sisaJ == null ? "—" : sisaJ <= 0 ? "segera batal" : sisaJ >= 48 ? (sisaJ / 24).toFixed(1) + " hari" : Math.round(sisaJ) + " jam";
         return `<div class="sub" style="padding:4px 0;border-top:1px solid var(--garis)"><b>${o.sym.replace(/USDT$/, "")}</b> · limit beli <b>${fHarga(o.p)}</b>` +
           `${jarak == null ? "" : ` <span class="${jarak <= 0 ? "naik" : "redup"}">(${fPct(jarak, 1)} dari harga ${fHarga(px)})</span>`} · ${Math.round(o.nilai)} USDT<br>` +
-          `SL ${fHarga(o.sl)} · TP1 ${fHarga(tp1)} · TP2 ${fHarga(o.tp2)} · batal otomatis dalam <b>${sisaT}</b> bila tak tersentuh</div>`;
+          `SL ${fHarga(o.sl)} · TP1 ${fHarga(tp1)} · sisa trailing 15% · batal otomatis dalam <b>${sisaT}</b> bila tak tersentuh</div>`;
       }).join("") + `</div>`);
   }
   // CATATAN: entri kembar berurutan (jenis + koin + alasan sama) digabung jadi satu baris "×n";
@@ -2664,7 +2667,7 @@ function chipRw(t) {
   if (t.st === "TP") return `<span class="chip tp">TP</span>`;              // FIB: TP tunggal, bukan TP1+TP2
   if (t.st === "WAKTU") return `<span class="chip nd">Batas waktu</span>`;  // FIB: 60 lilin 1H tak tersentuh
   if (t.st === "GAGAL") return `<span class="chip nd">Gagal syarat, jual close</span>`;   // FIB: EMA/dasar gagal sesudah isian
-  return t.st === "TP2" ? `<span class="chip tp">TP1+TP2</span>` : t.st === "BE" ? `<span class="chip tp">TP1+BE</span>` : `<span class="chip sl">Kena SL</span>`;
+  return t.st === "TP2" ? `<span class="chip tp">${TRAIL_TAMPIL.has(t.kode) ? "TP1+Trailing" : "TP1+TP2"}</span>` : t.st === "BE" ? `<span class="chip tp">TP1+BE</span>` : `<span class="chip sl">Kena SL</span>`;
 }
 // Progres pola menuju ambang proyek: >= 30 trade tutup DAN >= 6 bulan sejak trade pertama.
 // Vonis hanya sesudah dua-duanya terpenuhi; sebelum itu angka apa pun belum berarti.
@@ -2772,9 +2775,9 @@ window.gambarRiwayat = function () {
     const w = v => x.n ? (v / x.n * 100).toFixed(1) + "%" : "0";
     return `<button type="button" class="rw-pola" data-p="${nm}" aria-pressed="${rwPola === nm}">` +
       `<div class="j"><b>${nm}</b><span class="${kl(x.u)}">${x.n ? f2(x.u) : "—"}</span></div>` +
-      `<div class="bar" title="TP1+TP2 / TP1+BE / SL"><i style="width:${w(x.tp2)};background:var(--hijau)"></i><i style="width:${w(x.be)};background:rgba(38,166,154,.45)"></i><i style="width:${w(x.sl)};background:var(--merah)"></i></div>` +
+      `<div class="bar" title="TP1+TP2 (atau trailing) / TP1+BE / SL"><i style="width:${w(x.tp2)};background:var(--hijau)"></i><i style="width:${w(x.be)};background:rgba(38,166,154,.45)"></i><i style="width:${w(x.sl)};background:var(--merah)"></i></div>` +
       `<div class="d"><span><em>${x.n}</em> tutup</span><span>WR <em>${wr}%</em></span><span>rata <em class="${kl(rata)}">${f2(rata)}</em></span></div>` +
-      `<div class="d"><span>TP1+TP2 <em>${x.tp2}</em></span><span>TP1+BE <em>${x.be}</em></span><span>SL <em>${x.sl}</em></span>${x.jalan ? `<span>jalan <em>${x.jalan}</em></span>` : ""}</div>` +
+      `<div class="d"><span>TP1+TP2/trailing <em>${x.tp2}</em></span><span>TP1+BE <em>${x.be}</em></span><span>SL <em>${x.sl}</em></span>${x.jalan ? `<span>jalan <em>${x.jalan}</em></span>` : ""}</div>` +
       `<div class="d"><span>rata untung <em class="naik">${f2(avgW)}</em></span><span>rata rugi <em class="turun">${f2(avgL)}</em></span></div>` +
       (rwMode === "maju" ? majuHtml(nm, x, semua) : (x.n < 30 ? `<div class="kecil2">sampel kecil (&lt;30 trade) — belum bisa disimpulkan</div>` : "")) + `</button>`;
   }).join("");
@@ -2788,7 +2791,7 @@ window.gambarRiwayat = function () {
   $("rwList").innerHTML = tampil.map(t => {
     const p = t.pnl === undefined ? pnlTrade(t) : t.pnl;
     return `<div class="jr-tr rw-baris${t.st === "jalan" ? " buka" : ""}${klsSt(t.st === "jalan", p)}" data-k="${t.koin}|${t.masukT}" tabindex="0" role="button"><div style="min-width:0"><div class="nm">${t.koin}</div><div class="sub">${t.nama} · ${jamLokal(t.masukT)}</div></div>` +
-      (KOL.level ? `<div class="lv">E ${fHarga(t.entry)} · SL ${fHarga(t.sl)}<br>${t.kode === "FIB" ? "TP " + fHarga(t.tp2) : `TP1 ${fHarga(t.tp1)}${t.kenaTp1 ? " ✓" : ""} · TP2 ${fHarga(t.tp2)}`}</div>` : "") +
+      (KOL.level ? `<div class="lv">E ${fHarga(t.entry)} · SL ${fHarga(t.sl)}<br>${t.kode === "FIB" ? "TP " + fHarga(t.tp2) : `TP1 ${fHarga(t.tp1)}${t.kenaTp1 ? " ✓" : ""} · ${TRAIL_TAMPIL.has(t.kode) ? "sisa trailing 15%" : "TP2 " + fHarga(t.tp2)}`}</div>` : "") +
       (KOL.hasil ? `<div class="ha"><b class="${kl(p)}">${f2(p)}</b>${chipRw(t)}</div>` : "") + `</div>`;
   }).join("") + (rows.length > 300 ? `<div class="kosong">+${rows.length - 300} trade lebih lama tidak ditampilkan.</div>` : "") ||
     `<div class="kosong">Tidak ada trade di sini.</div>`;
@@ -2809,9 +2812,9 @@ function rwNorm(t, sumber) {
   const risk = t.entry > t.sl && t.sl > 0 ? MODAL_POLA * (t.entry - t.sl) / t.entry : null;
   // FIB (kode "FIB"): TP tunggal, dan dua akhir netral yang tidak ada di pola chart — WAKTU (60 lilin
   // tak tersentuh) & GAGAL (syarat EMA/dasar gagal sesudah isian, dijual di close lilin isian itu juga).
-  const sebab = jalan ? null : t.st === "TP2" ? "TP1+TP2" : t.st === "BE" ? "TP1+BE" : t.st === "TP" ? "TP"
+  const sebab = jalan ? null : t.st === "TP2" ? (TRAIL_TAMPIL.has(t.kode) ? "TP1+Trailing" : "TP1+TP2") : t.st === "BE" ? "TP1+BE" : t.st === "TP" ? "TP"
     : t.st === "WAKTU" ? "WAKTU" : t.st === "GAGAL" ? "Gagal syarat" : "SL";
-  const exit = jalan ? null : t.st === "TP2" || t.st === "TP" ? t.tp2 : t.st === "BE" ? t.entry
+  const exit = jalan ? null : t.st === "TP2" || t.st === "TP" ? (t.keluarPx ?? t.tp2) : t.st === "BE" ? t.entry
     : t.st === "WAKTU" || t.st === "GAGAL" ? (t.keluarPx ?? t.sl) : t.sl;
   return { koin: t.koin, jenis: t.nama, kode: t.kode, k: t.koin + "|" + t.masukT, grupPola: t.nama, entry: t.entry, sl: t.sl, tp1: t.tp1, tp: t.tp2, kenaTp1: t.kenaTp1,
     exit,   // sisa posisi keluar di sini
@@ -2831,7 +2834,7 @@ function rwPopupGrup(nilai) {
   const S = RW_TAMPIL.sumber, T = RW_TAMPIL.semua.map(t => rwNorm(t, S)).filter(t => t.grupPola === nilai && !t.luar).sort((a, b) => b.mT - a.mT);
   const tutup = T.filter(t => !t.terbuka), jalan = T.filter(t => t.terbuka), H = jnHitung(tutup), uJ = jalan.reduce((a, t) => a + (t.us || 0), 0);
   const seb = {}; for (const t of tutup) seb[t.sebab || "lain"] = (seb[t.sebab || "lain"] || 0) + 1;
-  const warna = { TP: "var(--hijau)", "TP1+TP2": "var(--hijau)", "TP1+BE": "rgba(38,166,154,.45)", SL: "var(--merah)", WAKTU: "var(--kuning)" };
+  const warna = { TP: "var(--hijau)", "TP1+TP2": "var(--hijau)", "TP1+Trailing": "var(--hijau)", "TP1+BE": "rgba(38,166,154,.45)", SL: "var(--merah)", WAKTU: "var(--kuning)" };
   const koinUnik = new Set(T.map(t => t.koin)).size;
   const html = `<div class="jr-angka"><div><span>Trade tutup</span><b>${H.n}</b><span class="rp">${jalan.length} jalan${S === "POLA" ? ` · ${koinUnik} koin` : ""}</span></div>` +
     `<div><span>Win rate</span><b>${H.n ? Math.round(H.wr) + "%" : "—"}</b><span class="rp">${H.m} untung · ${H.n - H.m} rugi</span></div>` +
