@@ -485,7 +485,7 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
     <div class="jr-list" id="akList"></div>
     <div class="jn-kepala" id="akOrderJudul" hidden><h3>Order terbuka <small class="redup" id="akOrderN"></small></h3><button class="btn" type="button" id="akOrderToggle" aria-controls="akOrder" aria-expanded="true">Sembunyikan</button></div>
     <div class="jr-list" id="akOrder"></div>
-    <div class="jn-kepala"><h3>Bot trading otomatis <small class="redup" id="btJaringan">TESTNET · saldo latihan</small></h3><span class="tb"><button class="btn" type="button" id="btPnl" title="Kalender PNL bot per tanggal">📅 PNL</button><button class="btn" type="button" id="btJeda" title="Hentikan bot membeli; posisi terbuka tetap dijaga SL/TP">⏸ Jeda bot</button><button class="btn" type="button" id="btTes" title="Cek jalur aplikasi → bot → perantara → Binance dengan kunci bot">🔌 Uji sambungan</button><button class="btn" type="button" id="btMuat">Perbarui</button></span></div>
+    <div class="jn-kepala"><h3>Bot trading otomatis <small class="redup" id="btJaringan">TESTNET · saldo latihan</small></h3><span class="tb"><button class="btn" type="button" id="btPnl" title="Kalender PNL akun bot per tanggal">📅 PNL Bot</button><button class="btn" type="button" id="btPnlM" title="Kalender PNL trading manual (trade tutup sejak 24/09)">📅 PNL Manual</button><button class="btn" type="button" id="btJeda" title="Hentikan bot membeli; posisi terbuka tetap dijaga SL/TP">⏸ Jeda bot</button><button class="btn" type="button" id="btTes" title="Cek jalur aplikasi → bot → perantara → Binance dengan kunci bot">🔌 Uji sambungan</button><button class="btn" type="button" id="btMuat">Perbarui</button></span></div>
     <div class="ak-bar"><button class="btn" type="button" id="btToggle" aria-expanded="true" aria-controls="btForm">⚙ Sembunyikan pengaturan bot</button><span class="ak-pesan" id="btPesanBar"></span></div>
     <p class="ak-pesan kng" id="btKunci" hidden>🔒 Mode lihat — perangkat ini belum memasukkan sandi bot, jadi pengaturan hanya bisa dilihat. Isi <b>Sandi bot</b> lalu tekan <b>Buka kunci</b> untuk mengubah.</p>
     <form class="ak-set" id="btForm" autocomplete="off">
@@ -2461,6 +2461,7 @@ const pnlKunci = (y, m, d) => y + "-" + String(m + 1).padStart(2, "0") + "-" + S
 let PNL_MODE = "bot", PNL_SIN = "semua", PNL_Y = 0, PNL_M = 0;
 // Trade MANUAL = trade nyata dari Binance (Akun -> Jurnal trade nyata, tombol "Muat dari Binance") yang BUKAN dikerjakan bot:
 // episode yang waktu masuk/keluarnya berdekatan (< 2 jam) dengan trade tutup bot di koin yang sama dianggap milik bot.
+const PNL_MANUAL_SEJAK = new Date(2026, 8, 24).getTime();   // user 2026-09-25: manual dihitung sejak KEMARIN (24/09/2026 00:00 lokal), hanya yang sudah tutup
 function pnlManual(bot) {
   const out = []; if (!JN || !JN.trade) return out;
   for (const [k, tr] of Object.entries(JN.trade)) for (const e of susunTrade(k, tr)) {
@@ -2474,7 +2475,7 @@ function pnlManual(bot) {
 function pnlSumber() {
   const bot = (BT_S && BT_S.riwayat) || [];
   if (PNL_MODE === "bot") return bot;
-  if (PNL_MODE === "manual") return pnlManual(bot);
+  if (PNL_MODE === "manual") return pnlManual(bot).filter(r => r.keluarT >= PNL_MANUAL_SEJAK);
   if (PNL_MODE === "gab") return bot.concat(pnlManual(bot));
   const pa = jnPolaAktif();
   return jnBaris().filter(t => !t.terbuka && t.kT > 0 && (PNL_SIN === "semua" || t.sinyal === PNL_SIN) && (t.sinyal !== "POLA 4H" || !t.jenis || pa.has(t.jenis)))
@@ -2503,7 +2504,7 @@ function pnlKal(y, m, pilih) {
     det = '<div style="margin-top:12px"><b>' + pilih.split("-").reverse().join("/") + '</b> · <span style="color:' + (x.total >= 0 ? "var(--hijau)" : "var(--merah)") + '">' + pnlF(x.total) + ' USDT</span> · ' + x.n + ' trade' +
       x.list.sort((a, b) => b.keluarT - a.keluarT).map(r => '<div class="sub" style="padding:4px 0;border-top:1px solid var(--garis)">' + String(r.sym || "").replace(/USDT$/, "") + ' · ' + (r.pola || r.kode || "") + ' · <b style="color:' + (r.hasil >= 0 ? "var(--hijau)" : "var(--merah)") + '">' + pnlF(r.hasil) + ' USDT</b> (' + pnlF(r.hasilPct || 0) + '%)</div>').join("") + '</div>'; }
   const AKUN = PNL_MODE !== "jurnal";
-  const pilihAkun = !AKUN ? "" : '<div style="display:flex;gap:6px;margin-bottom:8px;justify-content:center">' + [["bot", "Bot"], ["manual", "Manual"], ["gab", "Gabungan"]].map(([v, n]) => '<button class="btn kecil" type="button" aria-pressed="' + (PNL_MODE === v) + '" style="' + (PNL_MODE === v ? 'border-color:var(--teks)' : '') + '" onclick="pnlAkun(&quot;' + v + '&quot;)">' + n + '</button>').join("") + '</div>';
+const pilihAkun = "";   // bot dan manual DIPISAH (dua tombol di header Akun), tidak digabung
   const semuaT = pnlSumber().filter(r => r.keluarT > 0 && isFinite(r.hasil)), sk2 = Date.now(), awalHari = new Date(); awalHari.setHours(0, 0, 0, 0);
   const jml = t0 => semuaT.filter(r => r.keluarT >= t0).reduce((a, r) => a + +r.hasil, 0), warnaP = v => v >= 0 ? "var(--hijau)" : "var(--merah)";
   const ringkas = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:10px;text-align:center;font-size:11px">' +
@@ -2514,13 +2515,22 @@ function pnlKal(y, m, pilih) {
     '<div class="sub" style="text-align:center;margin-bottom:8px">PNL bulan ini <b style="color:' + (tot >= 0 ? "var(--hijau)" : "var(--merah)") + '">' + pnlF(tot) + ' USDT</b> · ' + nT + ' trade · ' + hu + ' hari untung / ' + hr + ' rugi</div>' +
     '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-size:10px;color:var(--redup);text-align:center;margin-bottom:3px">' + ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"].map(x => '<div>' + x + '</div>').join("") + '</div>' +
     '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">' + sel + '</div>' + det +
-    '<p class="sub redup" style="margin-top:10px">' + (PNL_MODE === "bot" ? 'Hanya trade bot yang sudah TUTUP (hasil bersih setelah biaya), tanggal mengikuti jam perangkat ini. Posisi yang masih berjalan belum dihitung. Bot menyimpan maks 500 trade terakhir.' : PNL_MODE === "manual" ? 'Trade nyata dari riwayat Binance yang BUKAN dikerjakan bot (pembelian sampai posisi habis terjual, hasil bersih setelah komisi), tanggal keluar sesuai jam perangkat ini. Posisi yang belum terjual belum dihitung. Kecocokan dengan trade bot dicek dari koin dan waktu (selisih < 2 jam).' : PNL_MODE === "gab" ? 'Bot + manual digabung dari akun Binance yang sama. Trade bot dari catatan bot, trade manual dari riwayat Binance (bukan milik bot).' : 'Simulasi jurnal (nominal tetap per trade, bukan uang asli), hanya trade TUTUP, dikelompokkan menurut tanggal keluar sesuai jam perangkat ini. Mengikuti pengaturan ⚙ Pola di Jurnal.') + '</p>';
+    '<p class="sub redup" style="margin-top:10px">' + (PNL_MODE === "bot" ? 'Hanya trade bot yang sudah TUTUP (hasil bersih setelah biaya), tanggal mengikuti jam perangkat ini. Posisi yang masih berjalan belum dihitung. Bot menyimpan maks 500 trade terakhir.' : PNL_MODE === "manual" ? 'Trade nyata dari riwayat Binance yang BUKAN dikerjakan bot (pembelian sampai posisi habis terjual, hasil bersih setelah komisi), HANYA yang sudah tutup sejak 24/09/2026, tanggal keluar sesuai jam perangkat ini. Posisi yang belum terjual belum dihitung. Kecocokan dengan trade bot dicek dari koin dan waktu (selisih < 2 jam).' : PNL_MODE === "gab" ? 'Bot + manual digabung dari akun Binance yang sama. Trade bot dari catatan bot, trade manual dari riwayat Binance (bukan milik bot).' : 'Simulasi jurnal (nominal tetap per trade, bukan uang asli), hanya trade TUTUP, dikelompokkan menurut tanggal keluar sesuai jam perangkat ini. Mengikuti pengaturan ⚙ Pola di Jurnal.') + '</p>';
 }
-const pnlJudul = () => PNL_MODE === "bot" ? 'PNL akun bot <small>per tanggal</small>' : PNL_MODE === "manual" ? 'PNL trading manual <small>per tanggal</small>' : PNL_MODE === "gab" ? 'PNL akun <small>bot + manual</small>' : 'PNL jurnal <small>per tanggal</small>';
+const pnlJudul = () => PNL_MODE === "bot" ? 'PNL akun bot <small>per tanggal</small>' : PNL_MODE === "manual" ? 'PNL trading manual <small>sejak 24/09</small>' : PNL_MODE === "gab" ? 'PNL akun <small>bot + manual</small>' : 'PNL jurnal <small>per tanggal</small>';
 window.pnlAkun = v => { PNL_MODE = v; pnlBulan(PNL_Y, PNL_M); };
 window.pnlBulan = (y, m) => { PNL_Y = y; PNL_M = m; popupTampil(pnlJudul(), pnlKal(y, m, null), false); };
 window.pnlSin = v => { PNL_SIN = v; pnlBulan(PNL_Y, PNL_M); };
 window.pnlHari = (y, m, d) => { PNL_Y = y; PNL_M = m; popupTampil(pnlJudul(), pnlKal(y, m, pnlKunci(y, m, d)), false); $("popupBadan").scrollTop = $("popupBadan").scrollHeight; };
+$("btPnlM").addEventListener("click", async () => {
+  PNL_MODE = "manual";
+  if (!JN || Date.now() - JN.t > 10 * 60e3) {
+    popupTampil('PNL trading manual <small>sejak 24/09</small>', '<p class="sub">Membaca riwayat Binance… (beberapa detik sampai satu menit)</p>', false);
+    try { await muatJurnalNyata(); } catch (e) {}
+  }
+  const p = pnlPeta(), ks = Object.keys(p).sort(), a = ks.length ? new Date(ks[ks.length - 1] + "T12:00:00") : new Date();
+  pnlBulan(a.getFullYear(), a.getMonth());
+});
 $("btPnl").addEventListener("click", () => {
   PNL_MODE = "bot";
   const p = pnlPeta(), ks = Object.keys(p).sort(), a = ks.length ? new Date(ks[ks.length - 1] + "T12:00:00") : new Date();
