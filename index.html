@@ -451,6 +451,9 @@ td.kosong{border:0;border-radius:0}
 .btc-ubin>div{border:1px solid var(--garis);border-radius:9px;padding:6px 8px;background:color-mix(in srgb,var(--label) 6%,transparent);display:flex;flex-direction:column;gap:2px;min-width:0}
 .btc-ubin i{font-style:normal;font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .btc-ubin b{font:600 13px var(--f-num);white-space:nowrap}
+.btc-ubin .btcd{grid-column:1/-1;cursor:pointer;flex-direction:row;align-items:baseline;justify-content:space-between;gap:8px}
+.btc-ubin .btcd b{font-size:12.5px}.btc-ubin .btcd b span{font-size:11px;font-weight:500;margin-left:4px}
+.btc-ubin .btcd:hover{border-color:var(--biru)}
 .btc-alasan{margin-top:8px;font-size:11px;line-height:1.45;padding:6px 9px;border-radius:8px;border:1px solid currentColor;background:color-mix(in srgb,currentColor 8%,transparent)}
 
 /* ===== ELEGAN 2026-09-26 (user: "lebih elegan, modern, stylish — kerjakan semua") ===== */
@@ -1771,10 +1774,52 @@ function btcInfo(b, ch24) {
   const kls = bahaya ? "turun" : waspada ? "kng" : "naik", cap = bahaya ? "BAHAYA" : waspada ? "WASPADA" : "NORMAL";
   const ub = (k, v) => '<div><i>' + k + "</i><b" + (v == null || !isFinite(v) ? ">—" : ' class="' + (+v.toFixed(1) >= 0 ? "naik" : "turun") + '">' + (+v.toFixed(1) > 0 ? "+" : "") + (+v.toFixed(1) === 0 ? "0.0" : v.toFixed(1)) + "%") + "</b></div>";
   $("btcCap").innerHTML = '<button type="button" class="btc-cap ' + kls + '" title="Ketuk: arti status BTC">' + cap + " ⓘ</button>";
-  $("btcInfo").innerHTML = '<div class="btc-ubin">' + ub("4 jam", ch4) + ub("24 jam", ch24) + ub("7 hari", ch7) + ub("Puncak 7H", dd) + ub("EMA200 4H", e200) + ub("EMA100 D", e100) + "</div>" +
+  $("btcInfo").innerHTML = '<div class="btc-ubin">' + ub("4 jam", ch4) + ub("24 jam", ch24) + ub("7 hari", ch7) + ub("Puncak 7H", dd) + ub("EMA200 4H", e200) + ub("EMA100 D", e100) + btcdUbin() + "</div>" +
     (ada.length ? '<div class="btc-alasan ' + kls + '">' + ada.join(" · ") + "</div>" : "");
   $("kartuBtc").classList.add("ada-info");
 }
+// DOMINASI BTC (BTC.D) — 2026-09-26, permintaan user: informasi saja, bukan saringan (saringan rezim terbukti hanya beta).
+// Sumber CoinGecko /global (Binance tidak punya). Riwayat harian disimpan di perangkat (localStorage) untuk perubahan 24 jam / 7 hari.
+window.BTCD = null;
+function btcdUbin() {
+  const D = window.BTCD; if (!D) return "";
+  const dl = (v, lbl) => v == null ? "" : ' <span class="' + (v <= 0 ? "naik" : "turun") + '">' + (v > 0 ? "+" : "") + v.toFixed(1) + " " + lbl + "</span>";
+  return '<div class="btcd" role="button" tabindex="0" title="Ketuk: cara membaca dominasi BTC"><i>BTC.D · dominasi</i><b>' + D.kini.toFixed(1) + "%" + dl(D.d1, "24j") + dl(D.d7, "7h") + "</b></div>";
+}
+async function muatBtcd() {
+  try {
+    const r = await fetch("https://api.coingecko.com/api/v3/global", { cache: "no-store" }); if (!r.ok) return;
+    const j = await r.json(), kini = +j.data.market_cap_percentage.btc; if (!(kini > 0)) return;
+    let H = baca("btcdRiwayat", []); if (!Array.isArray(H)) H = [];
+    const hari = Math.floor(Date.now() / 864e5); if (!H.length || H[H.length - 1][0] !== hari) H.push([hari, kini]); else H[H.length - 1][1] = kini;
+    H = H.filter(x => x[0] >= hari - 40); simpan("btcdRiwayat", H);
+    const cari = n => { const x = H.find(v => v[0] === hari - n); return x ? kini - x[1] : null; };
+    window.BTCD = { kini, d1: cari(1), d7: cari(7), t: Date.now() };
+    const b = data && data.BTC; if (b && b.harga) { const ch = b.open24 ? (b.harga / b.open24 - 1) * 100 : null; try { btcInfo(b, ch); } catch (e) {} }
+  } catch (e) {}
+}
+muatBtcd(); setInterval(muatBtcd, 10 * 60e3);
+function btcdArti() {
+  const D = window.BTCD, b = data && data.BTC, ch24 = b && b.open24 ? (b.harga / b.open24 - 1) * 100 : null;
+  const arah = D && D.d1 != null ? (D.d1 > 0.15 ? "naik" : D.d1 < -0.15 ? "turun" : "datar") : null, btcArah = ch24 == null ? null : ch24 > 0.5 ? "naik" : ch24 < -0.5 ? "turun" : "datar";
+  const K = {
+    "naik|naik": ["Uang masuk ke BTC, altcoin tertinggal", "BTC naik dan dominasinya ikut naik: pembeli memilih BTC. Altcoin biasanya naik lebih sedikit atau malah turun terhadap USDT. Posisi alt cenderung lambat mencapai target; sinyal baru lahir di latar yang kurang mendukung."],
+    "naik|turun": ["Kondisi paling berat untuk altcoin", "BTC turun tetapi dominasinya naik: altcoin jatuh LEBIH dalam daripada BTC. Stop-loss paling sering tersentuh di keadaan ini. Periksa posisi tanpa stop."],
+    "turun|naik": ["Musim altcoin (alt season)", "BTC naik dan dominasinya turun: uang mengalir dari BTC ke altcoin. Ini latar terbaik untuk posisi long alt; target lebih sering tercapai. Ingat: kondisi ini terlihat jelas hanya sesudah berjalan, dan bisa berbalik cepat."],
+    "turun|turun": ["Altcoin bertahan lebih baik dari BTC", "BTC turun tetapi dominasinya juga turun: altcoin turun lebih sedikit atau tidak turun. Jarang dan biasanya singkat; sering menjadi awal pemulihan alt, tetapi bisa juga jeda sebelum ikut turun."],
+    "naik|datar": ["Alt melemah pelan", "BTC datar, dominasi naik: altcoin dijual perlahan ke BTC. Posisi alt cenderung menggerus."],
+    "turun|datar": ["Alt menguat pelan", "BTC datar, dominasi turun: altcoin naik sendiri. Latar cukup baik untuk sinyal alt."],
+  };
+  const kini = D ? "<p><b>Sekarang: BTC.D " + D.kini.toFixed(1) + "%" + (D.d1 != null ? " · 24 jam " + (D.d1 > 0 ? "+" : "") + D.d1.toFixed(2) : "") + (D.d7 != null ? " · 7 hari " + (D.d7 > 0 ? "+" : "") + D.d7.toFixed(2) : "") + "</b>" + (D.d1 == null ? " <span class=\"redup\">(perubahan 24 jam / 7 hari muncul setelah aplikasi dibuka beberapa hari; riwayat disimpan di perangkat ini)</span>" : "") + "</p>" : "<p class=\"sub redup\">Data dominasi belum termuat.</p>";
+  const k = arah && btcArah && arah !== "datar" ? K[arah + "|" + btcArah] : null;
+  return kini + (k ? '<div class="pm-b dekat"><div class="pm-h"><b>' + k[0] + "</b></div><div class=\"sub\">" + k[1] + "</div></div>" : "") +
+    '<h4 class="pm-j">Cara membaca</h4>' +
+    '<div class="pm-b"><div class="sub"><b>BTC.D</b> = bagian BTC dari seluruh nilai pasar kripto. Naik = uang bergerak ke BTC (atau alt dijual). Turun = uang bergerak ke altcoin. Angkanya sendiri (55% atau 60%) kurang penting; yang penting <b>arahnya</b> bersama arah harga BTC.</div></div>' +
+    '<div class="pm-b"><div class="sub"><b>BTC naik + BTC.D turun</b> → musim alt, latar terbaik.<br><b>BTC naik + BTC.D naik</b> → alt tertinggal.<br><b>BTC turun + BTC.D naik</b> → alt jatuh paling dalam, waspadai stop.<br><b>BTC turun + BTC.D turun</b> → alt bertahan, jarang dan singkat.</div></div>' +
+    '<div class="pm-b"><div class="sub"><b>Yang terjadi pada posisi Anda:</b> saat BTC.D naik, posisi long altcoin (bot maupun manual) cenderung lebih lambat mencapai TP dan lebih rawan SL; saat turun, sebaliknya. Ini konteks untuk membaca keadaan, <b>bukan</b> alasan mematikan bot: uji proyek menunjukkan saringan rezim seperti ini hanya mengikuti pasar (beta) dan tidak memilih sinyal yang lebih baik.</div></div>' +
+    '<p class="sub redup" style="margin-top:8px">Sumber: CoinGecko, diperbarui tiap 10 menit. Riwayat harian disimpan di perangkat ini untuk menghitung perubahan 24 jam dan 7 hari.</p>';
+}
+document.addEventListener("click", e => { if (e.target.closest("#kartuBtc .btcd")) popupTampil("Dominasi BTC (BTC.D)", btcdArti(), false); });
 // PENJELASAN tiap peringatan BTC (2026-09-26): apa artinya untuk altcoin, posisi & order. Ketuk kotak status BTC.
 const BTC_ARTI = {
   c4: ["Turun cepat dalam ±4 jam", "Pergerakan cepat. Altcoin biasanya ikut turun LEBIH TAJAM daripada BTC (beta tinggi), jadi stop-loss lebih mudah tersentuh dan bisa terisi dengan selip. Order limit beli (mis. Elliott) lebih cepat terisi karena harga turun ke limit — itu memang tujuannya, tapi entry saat pasar jatuh bisa lanjut turun. Uji sejarah kita: menutup posisi karena BTC anjlok justru MEMPERBURUK hasil (pantulan sering menyusul), jadi bot tidak menutup otomatis."],
