@@ -438,7 +438,7 @@ td.kosong{border:0;border-radius:0}
 #kartuBtc{display:grid!important;grid-template-columns:auto minmax(0,1fr);column-gap:14px;align-items:start}
 #kartuBtc>.k,#kartuBtc>.v,#kartuBtc>.s{grid-column:1}
 #kartuBtc>.btc-info{grid-column:2;grid-row:1/4;text-align:right;font-size:11.5px;line-height:1.55;color:var(--label);min-width:0}
-.btc-cap{display:inline-block;font:600 12px var(--f-ui);padding:2px 9px;border-radius:999px;border:1px solid currentColor;margin-bottom:3px}
+.btc-cap{cursor:pointer;background:none;display:inline-block;font:600 12px var(--f-ui);padding:2px 9px;border-radius:999px;border:1px solid currentColor;margin-bottom:3px}
 .btc-alasan{margin-top:2px;font-size:11px}
 @media(max-width:340px){#kartuBtc{grid-template-columns:1fr}#kartuBtc>.btc-info{grid-column:1;grid-row:auto;text-align:left;margin-top:6px}}
 </style>
@@ -1633,10 +1633,34 @@ function btcInfo(b, ch24) {
   if (!bahaya) { if (ch4 <= -2) ada.push("turun " + Math.abs(ch4).toFixed(1) + "% dalam ±4 jam"); if (dd <= -8) ada.push(Math.abs(dd).toFixed(1) + "% di bawah puncak 7 hari"); if (e100 != null && e100 < 0) ada.push("di bawah EMA100 harian"); if (e200 != null && e200 < 0) ada.push("di bawah EMA200 4H"); }
   window.BTC_STATUS = { tingkat: bahaya ? "bahaya" : waspada ? "waspada" : "normal", alasan: ada };
   const kls = bahaya ? "turun" : waspada ? "kng" : "naik", cap = bahaya ? "⛔ BAHAYA" : waspada ? "⚠ WASPADA" : "✓ NORMAL", w = v => '<span class="' + (v >= 0 ? "naik" : "turun") + '">' + (v >= 0 ? "+" : "") + v.toFixed(1) + "%</span>";
-  $("btcInfo").innerHTML = '<span class="btc-cap ' + kls + '">' + cap + "</span>" +
+  $("btcInfo").innerHTML = '<button type="button" class="btc-cap ' + kls + '" title="Ketuk: arti peringatan">' + cap + " ⓘ</button>" +
     "<div>4 jam " + w(ch4) + " · 24 jam " + w(ch24) + "</div><div>7 hari " + w(ch7) + " · dari puncak " + w(dd) + "</div>" +
     "<div>vs EMA200 4H " + (e200 == null ? "—" : w(e200)) + " · EMA100 D " + (e100 == null ? "—" : w(e100)) + "</div>" + (ada.length ? '<div class="btc-alasan ' + kls + '">' + ada.join(" · ") + "</div>" : "");
 }
+// PENJELASAN tiap peringatan BTC (2026-09-26): apa artinya untuk altcoin, posisi & order. Ketuk kotak status BTC.
+const BTC_ARTI = {
+  c4: ["Turun cepat dalam ±4 jam", "Pergerakan cepat. Altcoin biasanya ikut turun LEBIH TAJAM daripada BTC (beta tinggi), jadi stop-loss lebih mudah tersentuh dan bisa terisi dengan selip. Order limit beli (mis. Elliott) lebih cepat terisi karena harga turun ke limit — itu memang tujuannya, tapi entry saat pasar jatuh bisa lanjut turun. Uji sejarah kita: menutup posisi karena BTC anjlok justru MEMPERBURUK hasil (pantulan sering menyusul), jadi bot tidak menutup otomatis."],
+  c24: ["Turun besar dalam 24 jam", "Tekanan jual berlangsung lebih lama, bukan satu lilin. Altcoin cenderung lemah bersama BTC; sinyal pola baru yang muncul sekarang lahir di pasar turun (hasil uji: sinyal di rezim melemah rata-rata lebih buruk, tapi itu efek pasar, bukan cacat pola). Bot tetap mengambil sinyal sesuai aturan."],
+  dd: ["Jauh di bawah puncak 7 hari", "Koreksi sedang berjalan. Posisi yang baru dibeli dekat puncak bisa sudah rugi; stop-loss yang sempit lebih rawan. Belum tentu berlanjut — koreksi sering diikuti pantulan."],
+  e100: ["Di bawah EMA100 harian", "Tren menengah BTC melemah (rezim turun). Historis hasil sinyal pola lebih rendah di rezim ini, tetapi terbukti hanya efek bulan pasar (beta), bukan aturan yang bisa disaring — bot tidak memfilter berdasarkan ini."],
+  e200: ["Di bawah EMA200 4H", "Tren jangka pendek melemah (sekitar 1 bulan). Altcoin yang sedang naik lebih rentan berbalik; pola yang baru valid punya latar yang kurang mendukung."],
+};
+function btcArti() {
+  const bs = window.BTC_STATUS || { tingkat: "normal", alasan: [] };
+  const kunci = { "turun": "c4", "dalam 24": "c24", "puncak 7": "dd", "EMA100": "e100", "EMA200": "e200" };
+  const pakai = []; for (const a of bs.alasan) { const k = /24 jam/.test(a) ? "c24" : /puncak 7/.test(a) ? "dd" : /EMA100/.test(a) ? "e100" : /EMA200/.test(a) ? "e200" : /±4 jam/.test(a) ? "c4" : null; if (k && !pakai.includes(k)) pakai.push(k); }
+  const kepala = { normal: "✓ NORMAL — tidak ada tekanan khusus dari BTC. Aturan bot berjalan seperti biasa.", waspada: "⚠ WASPADA — ada tanda pelemahan, belum darurat. Periksa posisi Anda dan pastikan semuanya punya stop-loss.", bahaya: "⛔ BAHAYA — BTC bergerak tajam ke bawah. Altcoin biasanya ikut lebih dalam. Periksa stop-loss dan ukuran posisi SEKARANG." }[bs.tingkat];
+  let h = '<p><b>' + kepala + "</b></p>";
+  if (pakai.length) h += "<h4 class=\"pm-j\">Yang aktif sekarang</h4>" + pakai.map(k => '<div class="pm-b dekat"><div class="pm-h"><b>' + BTC_ARTI[k][0] + "</b></div><div class=\"sub\">" + BTC_ARTI[k][1] + "</div></div>").join("");
+  h += "<h4 class=\"pm-j\">Untuk order & posisi Anda</h4>" +
+    '<div class="pm-b"><div class="sub"><b>Posisi bot / manual dengan stop-loss:</b> tetap terlindungi; saat jatuh cepat stop bisa tereksekusi sedikit lebih buruk dari harganya (selip).</div></div>' +
+    '<div class="pm-b"><div class="sub"><b>Posisi TANPA stop-loss:</b> paling berisiko saat BTC jatuh — pasang stop atau kurangi ukuran (lihat tab Akun → Risiko serentak).</div></div>' +
+    '<div class="pm-b"><div class="sub"><b>Order limit beli yang menunggu (Elliott):</b> lebih mungkin terisi saat harga turun. Pastikan Anda nyaman dengan SL-nya; masuk di pasar yang sedang jatuh bisa lanjut turun.</div></div>' +
+    '<div class="pm-b"><div class="sub"><b>Sinyal pola baru:</b> tetap valid menurut aturan, tetapi lahir di latar pasar yang lemah.</div></div>' +
+    '<p class="sub redup" style="margin-top:8px">Ambang: BAHAYA bila BTC turun ≥3% dalam ±4 jam atau ≥5% dalam 24 jam (sama dengan notifikasi HP). Ini informasi saja: bot TIDAK menutup posisi atau membatalkan order otomatis, karena uji sejarah menunjukkan tindakan itu memperburuk hasil.</p>';
+  return h;
+}
+document.addEventListener("click", e => { if (e.target.closest("#btcInfo .btc-cap")) popupTampil("Arti status BTC", btcArti(), false); });
 function ringkas(semua) {
   if (POLA.waktu) {
     const ps = semua.filter(r => r.p), jalan = ps.filter(r => r.p.st === "jalan"), tutup = ps.filter(r => r.p.st !== "jalan");
