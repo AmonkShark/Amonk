@@ -103,7 +103,21 @@ const fx = p => { const a = Math.abs(p); const dp = a >= 1000 ? 1 : a >= 10 ? 3 
 const pc = (x, e) => ((x / e - 1) * 100 >= 0 ? "+" : "") + ((x / e - 1) * 100).toFixed(1) + "%";
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const angka = (x, dp = 0) => x.toLocaleString("en-US", { maximumFractionDigits: dp });
-const PERINGKAT = k => ({ FW: 1, ST: 2, PEN: 3, IHS: 4, AT: 5, TB: 6, CH: 7, RC: 8, DB: 9 }[k] || 10);
+// PERINGKAT POLA (2026-09-26, permintaan user): SAMA dengan aplikasi — dari hasil simulasi 100 hari (600 lilin 4H) semua koin, rata USDT/trade tutup, n>=10 dulu.
+// Dihitung tiap run dan disimpan notif/peringkat.json (dipakai run berikutnya, jadi pesan memakai peringkat run sebelumnya, maks 4 jam basi).
+// Bukan edge (peringkat berbalik antar periode); hanya urutan saat slot terbatas. Cadangan bila berkas belum ada: urutan aplikasi 26-09.
+const F_PERINGKAT = path.join(__dirname, "peringkat.json");
+let PRK = {}; try { PRK = JSON.parse(fs.readFileSync(F_PERINGKAT, "utf8")).urut || {}; } catch (e) {}
+const PRK_CADANGAN = { TB: 1, EW: 2, FW: 3, ST: 4, AT: 5 };
+const PERINGKAT = k => { const x = PRK[k]; return "#" + (x ? x.no : (PRK_CADANGAN[k] || 6)); };
+const PRK_TALLY = {};   // kode -> {n, tot, m} diisi selama run
+function prkCatat(kode, s) { if (s.usdt == null) return; const x = PRK_TALLY[kode] = PRK_TALLY[kode] || { n: 0, tot: 0, m: 0 }; x.n++; x.tot += s.usdt; if (s.usdt > 0) x.m++; }
+function prkSimpan() {
+  const urutA = Object.entries(PRK_TALLY).map(([k, x]) => ({ k, n: x.n, rata: x.tot / x.n, wr: x.m / x.n * 100 })).sort((a, b) => (b.n >= 10) - (a.n >= 10) || b.rata - a.rata);
+  if (!urutA.length) return; const urut = {}; urutA.forEach((x, i) => urut[x.k] = { no: i + 1, n: x.n, rata: +x.rata.toFixed(2), wr: +x.wr.toFixed(1) });
+  if (!DRY) fs.writeFileSync(F_PERINGKAT, JSON.stringify({ t: Date.now(), hari: 100, urut }));
+  console.log("peringkat pola: " + urutA.map((x, i) => "#" + (i + 1) + " " + x.k + " " + (x.rata >= 0 ? "+" : "") + x.rata.toFixed(1) + " n" + x.n).join(" · "));
+}
 const wib = t => new Date(t + 7 * 3600e3).toISOString().slice(5, 16).replace(/(\d\d)-(\d\d)T/, "$2/$1 ") + " WIB";
 const tautan = (k, tf = "4H") => `<a href="https://www.tradingview.com/chart/?symbol=BINANCE:${esc(k)}USDT&interval=${tf === "1D" ? "D" : "240"}">Chart ${tf}</a>`;   // link Aplikasi dibuang 2026-09-23 (permintaan user)
 
@@ -175,7 +189,7 @@ function pesanSetupEw(k, S, d, vol, ukuran) {
     (ukuran || "") +
     `⌛ Batal bila tidak tersentuh s/d ${wib(habis)} (60 lilin 4H) atau siklus patah\n` +
     `🕒 setup ${wib(d.t[S.lahirB] + 4 * 3600e3)}${vol != null && vol < 1e6 ? "\n⚠️ likuiditas tipis (< $1jt/hari)" : ""}\n` +
-    `<i>Belum sinyal masuk: entry hanya bila harga TURUN menyentuh limit. Elliott peringkat 10 — di uji di bawah entry acak.</i>\n` +
+    `<i>Belum sinyal masuk: entry hanya bila harga TURUN menyentuh limit. Peringkat pola saat ini ${PERINGKAT("EW")} (dari hasil 100 hari, bukan edge).</i>\n` +
     `\n` + tautan(k, "4H");
 }
 // ---------- 1b. POLA 1D BARU (2026-09-22, disetujui user): kartu yang sama, Timeframe 1D ----------
@@ -548,7 +562,7 @@ async function rekap() {
     for (const e of ev) {
       const L = level(d, e); if (!L) continue;
       const kunci = `${k}|${e.nama}|${d.t[e.i]}`, validT = d.t[e.i] + 4 * 3600e3;
-      const s = simTahap(d, e.i, L);
+      const s = simTahap(d, e.i, L); prkCatat(e.kode, s);
       // catatan maju (untuk rekap): semua pola sejak MAJU_MULAI; yang sudah tutup dibekukan
       if (d.t[e.i] >= MAJU_MULAI && !(maju[kunci] && maju[kunci].st !== "jalan"))
         maju[kunci] = { koin: k, nama: e.nama, kode: e.kode, masukT: d.t[e.i], entry: L.entry, sl: L.sl, tp1: L.tp1, tp2: L.tp2,
@@ -581,7 +595,7 @@ async function rekap() {
   }
   // bersihkan: status > 60 hari, catatan maju tetap (itu buku)
   for (const [kk, v] of Object.entries(status)) if (sekarang - v.t > 60 * 864e5) delete status[kk];
-  await cekAudit(maju);
+  await cekAudit(maju); prkSimpan();
   if (!DRY) { fs.writeFileSync(F_STATUS, JSON.stringify(status)); fs.writeFileSync(F_MAJU, JSON.stringify(maju)); }
   console.log(`selesai: ${dicek} koin dicek, ${baru} pola baru 4H, ${baru1D} pola baru 1D, ${keluar} update exit ${DRY ? "(uji kering, tidak dikirim)" : "terkirim"} · catatan maju ${Object.keys(maju).length} · ukuran posisi: ${M ? M.sumber : "tanpa modal"}`);
 })();
