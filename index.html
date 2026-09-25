@@ -556,6 +556,12 @@ td.pnl .pil{margin-right:4px}
 .prk{display:inline-block;margin-left:5px;font:700 10px var(--f-num);padding:1px 5px;border-radius:5px;border:1px solid var(--garis);color:var(--label);cursor:pointer;vertical-align:middle}
 .prk.satu{color:var(--kuning);border-color:rgba(255,183,77,.5);background:var(--kuning-bg)}
 .prio.atas{color:var(--hijau);border-color:rgba(38,166,154,.45);background:var(--hijau-bg)}
+.rw-petunjuk{border:1px dashed var(--garis);border-radius:12px;padding:14px 16px;text-align:center;color:var(--label);font-size:13px}
+#halRiwayat .jr-pilih.seg{gap:6px;padding:4px;border:1px solid var(--garis);border-radius:999px;background:var(--bg2);display:inline-flex;flex-wrap:wrap}
+#halRiwayat .jr-pilih.seg button{border:0;border-radius:999px;background:none;padding:6px 14px}
+#halRiwayat .jr-pilih.seg button[aria-pressed="true"]{background:var(--bglbl);color:var(--teks);box-shadow:0 1px 4px rgba(0,0,0,.25)}
+#halRiwayat .jr-pilih.seg button .n{margin-left:6px;font:600 10.5px var(--f-num);color:var(--redup);background:color-mix(in srgb,var(--label) 12%,transparent);padding:1px 6px;border-radius:999px}
+#halRiwayat .jr-pilih.seg button[aria-pressed="true"] .n{color:var(--teks)}
 /* 7. header kaca: bilah status & tab tembus pandang buram saat menggulung */
 .pita{backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);background:color-mix(in srgb,var(--bg1) 74%,transparent);border-radius:12px}
 .tab{backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);background:color-mix(in srgb,var(--bg) 80%,transparent)}
@@ -701,7 +707,7 @@ td.pnl .pil{margin-right:4px}
     <div class="rw-judul" id="rwJudulPer">Hasil per pola <small><span class="hpsj">geser ‹ › untuk pola lain · </span>ketuk untuk melihat trade-nya</small></div>
     <div class="rw-tabel" id="rwPola"></div>
     <div class="jr-pilih seg" role="group" aria-label="Saring riwayat">
-      <button data-r="semua" aria-pressed="true">Semua</button>
+      <button data-r="semua" aria-pressed="false">Semua</button>
       <button data-r="jalan" aria-pressed="false">Jalan</button>
       <button data-r="tutup" aria-pressed="false">Tutup</button>
       <button data-r="untung" aria-pressed="false">Untung</button>
@@ -3365,7 +3371,7 @@ if (JN) setTimeout(gambarJurnalNyata, 0);
 // Semua pola valid 109 koin (~100 hari) dihitung ulang tiap lilin 4H. Supaya trade yang
 // sudah keluar dari jendela 600 lilin tidak hilang, riwayat disimpan juga di perangkat
 // ini (localStorage). Yang masih di jendela selalu memakai hasil hitungan terbaru.
-let rwPilih = baca("rwPilih", "semua"), rwPola = null, rwMode = baca("rwMode", "semua");
+let rwPilih = baca("rwPilih", ""), rwPola = null, rwMode = baca("rwMode", "semua");
 // PEMANTAUAN MAJU: hanya pola yang VALID mulai tanggal ini. Tanggalnya dipaku supaya
 // sama di semua perangkat (dihitung dari waktu lilin, bukan dari kapan aplikasi dibuka).
 const RW_MULAI = Date.UTC(2026, 8, 22, 0, 0);   // 22-09-2026 00:00 UTC
@@ -3502,6 +3508,8 @@ function gambarRiwayatAI() {
   RW_TAMPIL = { sumber: "AI", semua };                               // dipakai pop-up
   let rows = semua.slice();
   if (rwPola) rows = rows.filter(t => t.koin === rwPola);
+  rwTabHitung({ semua: rows.length, jalan: rows.filter(t => t.terbuka).length, tutup: rows.filter(t => !t.terbuka).length, untung: rows.filter(t => !t.terbuka && t.us > 0).length, rugi: rows.filter(t => !t.terbuka && t.us <= 0).length });
+  if (!rwPilih) { $("rwList").innerHTML = rwPetunjuk(); return; }
   if (rwPilih === "jalan") rows = rows.filter(t => t.terbuka); else if (rwPilih === "tutup") rows = rows.filter(t => !t.terbuka);
   else if (rwPilih === "untung") rows = rows.filter(t => !t.terbuka && t.us > 0); else if (rwPilih === "rugi") rows = rows.filter(t => !t.terbuka && t.us <= 0);
   rows.sort((a, b) => b.mT - a.mT);
@@ -3615,6 +3623,8 @@ window.gambarRiwayat = function () {
   RW_TAMPIL = { sumber: "POLA", semua };                             // dipakai pop-up
   let rows = semua.slice();
   if (rwPola) rows = rows.filter(t => t.nama === rwPola);
+  rwTabHitung({ semua: rows.length, jalan: rows.filter(t => t.st === "jalan" && !t.luar).length, tutup: rows.filter(t => t.st !== "jalan").length, untung: rows.filter(t => t.st !== "jalan" && t.pnl > 0).length, rugi: rows.filter(t => t.st !== "jalan" && t.pnl <= 0).length });
+  if (!rwPilih) { $("rwList").innerHTML = rwPetunjuk(); return; }
   if (rwPilih === "jalan") rows = rows.filter(t => t.st === "jalan" && !t.luar); else if (rwPilih === "tutup") rows = rows.filter(t => t.st !== "jalan");
   else if (rwPilih === "untung") rows = rows.filter(t => t.st !== "jalan" && t.pnl > 0); else if (rwPilih === "rugi") rows = rows.filter(t => t.st !== "jalan" && t.pnl <= 0);
   rows.sort((a, b) => b.masukT - a.masukT);
@@ -3628,10 +3638,13 @@ window.gambarRiwayat = function () {
     `<div class="kosong">Tidak ada trade di sini.</div>`;
 };
 kolPasang("rwKolForm", "rwKolToggle", ["level", "hasil"], () => window.gambarRiwayat());
+// DAFTAR TRADE RIWAYAT DILIPAT (2026-09-26, user: "muncul list koin jika tab ditekan"): tanpa tab dipilih daftar kosong; ketuk tab = buka, ketuk lagi = tutup
+function rwTabHitung(h) { document.querySelectorAll("#halRiwayat .jr-pilih button[data-r]").forEach(b => { const n = h[b.dataset.r]; let e = b.querySelector(".n"); if (!e) { e = document.createElement("span"); e.className = "n"; b.appendChild(e); } e.textContent = n == null ? "" : n; }); }
+const rwPetunjuk = () => '<div class="rw-petunjuk">Pilih <b>Semua</b>, <b>Jalan</b>, <b>Tutup</b>, <b>Untung</b>, atau <b>Rugi</b> di atas untuk membuka daftar trade' + (rwPola ? " pola <b>" + rwPola + "</b>" : "") + '.</div>';
 document.querySelectorAll("#halRiwayat .jr-pilih button[data-r]").forEach(b => {
   b.setAttribute("aria-pressed", b.dataset.r === rwPilih ? "true" : "false");
-  b.addEventListener("click", () => { rwPilih = b.dataset.r; simpan("rwPilih", rwPilih);
-    document.querySelectorAll("#halRiwayat .jr-pilih button[data-r]").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false")); window.gambarRiwayat(); });
+  b.addEventListener("click", () => { rwPilih = rwPilih === b.dataset.r ? "" : b.dataset.r; simpan("rwPilih", rwPilih);
+    document.querySelectorAll("#halRiwayat .jr-pilih button[data-r]").forEach(x => x.setAttribute("aria-pressed", x.dataset.r === rwPilih ? "true" : "false")); window.gambarRiwayat(); if (rwPilih) { const L = $("rwList"); if (L.getBoundingClientRect().top > innerHeight * 0.7) L.scrollIntoView({ behavior: "smooth", block: "start" }); } });
 });
 // ---------- POP-UP RIWAYAT ----------
 // Ketuk kartu (pola / koin) -> ringkasan + semua trade-nya; ketuk trade -> detail. Tidak perlu gulir ke bawah.
