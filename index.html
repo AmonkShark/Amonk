@@ -552,6 +552,14 @@ td.pnl .pil{margin-right:4px}
 /* 7. header kaca: bilah status & tab tembus pandang buram saat menggulung */
 .pita{backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);background:color-mix(in srgb,var(--bg1) 74%,transparent);border-radius:12px}
 .tab{backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);background:color-mix(in srgb,var(--bg) 80%,transparent)}
+/* MENU BAWAH DI HP (2026-09-26, user: "menu di bawah seperti Binance, hanya HP") */
+@media (max-width:760px){
+  .tab{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:40;margin:0;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));border-bottom:0;border-top:1px solid var(--garis);background:color-mix(in srgb,var(--bg1) 88%,transparent);backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);display:flex;justify-content:space-around;gap:0;overflow:visible;-webkit-mask-image:none;mask-image:none;box-shadow:0 -6px 20px rgba(0,0,0,.18)}
+  .tab button{flex:1 1 0;flex-direction:column;justify-content:center;gap:3px;padding:6px 2px 4px;font:600 10.5px var(--f-ui);letter-spacing:.02em;border:0;border-radius:10px;min-width:0}
+  .tab button svg{width:22px;height:22px}
+  .tab button[aria-selected="true"]{border-bottom-color:transparent;background:color-mix(in srgb,var(--hijau) 12%,transparent);color:var(--hijau)}
+  body{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+}
 </style>
 </head>
 <body>
