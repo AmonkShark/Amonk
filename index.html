@@ -553,6 +553,8 @@ td.pnl .pil{margin-right:4px}
 .banding-ring .jr-kotak h3{flex-wrap:wrap;gap:2px 8px}
 @media(max-width:640px){.bd-tab td,.bd-tab th{padding:6px 5px;font-size:11.5px}.bd-tab th:first-child,.bd-tab td:first-child{font-size:11.5px}}
 .prio{display:inline-block;margin-left:6px;font:700 10px var(--f-num);letter-spacing:.03em;padding:1px 6px;border-radius:6px;border:1px solid var(--garis);color:var(--label);background:var(--bg2);cursor:pointer;vertical-align:middle}
+.prk{display:inline-block;margin-left:5px;font:700 10px var(--f-num);padding:1px 5px;border-radius:5px;border:1px solid var(--garis);color:var(--label);cursor:pointer;vertical-align:middle}
+.prk.satu{color:var(--kuning);border-color:rgba(255,183,77,.5);background:var(--kuning-bg)}
 .prio.atas{color:var(--hijau);border-color:rgba(38,166,154,.45);background:var(--hijau-bg)}
 /* 7. header kaca: bilah status & tab tembus pandang buram saat menggulung */
 .pita{backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);background:color-mix(in srgb,var(--bg1) 74%,transparent);border-radius:12px}
@@ -1710,7 +1712,7 @@ function gambarHP(rs) {
       `<a href="${url}" target="_blank" rel="noopener">Buka chart 4H di TradingView →</a></div>`;
     const dK = data[r.koin] || {};
     return `<div class="kartu${P ? klsSt(P.st === "jalan", r.pnl) : ""}" data-k="${r.koin}">` +
-      `<div class="atas"><div style="min-width:0"><div class="nm">${r.koin}${prioHtml(r)}</div><div class="sub">${P ? P.nama : "tidak ada pola 4H"}${chipEw(r)}</div><div class="sp-hp">${spark(dK)}</div></div>` +
+      `<div class="atas"><div style="min-width:0"><div class="nm">${r.koin}${prioHtml(r)}</div><div class="sub">${P ? P.nama + peringkatHtml(P.kode) : "tidak ada pola 4H"}${chipEw(r)}</div><div class="sp-hp">${spark(dK)}</div></div>` +
       `<div>${P ? chipPola(P) : ""}</div>` +
       `<div class="kanan2"><div class="pnlB ${kls(r.pnl)}">${pnl}</div><div class="kecil">${fHarga(r.harga)}</div></div></div>` +
       rinci + `</div>`;
@@ -1767,7 +1769,7 @@ function selPola(r) {
   const chip = P.st === "jalan" ? (P.kenaTp1 ? `<span class="chip jalan">Jalan 50%</span>` : `<span class="chip jalan">Jalan</span>`)
     : P.st === "TP2" ? `<span class="chip tp">TP1 + TP2</span>` : P.st === "BE" ? `<span class="chip tp">TP1 + BE</span>` : `<span class="chip sl">Kena SL</span>`;
   const masuk = new Date(P.masukT).toISOString().slice(5, 16).replace("T", " ") + " UTC";
-  return `<td class="kiri grup" title="Valid ${masuk}">${P.nama}</td>` +
+  return `<td class="kiri grup" title="Valid ${masuk}">${P.nama}${peringkatHtml(P.kode)}</td>` +
     `<td class="kiri">${chip}${P.kenaTp1 && P.st === "jalan" ? '<span class="tp1">TP1 ✓ · SL = entry</span>' : ""}${P.st === "jalan" ? jalurMini(P, r.harga) : ""}</td>` +
     `<td>${P.umur} bar</td><td>${fHarga(P.entry)}</td><td>${P.kenaTp1 ? `<s class="redup">${fHarga(P.sl)}</s> ${fHarga(P.entry)} <span class="redup">BE</span>` : fHarga(P.sl) + pct(P.sl)}</td>` +
     `<td>${fHarga(P.tp1)}${pct(P.tp1)}</td><td>${TRAIL_TAMPIL.has(P.kode) ? "trailing 15%" : fHarga(P.tp2) + pct(P.tp2)}</td>` +
@@ -3387,9 +3389,26 @@ window.simpanRiwayat = function () {
   for (const [kk, t] of Object.entries(lama)) if (t.masukT < batasJendela) gabung[kk] = { ...t, luar: true };
   Object.assign(gabung, skr);
   const urut = Object.entries(gabung).sort((a, b) => b[1].masukT - a[1].masukT).slice(0, RW_MAKS);
-  RW = Object.fromEntries(urut); simpan("riwayat", RW);
+  RW = Object.fromEntries(urut); simpan("riwayat", RW); peringkatT = 0;
   if (halAktif === "Riwayat") window.gambarRiwayat();
 };
+// PERINGKAT POLA (2026-09-26, permintaan user: "kalau FW dan TB berbunyi bersamaan, mana prioritas?") — dari hasil Riwayat 100 hari:
+// urut rata USDT per trade tutup (n >= 10); pola dengan n < 10 di bawah. CATATAN JUJUR: uji proyek menunjukkan peringkat pola BERBALIK antar periode
+// (memori peringkat-pola-klasik-semesta-baru-berbalik, top3-pola-tidak-lebih-baik) — ini gambaran 100 hari terakhir, bukan edge.
+function peringkatPola() {
+  try {
+    const per = {}; for (const t of Object.values(RW)) { if (!KODE_TAMPIL.has(t.kode) || t.sisa !== 0) continue; const p = pnlTrade(t); if (p == null) continue; const x = per[t.kode] = per[t.kode] || { n: 0, tot: 0, m: 0 }; x.n++; x.tot += p; if (p > 0) x.m++; }
+    const urut = Object.entries(per).map(([k, x]) => ({ k, n: x.n, rata: x.tot / x.n, wr: x.m / x.n * 100 })).sort((a, b) => (b.n >= 10) - (a.n >= 10) || b.rata - a.rata);
+    const out = {}; urut.forEach((x, i) => out[x.k] = { no: i + 1, ...x }); return out;
+  } catch (e) { return {}; }
+}
+let PERINGKAT = {}, peringkatT = 0;
+const peringkatHtml = kode => { if (Date.now() - peringkatT > 60e3 || !Object.keys(PERINGKAT).length) { PERINGKAT = peringkatPola(); peringkatT = Date.now(); } const x = PERINGKAT[kode]; if (!x) return "";
+  return '<span class="prk' + (x.no === 1 ? " satu" : "") + '" title="Peringkat pola #' + x.no + ' dari hasil Riwayat 100 hari: rata ' + (x.rata >= 0 ? "+" : "") + x.rata.toFixed(1) + ' USDT/trade · WR ' + Math.round(x.wr) + '% · ' + x.n + ' trade' + (x.n < 10 ? ' (sampel kecil)' : '') + '. Ketuk: cara baca">#' + x.no + "</span>"; };
+document.addEventListener("click", e => { if (!e.target.closest(".prk")) return; const L = Object.values(PERINGKAT).sort((a, b) => a.no - b.no);
+  popupTampil("Peringkat pola (hasil 100 hari)", '<p><b>Kalau dua sinyal berbunyi bersamaan dan slot terbatas, nomor lebih kecil diambil dulu.</b> Urutan dari rata-rata USDT per trade tutup di Riwayat 100 hari terakhir (simulasi 1000 USDT).</p>' +
+    '<table class="bd-tab"><thead><tr><th>#</th><th>Pola</th><th>Rata/trade</th><th>WR</th><th>Trade</th></tr></thead><tbody>' + L.map(x => '<tr><td>' + x.no + '</td><td>' + (KODE_POLA[x.k] || x.k) + '</td><td class="' + (x.rata >= 0 ? "naik" : "turun") + '">' + (x.rata >= 0 ? "+" : "") + x.rata.toFixed(1) + '</td><td>' + Math.round(x.wr) + '%</td><td>' + x.n + (x.n < 10 ? ' <small>kecil</small>' : '') + '</td></tr>').join("") + '</tbody></table>' +
+    '<div class="bd-catatan" style="margin-top:10px">Ini gambaran 100 hari terakhir, bukan edge yang terbukti: uji proyek menunjukkan peringkat pola <b>berbalik antar periode</b>, dan memilih hanya 3 pola teratas tidak lebih baik daripada mengambil semua. Pakai untuk memutuskan urutan saat slot penuh, bukan untuk membuang pola lain.</div>', false); });
 const pnlTrade = t => {
   if (t.sisa === 0) return t.real - MODAL_POLA * BIAYA_POLA;
   const px = data[t.koin] && data[t.koin].harga;
@@ -3513,6 +3532,7 @@ function bandingKurva(B) {
 }
 function gambarBanding(id, lengkap) {
   const el = $(id); if (!el) return;
+  el.hidden = true; return;   // DIHAPUS dari tampilan 2026-09-26 (permintaan user); kode disimpan bila diperlukan lagi
   muatBanding().then(B => {
     if (!B || !B.tf) { el.hidden = true; return; }
     const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + (+v).toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun", f0 = v => v == null ? "—" : (v >= 0 ? "+" : "") + Math.round(v);
