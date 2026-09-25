@@ -452,6 +452,81 @@ td.kosong{border:0;border-radius:0}
 .btc-ubin i{font-style:normal;font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .btc-ubin b{font:600 13px var(--f-num);white-space:nowrap}
 .btc-alasan{margin-top:8px;font-size:11px;line-height:1.45;padding:6px 9px;border-radius:8px;border:1px solid currentColor;background:color-mix(in srgb,currentColor 8%,transparent)}
+
+/* ===== ELEGAN 2026-09-26 (user: "lebih elegan, modern, stylish — kerjakan semua") ===== */
+/* 1. kartu ringkasan setinggi sama + visual mini di dasar tiap kartu */
+.strip>div{position:relative}
+.strip .mini{margin-top:auto;padding-top:10px}
+.strip>div:not(#kartuBtc) .mini{border-top:1px solid var(--garis);margin-top:auto}
+.mini-bar{position:relative;height:6px;border-radius:3px;background:var(--bg2);overflow:visible;margin:6px 0 4px}
+.mini-bar .isi{position:absolute;top:0;bottom:0;border-radius:3px}
+.mini-bar .tengah{position:absolute;top:-3px;bottom:-3px;width:1px;background:var(--label);left:50%}
+.mini-bar .titik{position:absolute;top:-3px;width:12px;height:12px;border-radius:50%;background:var(--teks);border:2px solid var(--bg1);transform:translateX(-6px);box-shadow:0 0 0 2px var(--biru);transition:left .6s}
+.mini-ket{display:flex;justify-content:space-between;font:10.5px var(--f-ui);color:var(--redup);letter-spacing:.03em}
+.mini-seg{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--bg2);margin:6px 0 4px}.mini-seg i{display:block;height:100%}
+.mini svg.sp{height:34px;width:100%}
+.cincin{display:flex;align-items:center;gap:10px}
+.cincin svg{width:40px;height:40px;flex:none;transform:rotate(-90deg)}
+.cincin circle{fill:none;stroke-width:4}
+.cincin .latar{stroke:var(--bg2)}.cincin .maju{stroke:var(--biru);stroke-linecap:round;transition:stroke-dashoffset 1s linear}
+.cincin .ket{font:11px var(--f-ui);color:var(--label);line-height:1.4}.cincin .ket b{display:block;font:600 12px var(--f-num);color:var(--teks)}
+/* 2. judul kartu seragam: kapital kecil */
+.trm-alok .jr-kotak h3{font:600 11px var(--f-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--teks);opacity:.75}
+.trm-alok .jr-kotak h3 small{text-transform:none;letter-spacing:0;font-size:11px}
+/* 3. kartu per pola: label kecil + angka tebal, cincin WR, lencana */
+.rw-pola{gap:8px}
+.rw-pola .d{font:11.5px var(--f-ui);letter-spacing:.01em}
+.rw-pola .d em{font:600 12.5px var(--f-num)}
+.kv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.kv>div{display:flex;flex-direction:column;gap:1px;min-width:0;padding:6px 8px;border-radius:9px;background:color-mix(in srgb,var(--label) 7%,transparent)}
+.kv i{font-style:normal;font:10px var(--f-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kv b{font:600 13px var(--f-num);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kv.empat{grid-template-columns:repeat(4,minmax(0,1fr))}
+.rw-atas{display:flex;align-items:center;gap:10px}
+.rw-atas .kv{flex:1;grid-template-columns:repeat(2,minmax(0,1fr))}
+.wr-cincin{width:46px;height:46px;flex:none;position:relative}
+.wr-cincin svg{width:46px;height:46px;transform:rotate(-90deg)}
+.wr-cincin circle{fill:none;stroke-width:4.5}.wr-cincin .latar{stroke:color-mix(in srgb,var(--label) 18%,transparent)}.wr-cincin .maju{stroke-linecap:round}
+.wr-cincin span{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font:600 11px var(--f-num);line-height:1}
+.wr-cincin span small{font:9px var(--f-ui);color:var(--label);letter-spacing:.05em}
+.lencana-k{align-self:flex-start;font:500 10.5px var(--f-ui);letter-spacing:.03em;color:var(--label);border:1px dashed var(--garis);border-radius:999px;padding:2px 8px}
+/* 4. pil untung/rugi berlatar lembut */
+.pil{display:inline-block;padding:2px 8px;border-radius:8px;font-weight:600;line-height:1.3}
+.pil.naik{background:var(--hijau-bg);color:var(--hijau)}.pil.turun{background:var(--merah-bg);color:var(--merah)}
+td.pnl .pil{margin-right:4px}
+.jr-tr .ha b.naik,.jr-tr .ha b.turun,.kartu .pnlB.naik,.kartu .pnlB.turun{display:inline-block;padding:2px 9px;border-radius:9px;font-weight:600}
+.jr-tr .ha b.naik,.kartu .pnlB.naik{background:var(--hijau-bg)}.jr-tr .ha b.turun,.kartu .pnlB.turun{background:var(--merah-bg)}
+.rw-pola .j span.naik,.rw-pola .j span.turun{padding:2px 9px;border-radius:9px;font-weight:600}
+.rw-pola .j span.naik{background:var(--hijau-bg)}.rw-pola .j span.turun{background:var(--merah-bg)}
+/* 5. satu baris filter di Terminal (layar lebar) */
+@media(min-width:900px){
+  .alat{padding-block:14px 12px;gap:8px 10px;align-items:center}
+  .alat .seg{gap:4px;padding:3px;border:1px solid var(--garis);border-radius:999px;background:var(--bg2)}
+  .alat .seg button{border:0;border-radius:999px;background:none;padding:5px 12px}
+  .alat .seg button[aria-pressed="true"]{background:var(--bglbl);color:var(--teks);box-shadow:0 1px 4px rgba(0,0,0,.25)}
+  #chipBar.dalam-alat{margin:0;display:contents}
+  #chipBar.dalam-alat .chip-k{order:0}
+  .alat .pemisah{width:1px;height:22px;background:var(--garis);margin:0 2px}
+  #cari{border-radius:999px;padding-left:14px;width:150px}
+  #mode,#muat{font-size:0;padding:6px 9px;border-radius:999px;line-height:0}
+  #mode::before{content:"📱";font-size:14px;line-height:1}#muat::before{content:"↻";font-size:16px;line-height:1;font-weight:600}
+  #urutHP{display:none}
+}
+/* 6. gerak halus */
+@keyframes muncul{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes pudarHal{from{opacity:0}to{opacity:1}}
+.hal:not([hidden]){animation:pudarHal .18s ease-out}
+.strip>div,.jr-kotak,.rw-pola,.aksi,.tabel{animation:muncul .35s ease-out both}
+.strip>div:nth-child(2),.rw-pola:nth-child(2){animation-delay:.05s}.strip>div:nth-child(3),.rw-pola:nth-child(3){animation-delay:.1s}.strip>div:nth-child(4),.rw-pola:nth-child(4){animation-delay:.15s}.strip>div:nth-child(5),.rw-pola:nth-child(5){animation-delay:.2s}
+.strip>div,.jr-kotak,.rw-pola{transition:transform .18s ease,box-shadow .18s ease,border-color .15s}
+@media(hover:hover){.strip>div:hover,.rw-pola:hover,#jnRing .jr-kotak:hover,#akRing .jr-kotak:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(0,0,0,.22);border-color:color-mix(in srgb,var(--label) 45%,var(--garis))}}
+.skel{color:transparent!important;position:relative;border-radius:6px;background:var(--bg2);min-width:64px;display:inline-block;overflow:hidden}
+.skel::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 20%,rgba(128,140,160,.18) 50%,transparent 80%);transform:translateX(-100%);animation:kilau 1.3s infinite}
+.skel *{visibility:hidden}
+@media(prefers-reduced-motion:reduce){.hal:not([hidden]),.strip>div,.jr-kotak,.rw-pola,.aksi,.tabel{animation:none}.strip>div,.jr-kotak,.rw-pola{transition:none}.skel::after{animation:none}}
+/* 7. header kaca: bilah status & tab tembus pandang buram saat menggulung */
+.pita{backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);background:color-mix(in srgb,var(--bg1) 74%,transparent);border-radius:12px}
+.tab{backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);background:color-mix(in srgb,var(--bg) 80%,transparent)}
 </style>
 </head>
 <body>
@@ -493,11 +568,11 @@ td.kosong{border:0;border-radius:0}
        terlihat seperti sebelumnya — tidak ada yang berubah untuk layar lebar. -->
   <button class="btn kecil ringkas-toggle" type="button" id="stripToggle" aria-expanded="false" aria-controls="strip">📊 Ringkasan pasar</button>
   <div class="trm-atas" id="trmAtas"><section class="strip" aria-label="Ringkasan pasar" id="strip">
-    <div class="utama" id="kartuBtc"><div class="btc-kepala"><span class="k">BTC</span><span id="btcCap"></span></div><span class="v" id="sBtc">—</span><span class="s" id="sBtc24">—</span><div class="btc-info" id="btcInfo"></div></div>
-    <div><span class="k">Rezim BTC · EMA100 D</span><span class="v" id="sRez">—</span><span class="s" id="sRezS">—</span></div>
-    <div><span class="k">Median vs EMA200 4H</span><span class="v" id="sMed">—</span><span class="s" id="sMedS">—</span></div>
-    <div class="utama"><span class="k">Trade pola · 1000 USDT</span><span class="v" id="sPola">—</span><span class="s" id="sPolaS">data pola belum ada</span></div>
-    <div class="utama"><span class="k">Lilin 4H berikut</span><span class="v" id="sJam">—</span><span class="s" id="sMuat">indikator dari lilin tutup</span></div>
+    <div class="utama" id="kartuBtc"><div class="btc-kepala"><span class="k">BTC</span><span id="btcCap"></span></div><span class="v skel" id="sBtc">—</span><span class="s" id="sBtc24">—</span><div class="btc-info" id="btcInfo"></div></div>
+    <div><span class="k">Rezim BTC · EMA100 D</span><span class="v skel" id="sRez">—</span><span class="s" id="sRezS">—</span><div class="mini" id="mRez"></div></div>
+    <div><span class="k">Median vs EMA200 4H</span><span class="v skel" id="sMed">—</span><span class="s" id="sMedS">—</span><div class="mini" id="mMed"></div></div>
+    <div class="utama"><span class="k">Trade pola · 1000 USDT</span><span class="v skel" id="sPola">—</span><span class="s" id="sPolaS">data pola belum ada</span><div class="mini" id="mPola"></div></div>
+    <div class="utama"><span class="k">Lilin 4H berikut</span><span class="v skel" id="sJam">—</span><span class="s" id="sMuat">indikator dari lilin tutup</span><div class="mini" id="mJam"></div></div>
   </section>
   <div class="trm-alok" id="trmAlok" hidden></div></div>
   <div class="aksi" id="trmAksi" hidden></div>
@@ -522,9 +597,9 @@ td.kosong{border:0;border-radius:0}
           <option value="koin">Urut: nama koin</option>
           <option value="ch">Urut: 24j terbesar</option>
         </select>
-        <button class="btn" id="mode" title="Ganti tampilan HP / lengkap">Tampilan lengkap</button>
+        <button class="btn" id="mode" title="Ganti tampilan HP / lengkap (📱)">Tampilan lengkap</button>
         <button class="btn" id="paskan" title="Bagi lebar layar ke semua kolom supaya tidak perlu geser ke kanan">Paskan layar</button>
-        <button class="btn" id="muat">Muat ulang 4H</button>
+        <button class="btn" id="muat" title="Muat ulang data lilin 4H">Muat ulang 4H</button>
       </div>
     </div>
   </div>
@@ -1493,6 +1568,13 @@ function gambarChip(semua) {
   }).join("");
 }
 $("chipBar").addEventListener("click", e => { const b = e.target.closest(".chip-k"); if (!b) return; st.chip = b.dataset.c; simpan("chip", st.chip); gambar(); });
+// SATU BARIS FILTER (2026-09-26): di layar >=900px chip pola dipindah ke baris alat (sesudah Semua/Pola jalan), dipisah garis tipis
+(function satuBaris() {
+  const mq = matchMedia("(min-width:900px)"), cb = $("chipBar"), seg = document.querySelector('#alatLain .seg[aria-label="Saring zona"]'), asal = cb.parentNode, sesudah = cb.nextSibling;
+  const pem = document.createElement("i"); pem.className = "pemisah";
+  const atur = () => { if (mq.matches && seg) { seg.after(pem, cb); cb.classList.add("dalam-alat"); } else { pem.remove(); cb.classList.remove("dalam-alat"); asal.insertBefore(cb, sesudah); } };
+  atur(); mq.addEventListener("change", atur);
+})();
 function gambarAksi(semua) {
   const A = [], jk = (k, ikon, teks, kls, u) => A.push({ u, k, ikon, teks, kls });
   for (const r of semua) {
@@ -1627,7 +1709,7 @@ function selPola(r) {
     `<td class="kiri">${chip}${P.kenaTp1 && P.st === "jalan" ? '<span class="tp1">TP1 ✓ · SL = entry</span>' : ""}${P.st === "jalan" ? jalurMini(P, r.harga) : ""}</td>` +
     `<td>${P.umur} bar</td><td>${fHarga(P.entry)}</td><td>${P.kenaTp1 ? `<s class="redup">${fHarga(P.sl)}</s> ${fHarga(P.entry)} <span class="redup">BE</span>` : fHarga(P.sl) + pct(P.sl)}</td>` +
     `<td>${fHarga(P.tp1)}${pct(P.tp1)}</td><td>${TRAIL_TAMPIL.has(P.kode) ? "trailing 15%" : fHarga(P.tp2) + pct(P.tp2)}</td>` +
-    `<td class="pnl ${r.pnl == null ? "" : r.pnl >= 0 ? "naik" : "turun"}">${r.pnl == null ? "—" : (r.pnl >= 0 ? "+" : "") + r.pnl.toFixed(2)} ` +
+    `<td class="pnl ${r.pnl == null ? "" : r.pnl >= 0 ? "naik" : "turun"}">${r.pnl == null ? "—" : '<span class="pil ' + (r.pnl >= 0 ? "naik" : "turun") + '">' + (r.pnl >= 0 ? "+" : "") + r.pnl.toFixed(2) + "</span>"} ` +
     `<span class="redup">${r.pnl == null ? "" : fPct(r.pnl / MODAL_POLA * 100, 1)}</span></td>` +
     `<td>${ukuranTeks(P, true)}</td>`;
 }
@@ -1680,6 +1762,9 @@ function ringkas(semua) {
     const sj = jalan.reduce((a, r) => a + (r.pnl || 0), 0), stp = tutup.reduce((a, r) => a + (r.pnl || 0), 0);
     $("sPola").innerHTML = `<span class="${sj >= 0 ? "naik" : "turun"}">${sj >= 0 ? "+" : ""}${sj.toFixed(0)}</span> <small class="s">jalan</small>`;
     $("sPolaS").textContent = `${jalan.length} jalan · ${tutup.length} tutup ${stp >= 0 ? "+" : ""}${stp.toFixed(0)} USDT · pola ${new Date(POLA.waktu).toISOString().slice(11, 16)} UTC`;
+    // visual mini (2026-09-26): kurva kumulatif trade tutup, urut dari yang paling lama
+    const urutT = tutup.slice().sort((a, b) => (a.p.masukT || 0) - (b.p.masukT || 0)).map(r => r.pnl || 0);
+    $("mPola").innerHTML = sparkMini(urutT) + '<div class="mini-ket"><span>kumulatif ' + tutup.length + ' trade tutup</span><span class="' + (stp >= 0 ? "naik" : "turun") + '">' + (stp >= 0 ? "+" : "") + stp.toFixed(0) + '</span></div>';
   }
   const b = data.BTC;
   if (b && b.harga) {
@@ -1691,6 +1776,8 @@ function ringkas(semua) {
       const j = (b.harga / btcD.ema100 - 1) * 100, atas = j >= 0;
       $("sRez").innerHTML = `<span class="${atas ? "naik" : "turun"}">${atas ? "Di atas" : "Di bawah"}</span>`;
       $("sRezS").textContent = `${fPct(j, 1)} dari EMA100 harian ${fHarga(btcD.ema100)}`;
+      { const c = Math.max(-30, Math.min(30, j)), pos = 50 + c / 30 * 50, w = Math.abs(c) / 30 * 50;
+        $("mRez").innerHTML = '<div class="mini-bar"><i class="tengah"></i><i class="isi" style="left:' + (c >= 0 ? 50 : pos) + '%;width:' + w + '%;background:' + (atas ? "var(--hijau)" : "var(--merah)") + ';opacity:.55"></i><i class="titik" style="left:' + pos + '%"></i></div><div class="mini-ket"><span>−30%</span><span>EMA100</span><span>+30%</span></div>'; }
     }
   }
   const ds = semua.filter(r => r.d != null).map(r => r.d).sort((x, y) => x - y);
@@ -1699,13 +1786,28 @@ function ringkas(semua) {
     $("sMed").innerHTML = `<span class="${med >= 0 ? "naik" : "turun"}">${fPct(med, 1)}</span>`;
     const bawah = ds.filter(x => x < 0).length;
     $("sMedS").textContent = `${bawah} dari ${ds.length} koin di bawah EMA200`;
+    { const pb = bawah / ds.length * 100;
+      $("mMed").innerHTML = '<div class="mini-seg"><i style="width:' + pb.toFixed(1) + '%;background:var(--merah)"></i><i style="width:' + (100 - pb).toFixed(1) + '%;background:var(--hijau)"></i></div><div class="mini-ket"><span class="turun">' + bawah + ' di bawah</span><span class="naik">' + (ds.length - bawah) + ' di atas</span></div>'; }
   }
+  document.querySelectorAll(".skel").forEach(e => e.classList.remove("skel"));
+  if (!window.__hitungNaik && data.BTC && data.BTC.harga) { window.__hitungNaik = true; hitungNaik($("sBtc"), data.BTC.harga, fHarga); }
+}
+// angka "menghitung naik" saat pertama tampil (2026-09-26); dihormati prefers-reduced-motion
+function hitungNaik(el, target, fmt) {
+  if (!el || !(target > 0) || matchMedia("(prefers-reduced-motion:reduce)").matches) return;
+  const t0 = performance.now(), dur = 700, dari = target * 0.9;
+  const langkah = t => { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3); el.textContent = fmt(dari + (target - dari) * e); if (k < 1) requestAnimationFrame(langkah); };
+  requestAnimationFrame(langkah);
 }
 
 function jam() {
   const sisa = Math.ceil(Date.now() / H4) * H4 - Date.now();
   const h = Math.floor(sisa / 3600e3), m = Math.floor(sisa % 3600e3 / 60e3), s = Math.floor(sisa % 60e3 / 1e3);
   $("sJam").textContent = `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  $("sJam").classList.remove("skel");
+  const mj = $("mJam"); if (mj) { const jalan = 1 - sisa / H4, C = 2 * Math.PI * 16;
+    if (!mj.firstChild) mj.innerHTML = '<div class="cincin"><svg viewBox="0 0 40 40"><circle class="latar" cx="20" cy="20" r="16"/><circle class="maju" cx="20" cy="20" r="16" stroke-dasharray="' + C.toFixed(2) + '" stroke-dashoffset="' + C.toFixed(2) + '"/></svg><div class="ket"><b></b>lilin 4H berjalan</div></div>';
+    mj.querySelector(".maju").style.strokeDashoffset = (C * (1 - jalan)).toFixed(2); mj.querySelector(".ket b").textContent = Math.round(jalan * 100) + "% · tutup " + new Date(Math.ceil(Date.now() / H4) * H4).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }); }
 }
 
 // --- kontrol ---
@@ -2012,6 +2114,10 @@ const hargaKini = k => (data[k] && data[k].harga) || null;
 // posisi POLA terbuka yang sudah kena TP1: 50% sudah terjual di harga TP1 (2026-09-25), 50% sisanya dinilai dengan harga kini
 const uangJ = (e, px, t) => e > 0 && px > 0 ? JR.nominal * (t && t.tp1Kena && t.tp1 > 0 ? 0.5 * (t.tp1 / e - 1) + 0.5 * (px / e - 1) : (px / e - 1)) - JR.nominal * JR.biaya : null;
 // sparkline kumulatif kecil (tanpa sumbu) untuk kartu pola/sinyal
+function wrCincin(wr, n) {
+  const C = 2 * Math.PI * 18, w = n ? wr : 0, warna = w >= 55 ? "var(--hijau)" : w >= 45 ? "var(--kuning)" : "var(--merah)";
+  return '<div class="wr-cincin" title="Win rate"><svg viewBox="0 0 46 46"><circle class="latar" cx="23" cy="23" r="18"/><circle class="maju" cx="23" cy="23" r="18" stroke="' + warna + '" stroke-dasharray="' + C.toFixed(2) + '" stroke-dashoffset="' + (C * (1 - w / 100)).toFixed(2) + '"/></svg><span>' + (n ? w + "%" : "—") + '<small>WR</small></span></div>';
+}
 function sparkMini(vals) {
   if (!vals || vals.length < 2) return '<svg class="sp" viewBox="0 0 200 38" aria-hidden="true"><line x1="0" x2="200" y1="19" y2="19" stroke="var(--garis)" stroke-dasharray="3 3"/></svg>';
   const c = [0]; for (const x of vals) c.push(c[c.length - 1] + (+x || 0));
@@ -2430,7 +2536,7 @@ function donatAlokasi(baris, total) {
 function trmAlok() {
   const el = $("trmAlok"), sn = baca("akSnap", null);
   if (!el || !sn || !(sn.total > 0)) { if (el) el.hidden = true; if ($("trmAtas")) $("trmAtas").classList.remove("dua"); return; }
-  el.innerHTML = donatAlokasi(sn.baris, sn.total).replace("<h3>Alokasi saldo", "<h3>Portfolio Allocation").replace("</small></h3>", " · " + new Date(sn.t).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + "</small></h3>");
+  el.innerHTML = donatAlokasi(sn.baris, sn.total).replace("<h3>Alokasi saldo", "<h3>Alokasi portofolio").replace("</small></h3>", " · " + new Date(sn.t).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + "</small></h3>");
   el.hidden = false; $("trmAtas").classList.add("dua");
 }
 setTimeout(trmAlok, 200);
@@ -3225,8 +3331,8 @@ function gambarRiwayatAI() {
     const seb = s => h.n ? (x.tt.filter(t => t.sebab === s).length / h.n * 100).toFixed(1) + "%" : "0";
     return `<button type="button" class="rw-pola" data-p="${k}" aria-pressed="${rwPola === k}"><div class="j"><b>${k}</b><span class="${kl(h.tot)}">${h.n ? f2(h.tot) : "—"}</span></div>` +
       `<div class="bar" title="TP / WAKTU / SL"><i style="width:${seb("TP")};background:var(--hijau)"></i><i style="width:${seb("WAKTU")};background:var(--kuning)"></i><i style="width:${seb("SL")};background:var(--merah)"></i></div>` +
-      `<div class="d"><span><em>${h.n}</em> tutup</span><span>WR <em>${h.n ? Math.round(h.wr) : 0}%</em></span><span>rata <em class="${kl(h.rata)}">${f2(h.rata)}</em></span>${x.jalan ? `<span>jalan <em>${x.jalan}</em></span>` : ""}</div>` +
-      `<div class="d"><span>rata R <em class="${kl(h.rR)}">${h.rR == null ? "—" : f2(h.rR)}</em></span><span>terbaik <em class="naik">${f2(h.best)}</em></span><span>terburuk <em class="turun">${f2(h.worst)}</em></span></div></button>`;
+      `<div class="rw-atas">${wrCincin(Math.round(h.wr || 0), h.n)}<div class="kv"><div><i>Tutup</i><b>${h.n}</b></div><div><i>Rata/trade</i><b class="${kl(h.rata)}">${f2(h.rata)}</b></div><div><i>Jalan</i><b>${x.jalan || 0}</b></div><div><i>Rata R</i><b class="${kl(h.rR)}">${h.rR == null ? "—" : f2(h.rR)}</b></div></div></div>` +
+      `<div class="kv"><div><i>Terbaik</i><b class="naik">${f2(h.best)}</b></div><div><i>Terburuk</i><b class="turun">${f2(h.worst)}</b></div><div><i>Total</i><b class="${kl(h.tot)}">${f2(h.tot)}</b></div></div></button>`;
   }).join("");
   RW_TAMPIL = { sumber: "AI", semua };                               // dipakai pop-up
   let rows = semua.slice();
@@ -3274,6 +3380,7 @@ window.gambarRiwayat = function () {
   const dapat = nm => per[nm] = per[nm] || { n: 0, m: 0, u: 0, tp2: 0, be: 0, sl: 0, jalan: 0, uJalan: 0, win: 0, loss: 0, seq: [] };
   for (const t of tutup) {
     const x = dapat(t.nama); x.n++; x.u += t.pnl; x.seq.push([t.keluarT || t.masukT || 0, t.pnl]);
+    x.best = x.best == null ? t.pnl : Math.max(x.best, t.pnl); x.worst = x.worst == null ? t.pnl : Math.min(x.worst, t.pnl);
     if (t.pnl > 0) { x.m++; x.win += t.pnl; } else x.loss += t.pnl;
     if (t.st === "TP2" || t.st === "TP") x.tp2++; else if (t.st === "BE") x.be++; else x.sl++;
   }
@@ -3285,10 +3392,10 @@ window.gambarRiwayat = function () {
     return `<button type="button" class="rw-pola" data-p="${nm}" aria-pressed="${rwPola === nm}">` +
       `<div class="j"><b>${nm}</b><span class="${kl(x.u)}">${x.n ? f2(x.u) : "—"}</span></div>` + sparkMini(x.seq.sort((a, b) => a[0] - b[0]).map(s => s[1])) +
       `<div class="bar" title="TP1+TP2 (atau trailing) / TP1+BE / SL"><i style="width:${w(x.tp2)};background:var(--hijau)"></i><i style="width:${w(x.be)};background:rgba(38,166,154,.45)"></i><i style="width:${w(x.sl)};background:var(--merah)"></i></div>` +
-      `<div class="d"><span><em>${x.n}</em> tutup</span><span>WR <em>${wr}%</em></span><span>rata <em class="${kl(rata)}">${f2(rata)}</em></span></div>` +
-      `<div class="d"><span>TP1+TP2/trailing <em>${x.tp2}</em></span><span>TP1+BE <em>${x.be}</em></span><span>SL <em>${x.sl}</em></span>${x.jalan ? `<span>jalan <em>${x.jalan}</em></span>` : ""}</div>` +
-      `<div class="d"><span>rata untung <em class="naik">${f2(avgW)}</em></span><span>rata rugi <em class="turun">${f2(avgL)}</em></span></div>` +
-      (rwMode === "maju" ? majuHtml(nm, x, semua) : (x.n < 30 ? `<div class="kecil2">sampel kecil (&lt;30 trade) — belum bisa disimpulkan</div>` : "")) + `</button>`;
+      `<div class="rw-atas">${wrCincin(wr, x.n)}<div class="kv"><div><i>Tutup</i><b>${x.n}</b></div><div><i>Rata/trade</i><b class="${kl(rata)}">${f2(rata)}</b></div><div><i>Terbaik</i><b class="naik">${f2(x.best)}</b></div><div><i>Terburuk</i><b class="turun">${f2(x.worst)}</b></div></div></div>` +
+      `<div class="kv empat"><div title="Tutup di TP1+TP2 atau trailing"><i>TP2</i><b class="naik">${x.tp2}</b></div><div title="Tutup di TP1 lalu impas (BE)"><i>BE</i><b>${x.be}</b></div><div title="Kena stop-loss"><i>SL</i><b class="turun">${x.sl}</b></div><div title="Masih berjalan"><i>Jalan</i><b>${x.jalan || 0}</b></div></div>` +
+      `<div class="kv"><div title="Rata-rata trade untung"><i>Untung</i><b class="naik">${f2(avgW)}</b></div><div title="Rata-rata trade rugi"><i>Rugi</i><b class="turun">${f2(avgL)}</b></div><div title="Rata untung ÷ rata rugi"><i>Rasio</i><b>${avgW != null && avgL ? (avgW / Math.abs(avgL)).toFixed(2) + "×" : "—"}</b></div></div>` +
+      (rwMode === "maju" ? majuHtml(nm, x, semua) : (x.n < 30 ? `<span class="lencana-k">sampel kecil · &lt;30 trade</span>` : "")) + `</button>`;
   }).join("");
   { const sel = $("rwPola").querySelector('[aria-pressed="true"]'); if (sel) { const c = $("rwPola"); c.scrollTo({ left: sel.offsetLeft - (c.clientWidth - sel.clientWidth) / 2, behavior: "smooth" }); } }
   RW_TAMPIL = { sumber: "POLA", semua };                             // dipakai pop-up
