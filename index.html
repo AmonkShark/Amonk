@@ -433,6 +433,15 @@ td.kosong{border:0;border-radius:0}
 .rk-fil{grid-column:1/-1;text-align:center;font-size:12px;color:var(--kuning);margin-top:4px}.rk-modal{grid-column:1/-1;text-align:center;font-size:12px;color:var(--label);margin-top:2px}
 .rk-cap .rp-auto{display:none}
 @media (max-width:640px){.pita{flex-wrap:wrap!important;overflow:visible!important;-webkit-mask-image:none!important;mask-image:none!important;gap:6px 14px!important;position:static}.pita-i{white-space:normal}.pita-i .rp-auto{display:none}}
+
+/* PEMINDAI (2026-09-25) */
+.cepat{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
+.cepat-l{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--redup)}
+.cepat .btn{font-size:13px;padding:8px 12px;border-radius:12px}
+.pm-j{margin:14px 0 6px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--redup)}.pm-j small{color:var(--label);margin-left:4px}
+.pm-b{padding:9px 12px;margin:0 0 6px;border:1px solid var(--garis);border-left:3px solid var(--garis);border-radius:10px;background:var(--bg2);cursor:pointer}
+.pm-b.dekat{border-left-color:var(--kuning)}.pm-b:hover{border-color:var(--biru)}
+.pm-h{font-size:13.5px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
 </style>
 </head>
 <body>
@@ -509,6 +518,7 @@ td.kosong{border:0;border-radius:0}
       </div>
     </div>
   </div>
+  <div class="cepat" id="cepatBar" role="group" aria-label="Info cepat"><span class="cepat-l">⚡ Sekali klik:</span><button type="button" class="btn" data-p="menuju">🔍 Menuju valid</button><button type="button" class="btn" data-p="baru">🆕 Baru valid</button><button type="button" class="btn" data-p="elliott">⏳ Limit Elliott</button><button type="button" class="btn" data-p="posisi">💼 Posisi &amp; order</button><button type="button" class="btn" data-p="pasar">🌐 Pasar</button></div>
   <div class="chip-bar" id="chipBar"></div>
   <div class="ak-set" id="trmKolForm" hidden>
   </div>
@@ -1196,7 +1206,7 @@ async function muatKoin(k) {
   if (sekarang - +b[b.length - 1][6] > 12 * 3600e3) { d.ok = false; d.gagal = true; d.basi = true; d.pola = null; return; }
   try {
     const dd = { t: b.map(x => +x[0]), o: b.map(x => +x[1]), h, l, c, v: b.map(x => +x[5]) };
-    d.riwayat = polaSemua(dd); d.pola = polaTerakhir(dd, d.riwayat);
+    const ekstra = {}; d.riwayat = polaSemua(dd, ekstra); d.pola = polaTerakhir(dd, d.riwayat); d.setups = ekstra.setup; d.calon = ekstra.calon;
     // LIMIT ELLIOTT MENUNGGU (2026-09-23): aturan sama dgn bot & Telegram (elliott(), 4H mx 2.5)
     d.ew = null;
     try { const S = window.PolaDC && window.PolaDC.elliott ? window.PolaDC.elliott(dd, atrArr(dd.h, dd.l, dd.c), 2.5).setup : null;
@@ -1220,9 +1230,10 @@ function atrArr(h, l, c, n = 14) {
 }
 // RIWAYAT (2026-09-22): simulasi dijalankan untuk SEMUA pola valid di jendela 600 lilin
 // (~100 hari), bukan hanya yang terakhir. Yang terakhir = kolom Terminal; semuanya = tab Riwayat.
-function polaSemua(d) {
+function polaSemua(d, ekstra) {
   if (!window.PolaDC) return [];
-  const ev = window.PolaDC.peristiwa(d, atrArr(d.h, d.l, d.c), { elliott: true }) || [];   // + Elliott Wave (EW), 2026-09-23
+  const ev = window.PolaDC.peristiwa(d, atrArr(d.h, d.l, d.c), ekstra ? { elliott: true, setupAkhir: true, calonAkhir: true } : { elliott: true }) || [];
+  if (ekstra) { ekstra.setup = ev.setup || []; ekstra.calon = ev.calon || []; }   // Pemindai 'menuju valid' (2026-09-25)   // + Elliott Wave (EW), 2026-09-23
   return ev.filter(e => !SEMBUNYI_POLA.has(e.kode)).map(e => simTrade(d, e));
 }
 function polaTerakhir(d, semua) {
@@ -1507,6 +1518,80 @@ function jalurMini(P, px) {
     '<span class="jm-t" style="left:' + pos(e) + '%"></span><span class="jm-t" style="left:' + pos(P.tp1) + '%"></span>' +
     '<span class="jm-k" style="left:' + pos(px) + '%"></span></div>';
 }
+
+// ===== PEMINDAI SEKALI KLIK (2026-09-25, permintaan user): koin menuju pola valid, baru valid, limit Elliott, posisi & order, ringkasan pasar =====
+const pmCari = k => { popupTutup(); pindahHal("Terminal"); const c = $("cari"); c.value = k; c.dispatchEvent(new Event("input", { bubbles: true })); window.scrollTo(0, 0); };
+const pmUrl = k => "https://www.tradingview.com/chart/?symbol=BINANCE:" + k + "USDT&interval=240";
+const pmBaris = (k, kepala, sub, kls) => '<div class="pm-b ' + (kls || "") + '" data-k="' + k + '" tabindex="0" role="button"><div class="pm-h"><b>' + k + "</b> " + kepala + "</div>" + (sub ? '<div class="sub">' + sub + "</div>" : "") + "</div>";
+function pmMenuju() {
+  const A = [];
+  for (const k of KOIN) { const d = data[k]; if (!d || !d.ok || !d.harga) continue;
+    for (const st of d.setups || []) { if (!KODE_TAMPIL.has(st.kode) || st.kode === "EW" || !(st.level > 0 && st.batal > 0) || d.harga <= st.batal) continue;
+      A.push({ k, jenis: "SETUP", nama: st.nama, jarak: (st.level / d.harga - 1) * 100, level: st.level, batal: st.batal, tinggi: st.tinggi, umur: st.umur, sisa: st.sisa, harga: d.harga }); }
+    for (const st of d.calon || []) { if (!KODE_TAMPIL.has(st.kode) || st.kode === "EW" || !(st.level > 0 && st.batal > 0) || d.harga <= st.batal) continue;
+      A.push({ k, jenis: "CALON", nama: st.nama, jarak: (st.level / d.harga - 1) * 100, level: st.level, batal: st.batal, tinggi: st.tinggi, sah: (st.sahP / d.harga - 1) * 100, harga: d.harga }); } }
+  A.sort((a, b) => Math.abs(a.jarak) - Math.abs(b.jarak));
+  const set = A.filter(a => a.jenis === "SETUP"), cal = A.filter(a => a.jenis === "CALON");
+  const item = a => { const rs = (a.level - a.batal) / a.level * 100, tp = a.level + (a.tinggi || 0);
+    return pmBaris(a.k, '<span class="chip ' + (a.jenis === "SETUP" ? "jalan" : "") + '">' + a.jenis + "</span> " + a.nama + ' <span class="' + (a.jarak <= 0 ? "naik" : a.jarak <= 3 ? "kng" : "redup") + '">' + (a.jarak <= 0 ? "di atas level — tunggu lilin tutup" : fPct(a.jarak, 1) + " lagi ke tembus") + "</span>",
+      "Tembus di " + fHarga(a.level) + " · batal " + fHarga(a.batal) + " · risiko ≈ " + rs.toFixed(1) + "%" + (a.tinggi ? " · target ≈ " + fHarga(tp) : "") + (a.jenis === "SETUP" ? " · umur " + a.umur + " bar, sisa " + a.sisa : " · lembah sah bila harga " + fPct(a.sah, 1)), a.jarak <= 3 ? "dekat" : ""); };
+  return '<p class="sub redup">SETUP = pola sudah terbentuk, menunggu lilin 4H TUTUP menembus garis. CALON = pola mungkin terbentuk bila lembah sementara disahkan. Belum valid, belum tentu jadi — ini daftar pantauan, bukan sinyal beli. Diurutkan yang paling dekat ke garis tembus.</p>' +
+    '<h4 class="pm-j">SETUP <small>' + set.length + "</small></h4>" + (set.slice(0, 25).map(item).join("") || '<div class="kosong">Tidak ada.</div>') +
+    '<h4 class="pm-j">CALON <small>' + cal.length + "</small></h4>" + (cal.slice(0, 15).map(item).join("") || '<div class="kosong">Tidak ada.</div>');
+}
+function pmBaru() {
+  const A = []; for (const k of KOIN) { const d = data[k], P = d && d.pola; if (!P || P.st !== "jalan" || P.kenaTp1 || P.umur > 6 || !d.harga) continue;
+    const R = P.entry - P.sl, lari = R > 0 ? (d.harga - P.entry) / R : 0; A.push({ k, P, harga: d.harga, lari, bisa: d.harga > P.sl && lari <= 0.25 && d.harga < P.tp1 }); }
+  A.sort((a, b) => a.P.umur - b.P.umur);
+  return '<p class="sub redup">Pola yang baru valid (≤ 6 lilin) dan belum kena TP1. "Masih bisa entry" = harga belum lari lebih dari 0,25R di atas entry (aturan yang sama dengan bot). Level dari chart, bukan saran beli.</p>' +
+    (A.map(a => pmBaris(a.k, '<span class="chip ' + (a.bisa ? "tp" : "sl") + '">' + (a.bisa ? "masih bisa entry" : "sudah lari/jauh") + "</span> " + a.P.nama + ' <span class="redup">umur ' + a.P.umur + " bar</span>",
+      "Entry " + fHarga(a.P.entry) + " · SL " + fHarga(a.P.sl) + " · TP1 " + fHarga(a.P.tp1) + " · harga kini " + fHarga(a.harga) + " (" + (a.lari >= 0 ? "+" : "") + a.lari.toFixed(2) + "R dari entry)", a.bisa ? "dekat" : "")).join("") || '<div class="kosong">Tidak ada pola baru valid.</div>');
+}
+function pmElliott() {
+  const A = []; for (const k of KOIN) { const d = data[k]; if (!d || !d.ew || !d.harga) continue; A.push({ k, e: d.ew, harga: d.harga, jarak: (d.ew.level / d.harga - 1) * 100 }); }
+  A.sort((a, b) => Math.abs(a.jarak) - Math.abs(b.jarak));
+  return '<p class="sub redup">Limit beli Elliott 4H yang masih menunggu (harga perlu TURUN ke level). Diurutkan dari yang paling dekat ke level — urutan yang sama dipakai bot. 🤖 = bot sedang memasang order di koin itu.</p>' +
+    (A.map(a => pmBaris(a.k, (botPegang(a.k) ? '<span class="chip bot">🤖</span> ' : "") + '<span class="' + (Math.abs(a.jarak) <= 2 ? "kng" : "redup") + '">' + fPct(a.jarak, 1) + "</span> dari limit " + fHarga(a.e.level),
+      "SL " + fHarga(a.e.sl) + " · TP2 " + fHarga(a.e.tp2) + " · harga kini " + fHarga(a.harga) + " · sisa " + Math.max(0, a.e.sisa) + " lilin (~" + (Math.max(0, a.e.sisa) * 4 / 24).toFixed(1) + " hari)", Math.abs(a.jarak) <= 2 ? "dekat" : "")).join("") || '<div class="kosong">Tidak ada limit Elliott yang menunggu.</div>');
+}
+function pmPosisi() {
+  const s = btS(), akun = typeof AK_CACHE !== "undefined" && AK_CACHE ? AK_CACHE : null; let h = "";
+  const px = k => (data[k] && data[k].harga) || 0;
+  const P = (s && s.posisi) || [];
+  h += '<h4 class="pm-j">Posisi bot <small>' + P.length + "</small></h4>" + (P.map(p => { const k = p.sym.replace(/USDT$/, ""), x = px(k), be = p.tahap === "tp1", sl = be ? Math.max(p.entry, p.isi) : p.sl;
+    return pmBaris(k, '<span class="chip jalan">' + p.kode + "</span> " + (x ? '<span class="' + (x >= p.isi ? "naik" : "turun") + '">' + fPct((x / p.isi - 1) * 100, 1) + "</span>" : ""),
+      "Isi " + fHarga(p.isi) + " · kini " + (x ? fHarga(x) : "—") + " · " + (be ? "BE" : "SL") + " " + fHarga(sl) + (x ? " (" + fPct((x / sl - 1) * 100, 1) + ")" : "") + (p.tp1 && !be ? " · TP1 " + fHarga(p.tp1) + (x ? " (" + fPct((p.tp1 / x - 1) * 100, 1) + ")" : "") : "") + (be ? " · trailing 15%" : ""), x && x <= sl * 1.02 ? "dekat" : ""); }).join("") || '<div class="kosong">Tidak ada posisi bot.</div>');
+  const O = (s && s.ew && s.ew.order) || [];
+  h += '<h4 class="pm-j">Order limit bot <small>' + O.length + "</small></h4>" + (O.map(o => { const k = o.sym.replace(/USDT$/, ""), x = px(k);
+    return pmBaris(k, '<span class="chip ew">EW</span> limit ' + fHarga(o.p) + (x ? ' <span class="redup">(' + fPct((o.p / x - 1) * 100, 1) + " dari harga)</span>" : ""), "≈ " + Math.round(o.nilai) + " USDT · SL " + fHarga(o.sl) + " · TP2 " + fHarga(o.tp2)); }).join("") || '<div class="kosong">Tidak ada order limit.</div>');
+  const bot = new Set(P.map(p => p.sym.replace(/USDT$/, "")).concat(O.map(o => o.sym.replace(/USDT$/, ""))));
+  const M = akun ? akun.baris.filter(b => !STABIL.has(b.aset) && (b.nilai || 0) > 5 && !bot.has(b.aset)) : [];
+  h += '<h4 class="pm-j">Koin manual Anda <small>' + M.length + "</small></h4>" + (akun ? (M.map(b => { const ord = ((akun.akun && akun.akun.order) || []).filter(o => o.simbol === b.aset + "USDT" && o.sisi === "SELL"), stops = ord.filter(o => o.stop > 0).map(o => o.stop), sl = stops.filter(v => v < (b.px || 0)).sort((a, c) => c - a)[0];
+    return pmBaris(b.aset, (b.pnl == null ? "" : '<span class="' + (b.pnl >= 0 ? "naik" : "turun") + '">' + (b.pnl >= 0 ? "+" : "") + b.pnl.toFixed(1) + " USDT</span> ") + '<span class="redup">≈ ' + Math.round(b.nilai) + " USDT</span>",
+      (b.rata ? "Beli " + fHarga(b.rata) + " · " : "") + "kini " + fHarga(b.px) + " · " + (sl ? "stop " + fHarga(sl) + " (" + fPct((b.px / sl - 1) * 100, 1) + ")" : "<b class=\"turun\">TANPA stop-loss</b>"), !sl || b.px <= sl * 1.02 ? "dekat" : ""); }).join("") || '<div class="kosong">Tidak ada koin manual.</div>')
+    : '<div class="kosong">Buka tab Akun sekali supaya saldo Binance terbaca.</div>');
+  return h;
+}
+function pmPasar() {
+  const semua = KOIN.map(baris).filter(r => r.harga && r.ch != null), b = data.BTC || {}, atas = semua.filter(r => r.d != null && r.d >= 0).length, ada = semua.filter(r => r.d != null).length;
+  const naik = semua.slice().sort((a, c) => c.ch - a.ch).slice(0, 5), turun = semua.slice().sort((a, c) => a.ch - c.ch).slice(0, 5), jalan = semua.filter(r => r.p && r.p.st === "jalan").length;
+  const reg = btcD && btcD.ema100 && b.harga ? (b.harga / btcD.ema100 - 1) * 100 : null;
+  const bar = r => pmBaris(r.koin, '<span class="' + (r.ch >= 0 ? "naik" : "turun") + '">' + fPct(r.ch, 1) + "</span>", "harga " + fHarga(r.harga));
+  return '<div class="jr-angka"><div><span>BTC</span><b>' + fHarga(b.harga) + '</b><span class="rp ' + ((b.harga && b.open24 ? b.harga / b.open24 - 1 : 0) >= 0 ? "naik" : "turun") + '">' + (b.harga && b.open24 ? fPct((b.harga / b.open24 - 1) * 100, 1) : "—") + " 24 jam</span></div>" +
+    "<div><span>Rezim BTC</span><b class=\"" + (reg == null ? "" : reg >= 0 ? "naik" : "turun") + '">' + (reg == null ? "—" : reg >= 0 ? "Di atas" : "Di bawah") + '</b><span class="rp">' + (reg == null ? "" : fPct(reg, 1) + " dari EMA100 harian") + "</span></div>" +
+    "<div><span>Di atas EMA200 4H</span><b>" + atas + " / " + ada + '</b><span class="rp">' + (ada ? Math.round(atas / ada * 100) : 0) + "% dari koin</span></div></div>" +
+    '<p class="sub redup" style="margin:8px 0">Pola jalan sekarang: <b>' + jalan + '</b> · Info pasar saja, bukan sinyal.</p>' +
+    '<h4 class="pm-j">Naik terbesar 24 jam</h4>' + naik.map(bar).join("") + '<h4 class="pm-j">Turun terbesar 24 jam</h4>' + turun.map(bar).join("");
+}
+const PM_JUDUL = { menuju: "🔍 Menuju pola valid", baru: "🆕 Pola baru valid", elliott: "⏳ Limit Elliott menunggu", posisi: "💼 Posisi & order", pasar: "🌐 Ringkasan pasar" };
+window.pemindai = tab => {
+  const fn = { menuju: pmMenuju, baru: pmBaru, elliott: pmElliott, posisi: pmPosisi, pasar: pmPasar }[tab]; if (!fn) return;
+  let isi; try { isi = fn(); } catch (e) { isi = '<div class="kosong">Gagal memuat: ' + String(e.message).replace(/[<>&]/g, "") + "</div>"; }
+  const tabs = Object.entries(PM_JUDUL).map(([k, t]) => '<button type="button" class="chip-k" aria-pressed="' + (k === tab) + '" onclick="pemindai(&quot;' + k + '&quot;)">' + t.split(" ").slice(1).join(" ") + "</button>").join("");
+  popupTampil(PM_JUDUL[tab], '<div class="chip-bar" style="margin-bottom:8px">' + tabs + '</div><p class="sub redup" style="margin:0 0 8px">Data ' + (POLA.waktu ? "lilin 4H dimuat " + new Date(POLA.waktu).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "belum termuat") + ' · harga hidup. Ketuk baris untuk membuka koinnya di Terminal.</p>' + isi, false);
+};
+$("cepatBar").addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if (b) window.pemindai(b.dataset.p); });
+document.addEventListener("click", e => { const r = e.target.closest("#popupBadan .pm-b"); if (r) pmCari(r.dataset.k); });
 function chipEw(r) {
   const bp = botPegang(r.koin), botChip = bp ? '<span class="chip bot" title="' + (bp === "posisi" ? "Bot MEMEGANG koin ini — jangan jual manual" : "Bot punya order limit menunggu di koin ini") + '">🤖</span>' : "";
   if (!r.ew) return botChip;
