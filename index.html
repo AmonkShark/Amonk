@@ -435,12 +435,21 @@ td.kosong{border:0;border-radius:0}
 @media (max-width:640px){.pita{flex-wrap:wrap!important;overflow:visible!important;-webkit-mask-image:none!important;mask-image:none!important;gap:6px 14px!important;position:static}.pita-i{white-space:normal}.pita-i .rp-auto{display:none}}
 
 /* KARTU BTC + tanda bahaya (2026-09-26) */
-#kartuBtc{display:grid!important;grid-template-columns:auto minmax(0,1fr);column-gap:14px;align-items:start}
-#kartuBtc>.k,#kartuBtc>.v,#kartuBtc>.s{grid-column:1}
-#kartuBtc>.btc-info{grid-column:2;grid-row:1/4;text-align:right;font-size:11.5px;line-height:1.55;color:var(--label);min-width:0}
-.btc-cap{cursor:pointer;background:none;display:inline-block;font:600 12px var(--f-ui);padding:2px 9px;border-radius:999px;border:1px solid currentColor;margin-bottom:3px}
-.btc-alasan{margin-top:2px;font-size:11px}
-@media(max-width:340px){#kartuBtc{grid-template-columns:1fr}#kartuBtc>.btc-info{grid-column:1;grid-row:auto;text-align:left;margin-top:6px}}
+/* 2026-09-26 (user: "atur agar rapi, lebih elegan"): tersusun ke bawah, bukan kolom sempit di kanan */
+.btc-kepala{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:22px}
+.btc-cap{cursor:pointer;background:none;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;font:600 10.5px var(--f-ui);letter-spacing:.06em;padding:3px 9px;border-radius:999px;border:1px solid currentColor;line-height:1.2}
+.btc-cap::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 0 3px color-mix(in srgb,currentColor 22%,transparent)}
+.btc-cap:hover{background:color-mix(in srgb,currentColor 10%,transparent)}
+#kartuBtc.ada-info #sBtc24{display:none}
+.btc-info:empty{display:none}
+.btc-info{margin-top:10px;padding-top:10px;border-top:1px solid var(--garis)}
+#kartuBtc{container-type:inline-size}
+.btc-ubin{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+@container (max-width:215px){.btc-ubin{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.btc-ubin>div{border:1px solid var(--garis);border-radius:9px;padding:6px 8px;background:color-mix(in srgb,var(--label) 6%,transparent);display:flex;flex-direction:column;gap:2px;min-width:0}
+.btc-ubin i{font-style:normal;font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btc-ubin b{font:600 13px var(--f-num);white-space:nowrap}
+.btc-alasan{margin-top:8px;font-size:11px;line-height:1.45;padding:6px 9px;border-radius:8px;border:1px solid currentColor;background:color-mix(in srgb,currentColor 8%,transparent)}
 </style>
 </head>
 <body>
@@ -482,7 +491,7 @@ td.kosong{border:0;border-radius:0}
        terlihat seperti sebelumnya — tidak ada yang berubah untuk layar lebar. -->
   <button class="btn kecil ringkas-toggle" type="button" id="stripToggle" aria-expanded="false" aria-controls="strip">📊 Ringkasan pasar</button>
   <div class="trm-atas" id="trmAtas"><section class="strip" aria-label="Ringkasan pasar" id="strip">
-    <div class="utama" id="kartuBtc"><span class="k">BTC</span><span class="v" id="sBtc">—</span><span class="s" id="sBtc24">—</span><div class="btc-info" id="btcInfo"></div></div>
+    <div class="utama" id="kartuBtc"><div class="btc-kepala"><span class="k">BTC</span><span id="btcCap"></span></div><span class="v" id="sBtc">—</span><span class="s" id="sBtc24">—</span><div class="btc-info" id="btcInfo"></div></div>
     <div><span class="k">Rezim BTC · EMA100 D</span><span class="v" id="sRez">—</span><span class="s" id="sRezS">—</span></div>
     <div><span class="k">Median vs EMA200 4H</span><span class="v" id="sMed">—</span><span class="s" id="sMedS">—</span></div>
     <div class="utama"><span class="k">Trade pola · 1000 USDT</span><span class="v" id="sPola">—</span><span class="s" id="sPolaS">data pola belum ada</span></div>
@@ -1632,10 +1641,12 @@ function btcInfo(b, ch24) {
   if (ch4 <= -3) ada.push("turun " + Math.abs(ch4).toFixed(1) + "% dalam ±4 jam"); if (ch24 <= -5) ada.push("turun " + Math.abs(ch24).toFixed(1) + "% dalam 24 jam");
   if (!bahaya) { if (ch4 <= -2) ada.push("turun " + Math.abs(ch4).toFixed(1) + "% dalam ±4 jam"); if (dd <= -8) ada.push(Math.abs(dd).toFixed(1) + "% di bawah puncak 7 hari"); if (e100 != null && e100 < 0) ada.push("di bawah EMA100 harian"); if (e200 != null && e200 < 0) ada.push("di bawah EMA200 4H"); }
   window.BTC_STATUS = { tingkat: bahaya ? "bahaya" : waspada ? "waspada" : "normal", alasan: ada };
-  const kls = bahaya ? "turun" : waspada ? "kng" : "naik", cap = bahaya ? "⛔ BAHAYA" : waspada ? "⚠ WASPADA" : "✓ NORMAL", w = v => '<span class="' + (v >= 0 ? "naik" : "turun") + '">' + (v >= 0 ? "+" : "") + v.toFixed(1) + "%</span>";
-  $("btcInfo").innerHTML = '<button type="button" class="btc-cap ' + kls + '" title="Ketuk: arti peringatan">' + cap + " ⓘ</button>" +
-    "<div>4 jam " + w(ch4) + " · 24 jam " + w(ch24) + "</div><div>7 hari " + w(ch7) + " · dari puncak " + w(dd) + "</div>" +
-    "<div>vs EMA200 4H " + (e200 == null ? "—" : w(e200)) + " · EMA100 D " + (e100 == null ? "—" : w(e100)) + "</div>" + (ada.length ? '<div class="btc-alasan ' + kls + '">' + ada.join(" · ") + "</div>" : "");
+  const kls = bahaya ? "turun" : waspada ? "kng" : "naik", cap = bahaya ? "BAHAYA" : waspada ? "WASPADA" : "NORMAL";
+  const ub = (k, v) => '<div><i>' + k + "</i><b" + (v == null || !isFinite(v) ? ">—" : ' class="' + (+v.toFixed(1) >= 0 ? "naik" : "turun") + '">' + (+v.toFixed(1) > 0 ? "+" : "") + (+v.toFixed(1) === 0 ? "0.0" : v.toFixed(1)) + "%") + "</b></div>";
+  $("btcCap").innerHTML = '<button type="button" class="btc-cap ' + kls + '" title="Ketuk: arti status BTC">' + cap + " ⓘ</button>";
+  $("btcInfo").innerHTML = '<div class="btc-ubin">' + ub("4 jam", ch4) + ub("24 jam", ch24) + ub("7 hari", ch7) + ub("Puncak 7H", dd) + ub("EMA200 4H", e200) + ub("EMA100 D", e100) + "</div>" +
+    (ada.length ? '<div class="btc-alasan ' + kls + '">' + ada.join(" · ") + "</div>" : "");
+  $("kartuBtc").classList.add("ada-info");
 }
 // PENJELASAN tiap peringatan BTC (2026-09-26): apa artinya untuk altcoin, posisi & order. Ketuk kotak status BTC.
 const BTC_ARTI = {
@@ -1660,7 +1671,7 @@ function btcArti() {
     '<p class="sub redup" style="margin-top:8px">Ambang: BAHAYA bila BTC turun ≥3% dalam ±4 jam atau ≥5% dalam 24 jam (sama dengan notifikasi HP). Ini informasi saja: bot TIDAK menutup posisi atau membatalkan order otomatis, karena uji sejarah menunjukkan tindakan itu memperburuk hasil.</p>';
   return h;
 }
-document.addEventListener("click", e => { if (e.target.closest("#btcInfo .btc-cap")) popupTampil("Arti status BTC", btcArti(), false); });
+document.addEventListener("click", e => { if (e.target.closest("#kartuBtc .btc-cap")) popupTampil("Arti status BTC", btcArti(), false); });
 function ringkas(semua) {
   if (POLA.waktu) {
     const ps = semua.filter(r => r.p), jalan = ps.filter(r => r.p.st === "jalan"), tutup = ps.filter(r => r.p.st !== "jalan");
