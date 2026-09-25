@@ -524,6 +524,12 @@ td.pnl .pil{margin-right:4px}
 .skel::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 20%,rgba(128,140,160,.18) 50%,transparent 80%);transform:translateX(-100%);animation:kilau 1.3s infinite}
 .skel *{visibility:hidden}
 @media(prefers-reduced-motion:reduce){.hal:not([hidden]),.strip>div,.jr-kotak,.rw-pola,.aksi,.tabel{animation:none}.strip>div,.jr-kotak,.rw-pola{transition:none}.skel::after{animation:none}}
+/* kartu ringkasan bisa diketuk -> penjelasan (2026-09-26) */
+.strip>div[data-arti]{cursor:pointer}
+.k-info{font-style:normal;font-size:11px;color:var(--label);opacity:.7;margin-left:2px;letter-spacing:0;text-transform:none}
+.strip>div[data-arti]:hover .k-info{opacity:1;color:var(--biru)}
+.trm-atas.dua{align-items:start}
+.pm-b .nilai{font:600 13px var(--f-num);color:var(--teks);margin-left:6px}
 /* 7. header kaca: bilah status & tab tembus pandang buram saat menggulung */
 .pita{backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);background:color-mix(in srgb,var(--bg1) 74%,transparent);border-radius:12px}
 .tab{backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);background:color-mix(in srgb,var(--bg) 80%,transparent)}
@@ -569,10 +575,10 @@ td.pnl .pil{margin-right:4px}
   <button class="btn kecil ringkas-toggle" type="button" id="stripToggle" aria-expanded="false" aria-controls="strip">📊 Ringkasan pasar</button>
   <div class="trm-atas" id="trmAtas"><section class="strip" aria-label="Ringkasan pasar" id="strip">
     <div class="utama" id="kartuBtc"><div class="btc-kepala"><span class="k">BTC</span><span id="btcCap"></span></div><span class="v skel" id="sBtc">—</span><span class="s" id="sBtc24">—</span><div class="btc-info" id="btcInfo"></div></div>
-    <div><span class="k">Rezim BTC · EMA100 D</span><span class="v skel" id="sRez">—</span><span class="s" id="sRezS">—</span><div class="mini" id="mRez"></div></div>
-    <div><span class="k">Median vs EMA200 4H</span><span class="v skel" id="sMed">—</span><span class="s" id="sMedS">—</span><div class="mini" id="mMed"></div></div>
-    <div class="utama"><span class="k">Trade pola · 1000 USDT</span><span class="v skel" id="sPola">—</span><span class="s" id="sPolaS">data pola belum ada</span><div class="mini" id="mPola"></div></div>
-    <div class="utama"><span class="k">Lilin 4H berikut</span><span class="v skel" id="sJam">—</span><span class="s" id="sMuat">indikator dari lilin tutup</span><div class="mini" id="mJam"></div></div>
+    <div data-arti="rez" role="button" tabindex="0" title="Ketuk: arti kartu ini"><span class="k">Rezim BTC · EMA100 D <i class="k-info">ⓘ</i></span><span class="v skel" id="sRez">—</span><span class="s" id="sRezS">—</span><div class="mini" id="mRez"></div></div>
+    <div data-arti="med" role="button" tabindex="0" title="Ketuk: arti kartu ini"><span class="k">Median vs EMA200 4H <i class="k-info">ⓘ</i></span><span class="v skel" id="sMed">—</span><span class="s" id="sMedS">—</span><div class="mini" id="mMed"></div></div>
+    <div class="utama" data-arti="pola" role="button" tabindex="0" title="Ketuk: arti kartu ini"><span class="k">Trade pola · 1000 USDT <i class="k-info">ⓘ</i></span><span class="v skel" id="sPola">—</span><span class="s" id="sPolaS">data pola belum ada</span><div class="mini" id="mPola"></div></div>
+    <div class="utama" data-arti="jam" role="button" tabindex="0" title="Ketuk: arti kartu ini"><span class="k">Lilin 4H berikut <i class="k-info">ⓘ</i></span><span class="v skel" id="sJam">—</span><span class="s" id="sMuat">indikator dari lilin tutup</span><div class="mini" id="mJam"></div></div>
   </section>
   <div class="trm-alok" id="trmAlok" hidden></div></div>
   <div class="aksi" id="trmAksi" hidden></div>
@@ -1756,6 +1762,33 @@ function btcArti() {
   return h;
 }
 document.addEventListener("click", e => { if (e.target.closest("#kartuBtc .btc-cap")) popupTampil("Arti status BTC", btcArti(), false); });
+// PENJELASAN KARTU RINGKASAN (2026-09-26, permintaan user: "ketika diklik ada penjelasan maksud kolom tersebut")
+function kartuArti(k) {
+  const T = id => ($(id) ? $(id).textContent.trim() : "—"), b = (j, isi) => '<div class="pm-b"><div class="pm-h"><b>' + j + "</b></div><div class=\"sub\">" + isi + "</div></div>";
+  const n = T("sRez"), nS = T("sRezS"), m = T("sMed"), mS = T("sMedS"), p = T("sPola"), pS = T("sPolaS"), j = T("sJam"), jS = T("sMuat");
+  if (k === "rez") return "<p><b>Nilai sekarang: " + n + "</b> · " + nS + "</p>" +
+    b("Apa ini", "EMA100 harian = rata-rata harga BTC ±100 hari terakhir, yang lebih menimbang hari-hari terbaru. Harga <b>di atas</b> garis ini = tren menengah BTC naik (rezim bullish); <b>di bawah</b> = rezim melemah.") +
+    b("Bilah di bawah kartu", "Titik menunjukkan seberapa jauh BTC dari EMA100, dari −30% (kiri) sampai +30% (kanan). Makin ke kanan makin kuat trennya; makin jauh juga makin \"panas\" dan rawan koreksi.") +
+    b("Artinya untuk sinyal & posisi", "Altcoin biasanya mengikuti BTC. Di rezim turun, hasil pola secara historis lebih rendah, <b>tetapi</b> uji kita menunjukkan itu efek pasar (beta), bukan sesuatu yang bisa disaring: bot tetap mengambil sinyal di kedua rezim. Pakai ini sebagai konteks, bukan alasan mematikan bot.");
+  if (k === "med") return "<p><b>Nilai sekarang: " + m + "</b> · " + mS + "</p>" +
+    b("Apa ini", "Tiap koin di daftar diukur jaraknya ke EMA200 4H-nya sendiri (rata-rata ±33 hari). Angka besar = nilai <b>tengah</b> (median) dari semua koin: kalau +16%, separuh koin berada lebih dari 16% di atas trennya.") +
+    b("Bilah merah–hijau", "Bagian merah = jumlah koin yang <b>di bawah</b> EMA200 (lemah), hijau = <b>di atas</b> (kuat). Ini ukuran \"lebar pasar\": makin banyak yang hijau, makin sehat kenaikan altcoin secara umum.") +
+    b("Artinya untuk sinyal & posisi", "Saat mayoritas di atas EMA200, pola bullish lahir di latar yang mendukung. Saat mayoritas di bawah, pola tetap valid menurut aturan tetapi lebih sering gagal karena pasar sedang melemah. Bot tidak menyaring berdasarkan ini (uji: saringan lintas-koin tidak menambah hasil).");
+  if (k === "pola") return "<p><b>Nilai sekarang: " + p + "</b> · " + pS + "</p>" +
+    b("Apa ini", "Pembukuan <b>simulasi</b> aplikasi: seolah SETIAP sinyal pola 4H yang valid dibeli dengan 1.000 USDT, dijual sesuai aturan (TP1, TP2/trailing, SL). Ini bukan uang di Binance dan bukan hasil bot; gunanya menilai mutu sinyal secara adil, tanpa dipengaruhi berapa slot bot yang kebetulan kosong.") +
+    b("Angka & kurva", "<b>jalan</b> = untung/rugi mengambang semua posisi simulasi yang masih terbuka. <b>tutup</b> = jumlah trade yang sudah selesai dan total hasilnya. Kurva = hasil kumulatif trade tutup dari yang paling lama ke terbaru; naik stabil = sinyal konsisten, bergerigi = banyak SL.") +
+    b("Waktu pola … UTC", "Jam pemindaian pola terakhir (dari GitHub, tiap jam). Kalau lebih dari ±2 jam dari sekarang, data pola sedang tertunda.") +
+    b("Hasil bot sungguhan", "Ada di tab <b>Akun</b> (posisi asli) dan <b>Riwayat bot</b>; jumlahnya berbeda karena bot hanya mengambil sebagian sinyal sesuai slot dan modal.");
+  if (k === "jam") return "<p><b>Sisa waktu: " + j + "</b> · " + jS + "</p>" +
+    b("Apa ini", "Lilin 4 jam tutup setiap 00.00, 04.00, 08.00, 12.00, 16.00, 20.00 UTC (Sydney: 10.00, 14.00, 18.00, 22.00, 02.00, 06.00 saat AEST; geser 1 jam saat AEDT). Semua indikator, pola, dan sinyal dihitung dari lilin yang <b>sudah tutup</b>, jadi sinyal baru hanya bisa muncul sesudah waktu ini.") +
+    b("Cincin", "Menunjukkan berapa persen lilin yang sedang berjalan sudah berlalu. Mendekati penuh = sebentar lagi ada pembaruan pola dan alert.") +
+    b("dimuat HH.MM", "Jam terakhir aplikasi memuat data lilin dari Binance. <b>N tanpa data spot</b> = koin di daftar yang tidak punya pasangan spot USDT (biasanya koin futures saja), jadi tidak ikut dihitung.") +
+    b("Yang perlu diperhatikan", "Harga di tabel tetap hidup tiap detik; yang menunggu lilin tutup hanya <b>status pola</b> (valid / SL / TP). Jadi kalau harga sudah menembus SL tetapi status belum berubah, itu normal sampai lilin tutup.");
+  return "";
+}
+const KARTU_JUDUL = { rez: "Rezim BTC · EMA100 harian", med: "Median vs EMA200 4H", pola: "Trade pola · 1000 USDT (simulasi)", jam: "Lilin 4H berikut" };
+document.addEventListener("click", e => { const d = e.target.closest("#strip>div[data-arti]"); if (d) popupTampil(KARTU_JUDUL[d.dataset.arti], kartuArti(d.dataset.arti), false); });
+document.addEventListener("keydown", e => { const d = e.target.closest && e.target.closest("#strip>div[data-arti]"); if (d && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); popupTampil(KARTU_JUDUL[d.dataset.arti], kartuArti(d.dataset.arti), false); } });
 function ringkas(semua) {
   if (POLA.waktu) {
     const ps = semua.filter(r => r.p), jalan = ps.filter(r => r.p.st === "jalan"), tutup = ps.filter(r => r.p.st !== "jalan");
