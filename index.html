@@ -313,7 +313,9 @@ body:not(.hp) #hpList,body:not(.hp) #urutHP{display:none}
 .rw-tabel{display:flex!important;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 2px 12px;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
 .rw-tabel::-webkit-scrollbar{display:none}
 .rw-tabel>.rw-pola{flex:0 0 min(86%,330px);scroll-snap-align:center}
-@media(min-width:900px){.rw-tabel>.rw-pola{flex-basis:300px}}
+/* 2026-09-26 (user: "selalu pas di layar"): di layar >=900px SEMUA kartu pola muat tanpa geser — grid membungkus, bukan flex mendatar */
+@media(min-width:900px){.rw-tabel{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));overflow:visible;scroll-snap-type:none;padding:4px 0 12px}.rw-tabel>.rw-pola{flex:none;min-width:0;scroll-snap-align:none}.hpsj{display:none}}
+.rw-pola .d{flex-wrap:wrap}.rw-pola .kecil2{white-space:normal}
 .rw-pola,.jr-kotak{background:linear-gradient(155deg,var(--bg1),var(--bg2));border-radius:14px;box-shadow:0 8px 22px rgba(0,0,0,.14);transition:box-shadow .15s,border-color .15s}
 .rw-pola[aria-pressed="true"]{border-color:var(--biru);box-shadow:0 0 0 1.5px var(--biru) inset,0 10px 26px rgba(66,165,245,.16)}
 .sp{display:block;width:100%;height:38px;margin:0 0 2px}
@@ -572,7 +574,7 @@ td.kosong{border:0;border-radius:0}
       <button data-m="maju" aria-pressed="false">Maju sejak 22-09-2026</button>
       <button data-m="semua" aria-pressed="true">Semua (dihitung ulang ~100 hari)</button>
     </div>
-    <div class="rw-judul" id="rwJudulPer">Hasil per pola <small>geser ‹ › untuk pola lain · ketuk untuk melihat trade-nya</small></div>
+    <div class="rw-judul" id="rwJudulPer">Hasil per pola <small><span class="hpsj">geser ‹ › untuk pola lain · </span>ketuk untuk melihat trade-nya</small></div>
     <div class="rw-tabel" id="rwPola"></div>
     <div class="jr-pilih seg" role="group" aria-label="Saring riwayat">
       <button data-r="semua" aria-pressed="true">Semua</button>
@@ -1860,10 +1862,15 @@ function bukaPengaturanTampilan() {
     '<div class="tp-judul">Tab yang ditampilkan</div>' + TP_TAB.map(([h, id]) => baris("tab", h, id, TAMPIL.tab[h])).join("") +
     '<div class="tp-judul">Bilah status di atas</div>' + baris("pitaAda", "x", "Tampilkan bilah status", TAMPIL.pitaAda) + TP_PITA.map(([id, n]) => baris("pita", id, n, TAMPIL.pita[id])).join("") +
     '<div class="tp-judul">Notifikasi ke HP</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" onclick="notifAktif()">🔔 Aktifkan notifikasi</button><button class="btn" type="button" onclick="notifTes()">Kirim tes</button><button class="btn" type="button" onclick="notifMati()">Matikan</button></div><div style="margin-top:8px"><button class="btn" type="button" onclick="tgAktif()">✈ Aktifkan menu Telegram (/menu)</button></div><p class="sub redup" id="notifSt" style="margin-top:6px">' + (baca("notifAktif", false) ? "Notifikasi sudah diaktifkan di perangkat ini." : "Belum aktif. Di iPhone: buka dari ikon layar utama (bukan dari browser), lalu tekan Aktifkan.") + '</p>' +
-    '<div class="tp-judul">Pasang di layar utama</div><p class="sub redup">iPhone: Safari → Bagikan → Tambah ke Layar Utama. Android: menu ⋮ → Instal aplikasi. Tekan lama ikonnya untuk pintasan Terminal / Riwayat / Jurnal / Akun.</p>' +
+    '<div class="tp-judul">Pasang sebagai aplikasi</div><div id="pwaPasangKotak" style="margin-bottom:6px"' + (window.PWA_PROMPT ? "" : " hidden") + '><button class="btn" type="button" onclick="pwaPasang()">📥 Pasang AMONK di laptop ini</button></div><p class="sub redup" id="pwaSt">' + (matchMedia("(display-mode: standalone)").matches ? "Sedang dibuka sebagai aplikasi ✔" : window.PWA_PROMPT ? "Dipasang sebagai jendela sendiri, ada di menu Start / Dock, tanpa bilah alamat browser." : "Laptop: buka di Chrome atau Edge, lalu klik ikon pasang di ujung kanan bilah alamat (atau menu ⋮ → Pasang AMONK MONITOR).") + '</p><p class="sub redup">iPhone: Safari → Bagikan → Tambah ke Layar Utama. Android: menu ⋮ → Instal aplikasi. Tekan lama ikonnya untuk pintasan Terminal / Riwayat / Jurnal / Akun.</p>' +
     '<p class="sub redup" style="margin-top:12px">Pengaturan tersimpan di perangkat ini. Minimal satu tab harus tampil. Tombol ⚙ di pojok atas selalu ada untuk mengubahnya kembali.</p>', false);
 }
 $("tampilanBtn").addEventListener("click", bukaPengaturanTampilan);
+// PASANG SEBAGAI APLIKASI di laptop (2026-09-26): Chrome/Edge mengirim beforeinstallprompt bila memenuhi syarat PWA; simpan, tampilkan tombol di ⚙.
+window.PWA_PROMPT = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); window.PWA_PROMPT = e; const k = $("pwaPasangKotak"); if (k) k.hidden = false; });
+window.addEventListener("appinstalled", () => { window.PWA_PROMPT = null; const k = $("pwaPasangKotak"), t = $("pwaSt"); if (k) k.hidden = true; if (t) t.textContent = "Terpasang ✔ Buka AMONK dari menu Start / Dock."; });
+window.pwaPasang = async () => { const p = window.PWA_PROMPT; if (!p) return; try { p.prompt(); const r = await p.userChoice; if (r && r.outcome === "accepted") { window.PWA_PROMPT = null; const k = $("pwaPasangKotak"); if (k) k.hidden = true; } } catch (e) {} };
 // NOTIFIKASI PUSH (2026-09-25): berlangganan ke bot lewat service worker; bot mengirim peringatan (masuk/tutup/galat/dekat SL/dekat TP1/dst)
 const u8 = b64 => { b64 = String(b64).replace(/-/g, "+").replace(/_/g, "/"); while (b64.length % 4) b64 += "="; const r = atob(b64), o = new Uint8Array(r.length); for (let i = 0; i < r.length; i++) o[i] = r.charCodeAt(i); return o; };
 const notifSt = t => { const e = $("notifSt"); if (e) e.textContent = t; };
@@ -3238,7 +3245,7 @@ window.gambarRiwayat = function () {
   const ai = rwSumber === "AI";
   $("rwPeriode").hidden = ai; $("rwKetAI").hidden = !ai; $("rwKetPola").hidden = ai;
   $("rwJudulPer").innerHTML = ai ? `Hasil per koin <small>ketuk koin untuk melihat trade-nya · urut dari total USDT terbesar</small>`
-    : `Hasil per pola <small>geser ‹ › untuk pola lain · ketuk untuk melihat trade-nya</small>`;
+    : `Hasil per pola <small><span class="hpsj">geser ‹ › untuk pola lain · </span>ketuk untuk melihat trade-nya</small>`;
   if (ai) return gambarRiwayatAI();
   const semuaRw = Object.values(RW);
   if (rwMode === "maju" && !MAJU_GH.t) ambilMajuGH();
