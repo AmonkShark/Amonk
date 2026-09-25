@@ -69,7 +69,7 @@ const KODE_OK = new Set(Object.keys(TP_A));
   if (dicek < KOIN.length * 0.5) { console.log(`ELLIOTT: hanya ${dicek}/${KOIN.length} koin terbaca — TIDAK dikirim (bot memakai data lama sampai basi)`); process.exitCode = 1; return; }
   if (DRY) {
     console.log(`DRY: ${dicek} koin dicek, ${gagal.length} gagal, ${koin.length} limit ELLIOTT hidup, ${menuju.length} menuju valid, ${baru.length} baru valid`);
-    for (const x of menuju.slice(0, 8)) console.log('menuju', JSON.stringify(x)); for (const x of baru.slice(0, 5)) console.log('baru', JSON.stringify(x));
+    for (const x of menuju) console.log('menuju', JSON.stringify(x)); for (const x of baru.slice(0, 5)) console.log('baru', JSON.stringify(x));
     for (const x of koin) console.log(JSON.stringify({ sym: x.sym, harga: x.harga, likuid: x.likuid, ...x.setup }));
     return;
   }
