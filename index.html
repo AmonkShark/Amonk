@@ -560,6 +560,14 @@ td.pnl .pil{margin-right:4px}
   .tab button[aria-selected="true"]{border-bottom-color:transparent;background:color-mix(in srgb,var(--hijau) 12%,transparent);color:var(--hijau)}
   body{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 }
+/* RAPI 2026-09-26: bilah status HP tanpa geser (3 item), tombol mode disembunyikan (ada di ⚙), catatan kaki riwayat, tarik-muat-ulang */
+@media (max-width:640px){.pita{flex-wrap:nowrap;overflow:hidden;justify-content:space-between;-webkit-mask-image:none;mask-image:none;gap:8px}.pita #pitaModal,.pita #pitaHarga,.pita #pitaVps{display:none!important}.pita-i{flex:1 1 0;justify-content:center;min-width:0}.pita-i span{white-space:nowrap}}
+#mode{display:none!important}
+.rw-kaki{grid-column:1/-1;font:11.5px var(--f-ui);color:var(--redup);padding:2px 4px}
+.tarik{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);left:50%;transform:translateX(-50%) translateY(-60px);z-index:60;font:600 12px var(--f-ui);color:var(--teks);background:var(--bg1);border:1px solid var(--garis);border-radius:999px;padding:6px 14px;box-shadow:0 8px 22px rgba(0,0,0,.25);transition:transform .2s;pointer-events:none;display:flex;align-items:center;gap:8px}
+.tarik.tampak{transform:translateX(-50%) translateY(0)}
+.tarik i{width:14px;height:14px;border:2px solid var(--label);border-top-color:var(--hijau);border-radius:50%;display:inline-block}
+.tarik.putar i{animation:putar .8s linear infinite}@keyframes putar{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -590,7 +598,7 @@ td.pnl .pil{margin-right:4px}
     <button role="tab" id="tbRiwayat" data-hal="Riwayat" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Riwayat</span></button>
     <button role="tab" id="tbJurnal" data-hal="Jurnal" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5z"/><path d="M8 10h8M8 14h8"/></svg><span>Jurnal</span></button>
     <button role="tab" id="tbAkun" data-hal="Akun" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M15 15h3"/></svg><span>Akun</span></button>
-    <button role="tab" id="tbInfo" data-hal="Info" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span>Info</span></button>
+    <button role="tab" id="tbInfo" data-hal="Info" hidden aria-selected="false" style="display:none"><span>Info</span></button>
   </nav>
 
   <div class="hal" id="halTerminal">
@@ -1599,6 +1607,7 @@ function chipCocok(r, c) {
 function gambarChip(semua) {
   $("chipBar").innerHTML = CHIPS.map(([c, n]) => {
     const jml = c === "semua" ? semua.length : semua.filter(r => chipCocok(r, c)).length;
+    if (c !== "semua" && !jml && st.chip !== c) return "";   // 2026-09-26: chip kosong tidak ditampilkan
     return '<button type="button" class="chip-k" data-c="' + c + '" aria-pressed="' + (st.chip === c) + '">' + n + (c === "semua" ? "" : ' <span class="n">' + jml + "</span>") + "</button>";
   }).join("");
 }
@@ -1727,8 +1736,7 @@ function ukuranTeks(P, pendek) {
   const q = u.qty.toLocaleString("en-US", { maximumFractionDigits: u.qty < 10 ? 4 : 0 });
   const lewat = u.rugiPct > batasTrade();   // peringatan: rugi bila SL melewati batas per trade
   const awas = lewat ? ` title="Rugi bila SL ${u.rugiPct.toFixed(1)}% saldo melewati batas ${batasTrade()}% — kecilkan posisi"` : "";
-  return pendek ? `${Math.round(u.nilai).toLocaleString("en-US")} <span class="redup">USDT</span>` + (KURS.idr ? `<span class="rp">≈ ${rpS(u.nilai).replace(/^\+/, "")}</span>` : "") +
-      `<span class="rp${lewat ? " turun" : ""}"${awas}>${lewat ? "⚠ " : ""}rugi bila SL ${u.rugi.toFixed(0)} (${u.rugiPct.toFixed(1)}%)</span>`
+  return pendek ? `<span title="${q} koin · rugi bila SL ${u.rugi.toFixed(2)} USDT (${u.rugiPct.toFixed(1)}% saldo)${KURS.idr ? " · ≈ " + rpS(u.nilai).replace(/^\+/, "") : ""}">${Math.round(u.nilai).toLocaleString("en-US")} <span class="redup">USDT</span> <span class="redup">·</span> <span class="${lewat ? "turun" : "redup"}"${awas}>${lewat ? "⚠ " : ""}SL −${u.rugi.toFixed(0)}</span></span>`
     : `${q} koin ≈ ${Math.round(u.nilai).toLocaleString("en-US")} USDT · <span class="${lewat ? "turun" : ""}"${awas}>${lewat ? "⚠ " : ""}rugi bila SL ≈ ${u.rugi.toFixed(2)} USDT (${u.rugiPct.toFixed(1)}% saldo${lewat ? `, lewat batas ${batasTrade()}%` : ""})</span>${u.batas ? " · dibatasi modal" : ""}`;
 }
 // kelas garis status kiri: u untung · r rugi · j jalan (2026-09-22)
@@ -1896,6 +1904,15 @@ $("likuid").addEventListener("change", e => { st.likuid = e.target.checked; simp
 $("tbl").classList.toggle("sembunyi-indikator", !KOL.indikator);
 kolPasang("trmKolForm", "trmKolToggle", ["indikator"], () => $("tbl").classList.toggle("sembunyi-indikator", !KOL.indikator));
 $("muat").addEventListener("click", muatSemua);
+// TARIK UNTUK MUAT ULANG di HP (2026-09-26): tarik ke bawah dari posisi paling atas > 70px
+(function tarikMuat() {
+  const el = document.createElement("div"); el.className = "tarik"; el.innerHTML = "<i></i><span>Tarik untuk muat ulang</span>"; document.body.appendChild(el);
+  let y0 = null, jarak = 0, aktif = false;
+  window.addEventListener("touchstart", e => { if (window.scrollY <= 0 && !memuat && !document.querySelector(".popup:not([hidden])")) { y0 = e.touches[0].clientY; jarak = 0; } else y0 = null; }, { passive: true });
+  window.addEventListener("touchmove", e => { if (y0 == null) return; jarak = e.touches[0].clientY - y0; aktif = jarak > 70; el.classList.toggle("tampak", jarak > 20); el.querySelector("span").textContent = aktif ? "Lepaskan untuk memuat ulang" : "Tarik untuk muat ulang"; }, { passive: true });
+  window.addEventListener("touchend", async () => { if (y0 == null) return; y0 = null; if (!aktif) return el.classList.remove("tampak"); aktif = false; el.classList.add("putar"); el.querySelector("span").textContent = "Memuat…";
+    try { await muatSemua(); if (halAktif === "Akun" && window.muatAkun) window.muatAkun(); } catch (e) {} el.classList.remove("putar"); el.querySelector("span").textContent = "Selesai ✓"; setTimeout(() => el.classList.remove("tampak"), 700); });
+})();
 // RINGKAS DI HP (2026-09-23): ringkasan pasar & baris filter default terlipat di mode HP saja.
 function stripSet(buka) { $("strip").hidden = !buka; $("stripToggle").setAttribute("aria-expanded", buka ? "true" : "false"); $("stripToggle").textContent = buka ? "📊 Sembunyikan ringkasan" : "📊 Ringkasan pasar"; }
 $("stripToggle").addEventListener("click", () => { const buka = $("strip").hidden; simpan("stripBuka", buka); stripSet(buka); });
@@ -1996,7 +2013,7 @@ $("hpList").addEventListener("click", e => {
 // PENGATURAN TAMPILAN (2026-09-25, user: "lebih simpel, ada pengaturan menyembunyikan tab, HP hanya info penting").
 // Disimpan di perangkat (localStorage "tampilan"). Bawaan di HP = SIMPEL (tab Terminal, Riwayat, Akun; bilah status Bot, Laba, Posisi);
 // tombol ⚙ di header selalu ada untuk mengubah / mengembalikan tampilan lengkap.
-const TP_TAB = [["Terminal", "Terminal"], ["Riwayat", "Riwayat"], ["Jurnal", "Jurnal"], ["Akun", "Akun"], ["Info", "Info"]];
+const TP_TAB = [["Terminal", "Terminal"], ["Riwayat", "Riwayat"], ["Jurnal", "Jurnal"], ["Akun", "Akun"]];   // Info dibuang 2026-09-26 (penjelasan kini di tiap kartu ⓘ)
 const TP_PITA = [["pitaBot", "Status bot"], ["pitaHari", "Laba hari ini"], ["pitaPosisi", "Posisi"], ["pitaModal", "Modal bot"], ["pitaHarga", "Harga hidup"], ["pitaVps", "Perantara VPS"]];
 const TP_LENGKAP = { tab: { Terminal: true, Riwayat: true, Jurnal: true, Akun: true, Info: false }, pita: { pitaBot: true, pitaHari: true, pitaPosisi: true, pitaModal: true, pitaHarga: true, pitaVps: true }, pitaAda: true };
 const TP_SIMPEL = { tab: { Terminal: true, Riwayat: true, Jurnal: false, Akun: true, Info: false }, pita: { pitaBot: true, pitaHari: true, pitaPosisi: true, pitaModal: false, pitaHarga: false, pitaVps: false }, pitaAda: true };
@@ -2022,10 +2039,10 @@ function bukaPengaturanTampilan() {
   const baris = (jenis, kunci, nama, nilai) => '<label class="tp-baris"><input type="checkbox" ' + (nilai ? "checked " : "") + 'onchange="tampilanUbah(&quot;' + jenis + '&quot;,&quot;' + kunci + '&quot;,this.checked)"><span>' + nama + '</span></label>';
   popupTampil('Pengaturan tampilan', '<div style="display:flex;gap:8px;margin-bottom:6px"><button class="btn" type="button" onclick="tampilanPreset(&quot;simpel&quot;)">Simpel (HP)</button><button class="btn" type="button" onclick="tampilanPreset(&quot;lengkap&quot;)">Lengkap</button></div>' +
     '<div class="tp-judul">Angka</div>' + baris("opsi", "rp", "Tampilkan Rupiah di samping USDT", TAMPIL.rp !== false) + baris("opsi", "privasi", "Mode privasi (kaburkan angka uang)", !!TAMPIL.privasi) +
-    '<div class="tp-judul">Kolom tabel Terminal</div>' + baris("kol", "indikator", "Tampilkan RSI 4H &amp; Likuid 24j", !!KOL.indikator) +
+    '<div class="tp-judul">Riwayat & Terminal</div>' + baris("opsi", "maju", "Tampilkan pilihan “Pemantauan maju” di Riwayat", !!TAMPIL.maju) + '<div style="margin:4px 0 8px"><button class="btn" type="button" onclick="document.getElementById(&quot;mode&quot;).click();notifSt&&0">📱 Ganti tampilan HP / lengkap</button></div>' + '<div class="tp-judul">Kolom tabel Terminal</div>' + baris("kol", "indikator", "Tampilkan RSI 4H &amp; Likuid 24j", !!KOL.indikator) +
     '<div class="tp-judul">Tab yang ditampilkan</div>' + TP_TAB.map(([h, id]) => baris("tab", h, id, TAMPIL.tab[h])).join("") +
     '<div class="tp-judul">Bilah status di atas</div>' + baris("pitaAda", "x", "Tampilkan bilah status", TAMPIL.pitaAda) + TP_PITA.map(([id, n]) => baris("pita", id, n, TAMPIL.pita[id])).join("") +
-    '<div class="tp-judul">Notifikasi ke HP</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" onclick="notifAktif()">🔔 Aktifkan notifikasi</button><button class="btn" type="button" onclick="notifTes()">Kirim tes</button><button class="btn" type="button" onclick="notifMati()">Matikan</button></div><div style="margin-top:8px"><button class="btn" type="button" onclick="tgAktif()">✈ Aktifkan menu Telegram (/menu)</button></div><p class="sub redup" id="notifSt" style="margin-top:6px">' + (baca("notifAktif", false) ? "Notifikasi sudah diaktifkan di perangkat ini." : "Belum aktif. Di iPhone: buka dari ikon layar utama (bukan dari browser), lalu tekan Aktifkan.") + '</p>' +
+    '<div class="tp-judul">Notifikasi ke HP</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" onclick="notifAktif()">🔔 Aktifkan notifikasi</button><button class="btn" type="button" onclick="notifTes()">Kirim tes</button><button class="btn" type="button" onclick="notifMati()">Matikan</button></div><div style="margin-top:8px"><button class="btn" type="button" onclick="tgAktif()">✈ Aktifkan menu Telegram (/menu)</button></div><div style="margin-top:8px;display:grid;gap:4px">' + NOTIF_JENIS.map(([k, n]) => '<label class="cek"><input type="checkbox" ' + (notifSaring()[k] ? "checked" : "") + ' onchange="notifSaringUbah(&quot;' + k + '&quot;,this.checked)"> ' + n + '</label>').join("") + '</div><p class="sub redup" id="notifSt" style="margin-top:6px">' + (baca("notifAktif", false) ? "Notifikasi sudah diaktifkan di perangkat ini." : "Belum aktif. Di iPhone: buka dari ikon layar utama (bukan dari browser), lalu tekan Aktifkan.") + '</p>' +
     '<div class="tp-judul">Pasang sebagai aplikasi</div><div id="pwaPasangKotak" style="margin-bottom:6px"' + (window.PWA_PROMPT ? "" : " hidden") + '><button class="btn" type="button" onclick="pwaPasang()">📥 Pasang AMONK di laptop ini</button></div><p class="sub redup" id="pwaSt">' + (matchMedia("(display-mode: standalone)").matches ? "Sedang dibuka sebagai aplikasi ✔" : window.PWA_PROMPT ? "Dipasang sebagai jendela sendiri, ada di menu Start / Dock, tanpa bilah alamat browser." : "Laptop: buka di Chrome atau Edge, lalu klik ikon pasang di ujung kanan bilah alamat (atau menu ⋮ → Pasang AMONK MONITOR).") + '</p><p class="sub redup">iPhone: Safari → Bagikan → Tambah ke Layar Utama. Android: menu ⋮ → Instal aplikasi. Tekan lama ikonnya untuk pintasan Terminal / Riwayat / Jurnal / Akun.</p>' +
     '<p class="sub redup" style="margin-top:12px">Pengaturan tersimpan di perangkat ini. Minimal satu tab harus tampil. Tombol ⚙ di pojok atas selalu ada untuk mengubahnya kembali.</p>', false);
 }
@@ -2038,6 +2055,11 @@ window.pwaPasang = async () => { const p = window.PWA_PROMPT; if (!p) return; tr
 // NOTIFIKASI PUSH (2026-09-25): berlangganan ke bot lewat service worker; bot mengirim peringatan (masuk/tutup/galat/dekat SL/dekat TP1/dst)
 const u8 = b64 => { b64 = String(b64).replace(/-/g, "+").replace(/_/g, "/"); while (b64.length % 4) b64 += "="; const r = atob(b64), o = new Uint8Array(r.length); for (let i = 0; i < r.length; i++) o[i] = r.charCodeAt(i); return o; };
 const notifSt = t => { const e = $("notifSt"); if (e) e.textContent = t; };
+// PILIHAN NOTIFIKASI (2026-09-26): jenis yang dikirim ke HP ini; disimpan di worker bersama langganan
+const NOTIF_JENIS = [["bot", "Bot masuk / tutup posisi"], ["penting", "Peringatan penting (dekat SL/TP, tanpa stop, galat)"], ["btc", "Info BTC turun (waspada / bahaya)"], ["ringkasan", "Ringkasan mingguan"]];
+function notifSaring() { const v = baca("notifSaring", {}); const o = {}; for (const [k] of NOTIF_JENIS) o[k] = v[k] !== false; return o; }
+window.notifSaringUbah = async (k, on) => { const v = baca("notifSaring", {}); v[k] = !!on; simpan("notifSaring", v);
+  if (baca("notifAktif", false)) { try { const reg = await navigator.serviceWorker.ready, sub = await reg.pushManager.getSubscription(); if (sub) { await btPanggil("/push/daftar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...sub.toJSON(), saring: notifSaring() }) }); notifSt("Pilihan notifikasi disimpan."); } } catch (e) { notifSt("Gagal menyimpan pilihan: " + e.message); } } };
 window.notifAktif = async () => {
   try {
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return notifSt("Browser/mode ini belum mendukung notifikasi. Di iPhone: pasang aplikasi ke Layar Utama lewat Safari (Bagikan → Tambah ke Layar Utama), lalu buka dari ikonnya.");
@@ -2049,7 +2071,7 @@ window.notifAktif = async () => {
     const k = await (await fetch(btCfg().url.replace(/\/+$/, "") + "/push/kunci")).json();
     let sub = await reg.pushManager.getSubscription();
     if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: u8(k.pub) });
-    await btPanggil("/push/daftar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(sub.toJSON()) });
+    await btPanggil("/push/daftar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...sub.toJSON(), saring: notifSaring() }) });
     simpan("notifAktif", true); notifSt("✔ Notifikasi aktif. Tekan “Kirim tes” untuk mencoba.");
   } catch (e) { notifSt("Gagal: " + e.message); }
 };
@@ -3458,7 +3480,8 @@ document.addEventListener("click", e => {
 });
 window.gambarRiwayat = function () {
   const ai = rwSumber === "AI";
-  $("rwPeriode").hidden = ai; $("rwKetAI").hidden = !ai; $("rwKetPola").hidden = ai;
+  if (!TAMPIL.maju && rwMode === "maju") rwMode = "semua";
+  $("rwPeriode").hidden = ai || !TAMPIL.maju; $("rwKetAI").hidden = !ai; $("rwKetPola").hidden = ai;
   $("rwJudulPer").innerHTML = ai ? `Hasil per koin <small>ketuk koin untuk melihat trade-nya · urut dari total USDT terbesar</small>`
     : `Hasil per pola <small><span class="hpsj">geser ‹ › untuk pola lain · </span>ketuk untuk melihat trade-nya</small>`;
   $("bandingRw").hidden = true; if (!ai) gambarBanding("bandingRw", true);
@@ -3505,8 +3528,8 @@ window.gambarRiwayat = function () {
       `<div class="rw-atas">${wrCincin(wr, x.n)}<div class="kv"><div><i>Tutup</i><b>${x.n}</b></div><div><i>Rata/trade</i><b class="${kl(rata)}">${f2(rata)}</b></div><div><i>Terbaik</i><b class="naik">${f2(x.best)}</b></div><div><i>Terburuk</i><b class="turun">${f2(x.worst)}</b></div></div></div>` +
       `<div class="kv empat"><div title="Tutup di TP1+TP2 atau trailing"><i>TP2</i><b class="naik">${x.tp2}</b></div><div title="Tutup di TP1 lalu impas (BE)"><i>BE</i><b>${x.be}</b></div><div title="Kena stop-loss"><i>SL</i><b class="turun">${x.sl}</b></div><div title="Masih berjalan"><i>Jalan</i><b>${x.jalan || 0}</b></div></div>` +
       `<div class="kv"><div title="Rata-rata trade untung"><i>Untung</i><b class="naik">${f2(avgW)}</b></div><div title="Rata-rata trade rugi"><i>Rugi</i><b class="turun">${f2(avgL)}</b></div><div title="Rata untung ÷ rata rugi"><i>Rasio</i><b>${avgW != null && avgL ? (avgW / Math.abs(avgL)).toFixed(2) + "×" : "—"}</b></div></div>` +
-      (rwMode === "maju" ? majuHtml(nm, x, semua) : (x.n < 30 ? `<span class="lencana-k">sampel kecil · &lt;30 trade</span>` : "")) + `</button>`;
-  }).join("");
+      (rwMode === "maju" ? majuHtml(nm, x, semua) : "") + `</button>`;
+  }).join("") + (Object.values(per).some(x => x.n < 30) ? '<div class="rw-kaki">Pola dengan kurang dari 30 trade belum bisa disimpulkan.</div>' : "");
   { const sel = $("rwPola").querySelector('[aria-pressed="true"]'); if (sel) { const c = $("rwPola"); c.scrollTo({ left: sel.offsetLeft - (c.clientWidth - sel.clientWidth) / 2, behavior: "smooth" }); } }
   RW_TAMPIL = { sumber: "POLA", semua };                             // dipakai pop-up
   let rows = semua.slice();
