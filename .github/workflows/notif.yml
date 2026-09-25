@@ -59,7 +59,7 @@ jobs:
         run: |
           git config user.name "amonk-notif"
           git config user.email "amonk-notif@users.noreply.github.com"
-          git add notif/terkirim.json notif/maju.json notif/audit.json notif/scan.json 2>/dev/null || true
+          git add notif/terkirim.json notif/maju.json notif/audit.json notif/scan.json notif/peringkat.json 2>/dev/null || true
           if ! git diff --cached --quiet; then
             git commit -m "notif: status & catatan maju"
             for i in 1 2 3; do git pull --rebase && git push && break; sleep 5; done
