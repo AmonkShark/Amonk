@@ -507,7 +507,6 @@ td.pnl .pil{margin-right:4px}
   .alat .seg{gap:4px;padding:3px;border:1px solid var(--garis);border-radius:999px;background:var(--bg2)}
   .alat .seg button{border:0;border-radius:999px;background:none;padding:5px 12px}
   .alat .seg button[aria-pressed="true"]{background:var(--bglbl);color:var(--teks);box-shadow:0 1px 4px rgba(0,0,0,.25)}
-  #chipBar.dalam-alat{margin:0;display:contents}
   #chipBar.dalam-alat .chip-k{order:0}
   .alat .pemisah{width:1px;height:22px;background:var(--garis);margin:0 2px}
   #cari{border-radius:999px;padding-left:14px;width:150px}
@@ -562,6 +561,23 @@ td.pnl .pil{margin-right:4px}
 #halRiwayat .jr-pilih.seg button[aria-pressed="true"]{background:var(--bglbl);color:var(--teks);box-shadow:0 1px 4px rgba(0,0,0,.25)}
 #halRiwayat .jr-pilih.seg button .n{margin-left:6px;font:600 10.5px var(--f-num);color:var(--redup);background:color-mix(in srgb,var(--label) 12%,transparent);padding:1px 6px;border-radius:999px}
 #halRiwayat .jr-pilih.seg button[aria-pressed="true"] .n{color:var(--teks)}
+/* PIL untuk semua kelompok tombol (Terminal/Riwayat/Jurnal/Akun), ubin ringkasan, keadaan kosong (2026-09-26) */
+.seg,.jr-pilih.seg,#chipBar.chip-bar{gap:4px;padding:4px;border:1px solid var(--garis);border-radius:999px;background:var(--bg2);display:inline-flex;flex-wrap:wrap;align-items:center}
+.seg button,.jr-pilih.seg button,#chipBar .chip-k{border:0;border-radius:999px;background:none;padding:6px 13px;color:var(--label)}
+.seg button[aria-pressed="true"],.jr-pilih.seg button[aria-pressed="true"],#chipBar .chip-k[aria-pressed="true"]{background:var(--bglbl);color:var(--teks);box-shadow:0 1px 4px rgba(0,0,0,.25);border:0}
+.seg button .n,#chipBar .chip-k .n{margin-left:6px;font:600 10.5px var(--f-num);color:var(--redup);background:color-mix(in srgb,var(--label) 12%,transparent);padding:1px 6px;border-radius:999px;opacity:1}
+.seg button[aria-pressed="true"] .n,#chipBar .chip-k[aria-pressed="true"] .n{color:var(--teks)}
+#chipBar.chip-bar{margin:0 0 10px}#chipBar.dalam-alat{display:inline-flex;margin:0}
+#trmPetunjuk[hidden]{display:none}#trmPetunjuk{margin:0 0 12px}
+#rwRing .jr-kotak,#jrRing .jr-kotak{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+#rwRing .jr-kotak>h3,#jrRing .jr-kotak>h3,#rwRing .jr-kotak>svg,#jrRing .jr-kotak>svg,#rwRing .jr-kotak>p,#jrRing .jr-kotak>p,#rwRing .jr-kotak>.jr-ket,#jrRing .jr-kotak>.jr-ket{grid-column:1/-1}
+#rwRing .jr-angka,#jrRing .jr-angka{display:contents}
+#rwRing .jr-angka>div,#jrRing .jr-angka>div{padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--label) 7%,transparent);border:1px solid var(--garis)}
+#rwRing .jr-angka span,#jrRing .jr-angka span{font-size:10px;letter-spacing:.06em}
+#rwRing .jr-angka b,#jrRing .jr-angka b{font-size:clamp(14px,1.6vw,18px)}
+@media(max-width:760px){#rwRing .jr-kotak,#jrRing .jr-kotak{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.kosong:not(.memuat)::before{content:"◌";display:block;font-size:22px;color:var(--redup);margin-bottom:4px}
+td.kosong::before{display:none}
 /* 7. header kaca: bilah status & tab tembus pandang buram saat menggulung */
 .pita{backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);background:color-mix(in srgb,var(--bg1) 74%,transparent);border-radius:12px}
 .tab{backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);background:color-mix(in srgb,var(--bg) 80%,transparent)}
@@ -1289,7 +1305,7 @@ function kolPasang(idForm, idToggle, kunci, gambarUlang) {
 }
 
 // Kolom vs EMA200, ATR%, Ongkos R, vs EMA100, dan grafik 7 hari DIBUANG 2026-09-22 atas permintaan user.
-const st = { chip: baca("chip", "semua"), saring: baca("saring", "semua"), urut: baca("urut", "pnl"), arah: baca("arah", -1), cari: "", likuid: baca("likuid", true) };
+const st = { chip: baca("chip", ""), saring: baca("saring", "semua"), urut: baca("urut", "pnl"), arah: baca("arah", -1), cari: "", likuid: baca("likuid", true) };
 if (["d", "atrp", "ongkos", "d100", "zonaUrut"].includes(st.urut)) { st.urut = "pnl"; st.arah = -1; }
 const data = {};   // koin -> { ema, atr, rsi, closes[], emas[], harga, open24, q, ok }
 KOIN.forEach(k => data[k] = { ok: false });
@@ -1579,6 +1595,9 @@ function gambar() {
     return (typeof x === "string" ? x.localeCompare(y) : x - y) * A;
   });
 
+  { const L = $("tbl").closest(".tabel") || $("tbl"), K = $("hpList"); let H = $("trmPetunjuk"); if (!H) { H = document.createElement("div"); H.id = "trmPetunjuk"; $("chipBar").after(H); }
+    H.innerHTML = st.chip ? "" : trmPetunjuk(); H.hidden = !!st.chip; if (L) L.hidden = !st.chip; if (K) K.hidden = !st.chip; }
+  if (!st.chip) { ringkas(semua); kilat = {}; return; }
   if (modeHP) { gambarHP(rs); ringkas(semua); kilat = {}; return; }
   const tb = $("tb");
   if (!rs.length) { tb.innerHTML = `<tr><td colspan="14" class="kosong">Tidak ada koin di zona ini sekarang.</td></tr>`; }
@@ -1635,10 +1654,12 @@ function gambarChip(semua) {
   $("chipBar").innerHTML = CHIPS.map(([c, n]) => {
     const jml = c === "semua" ? semua.length : semua.filter(r => chipCocok(r, c)).length;
     if (c !== "semua" && !jml && st.chip !== c) return "";   // 2026-09-26: chip kosong tidak ditampilkan
+    if (c === "semua") return '<button type="button" class="chip-k" data-c="semua" aria-pressed="' + (st.chip === "semua") + '">Semua <span class="n">' + jml + "</span></button>";
     return '<button type="button" class="chip-k" data-c="' + c + '" aria-pressed="' + (st.chip === c) + '">' + n + (c === "semua" ? "" : ' <span class="n">' + jml + "</span>") + "</button>";
   }).join("");
 }
-$("chipBar").addEventListener("click", e => { const b = e.target.closest(".chip-k"); if (!b) return; st.chip = b.dataset.c; simpan("chip", st.chip); gambar(); });
+$("chipBar").addEventListener("click", e => { const b = e.target.closest(".chip-k"); if (!b) return; st.chip = st.chip === b.dataset.c ? "" : b.dataset.c; simpan("chip", st.chip); gambar(); if (st.chip) { const T = $("tbl").closest(".tabel") || $("tbl"); if (T && T.getBoundingClientRect().top > innerHeight * 0.7) T.scrollIntoView({ behavior: "smooth", block: "start" }); } });
+const trmPetunjuk = () => '<div class="rw-petunjuk">Pilih <b>Semua</b>, <b>Jalan</b>, <b>TP1 ✓</b>, <b>Baru</b>, atau salah satu pola di atas untuk membuka daftar koin.</div>';
 // SATU BARIS FILTER (2026-09-26): di layar >=900px chip pola dipindah ke baris alat (sesudah Semua/Pola jalan), dipisah garis tipis
 (function satuBaris() {
   const mq = matchMedia("(min-width:900px)"), cb = $("chipBar"), seg = document.querySelector('#alatLain .seg[aria-label="Saring zona"]'), asal = cb.parentNode, sesudah = cb.nextSibling;
