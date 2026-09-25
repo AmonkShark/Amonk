@@ -433,6 +433,14 @@ td.kosong{border:0;border-radius:0}
 .rk-fil{grid-column:1/-1;text-align:center;font-size:12px;color:var(--kuning);margin-top:4px}.rk-modal{grid-column:1/-1;text-align:center;font-size:12px;color:var(--label);margin-top:2px}
 .rk-cap .rp-auto{display:none}
 @media (max-width:640px){.pita{flex-wrap:wrap!important;overflow:visible!important;-webkit-mask-image:none!important;mask-image:none!important;gap:6px 14px!important;position:static}.pita-i{white-space:normal}.pita-i .rp-auto{display:none}}
+
+/* KARTU BTC + tanda bahaya (2026-09-26) */
+#kartuBtc{display:grid!important;grid-template-columns:auto minmax(0,1fr);column-gap:14px;align-items:start}
+#kartuBtc>.k,#kartuBtc>.v,#kartuBtc>.s{grid-column:1}
+#kartuBtc>.btc-info{grid-column:2;grid-row:1/4;text-align:right;font-size:11.5px;line-height:1.55;color:var(--label);min-width:0}
+.btc-cap{display:inline-block;font:600 12px var(--f-ui);padding:2px 9px;border-radius:999px;border:1px solid currentColor;margin-bottom:3px}
+.btc-alasan{margin-top:2px;font-size:11px}
+@media(max-width:340px){#kartuBtc{grid-template-columns:1fr}#kartuBtc>.btc-info{grid-column:1;grid-row:auto;text-align:left;margin-top:6px}}
 </style>
 </head>
 <body>
@@ -474,7 +482,7 @@ td.kosong{border:0;border-radius:0}
        terlihat seperti sebelumnya — tidak ada yang berubah untuk layar lebar. -->
   <button class="btn kecil ringkas-toggle" type="button" id="stripToggle" aria-expanded="false" aria-controls="strip">📊 Ringkasan pasar</button>
   <div class="trm-atas" id="trmAtas"><section class="strip" aria-label="Ringkasan pasar" id="strip">
-    <div class="utama"><span class="k">BTC</span><span class="v" id="sBtc">—</span><span class="s" id="sBtc24">—</span></div>
+    <div class="utama" id="kartuBtc"><span class="k">BTC</span><span class="v" id="sBtc">—</span><span class="s" id="sBtc24">—</span><div class="btc-info" id="btcInfo"></div></div>
     <div><span class="k">Rezim BTC · EMA100 D</span><span class="v" id="sRez">—</span><span class="s" id="sRezS">—</span></div>
     <div><span class="k">Median vs EMA200 4H</span><span class="v" id="sMed">—</span><span class="s" id="sMedS">—</span></div>
     <div class="utama"><span class="k">Trade pola · 1000 USDT</span><span class="v" id="sPola">—</span><span class="s" id="sPolaS">data pola belum ada</span></div>
@@ -1613,6 +1621,22 @@ function selPola(r) {
     `<td>${ukuranTeks(P, true)}</td>`;
 }
 
+// INFO & TANDA BAHAYA BTC (2026-09-26, permintaan user): status di kartu BTC + banner alarm. Ambang sama dengan notifikasi bot (turun >=3% / 4 jam, >=5% / 24 jam).
+window.BTC_STATUS = null;
+function btcInfo(b, ch24) {
+  const c = b.closes || [], n = c.length; if (n < 10 || !b.harga) return;
+  const ch4 = (b.harga / c[n - 1] - 1) * 100, ch7 = (b.harga / c[0] - 1) * 100, dd = (b.harga / Math.max(...c, b.harga) - 1) * 100;
+  const e200 = b.ema > 0 ? (b.harga / b.ema - 1) * 100 : null, e100 = btcD && btcD.ema100 ? (b.harga / btcD.ema100 - 1) * 100 : null;
+  const ada = [];
+  const bahaya = ch4 <= -3 || ch24 <= -5, waspada = !bahaya && (ch4 <= -2 || ch24 <= -3 || dd <= -8 || (e100 != null && e100 < 0) || (e200 != null && e200 < 0));
+  if (ch4 <= -3) ada.push("turun " + Math.abs(ch4).toFixed(1) + "% dalam ±4 jam"); if (ch24 <= -5) ada.push("turun " + Math.abs(ch24).toFixed(1) + "% dalam 24 jam");
+  if (!bahaya) { if (ch4 <= -2) ada.push("turun " + Math.abs(ch4).toFixed(1) + "% dalam ±4 jam"); if (dd <= -8) ada.push(Math.abs(dd).toFixed(1) + "% di bawah puncak 7 hari"); if (e100 != null && e100 < 0) ada.push("di bawah EMA100 harian"); if (e200 != null && e200 < 0) ada.push("di bawah EMA200 4H"); }
+  window.BTC_STATUS = { tingkat: bahaya ? "bahaya" : waspada ? "waspada" : "normal", alasan: ada };
+  const kls = bahaya ? "turun" : waspada ? "kng" : "naik", cap = bahaya ? "⛔ BAHAYA" : waspada ? "⚠ WASPADA" : "✓ NORMAL", w = v => '<span class="' + (v >= 0 ? "naik" : "turun") + '">' + (v >= 0 ? "+" : "") + v.toFixed(1) + "%</span>";
+  $("btcInfo").innerHTML = '<span class="btc-cap ' + kls + '">' + cap + "</span>" +
+    "<div>4 jam " + w(ch4) + " · 24 jam " + w(ch24) + "</div><div>7 hari " + w(ch7) + " · dari puncak " + w(dd) + "</div>" +
+    "<div>vs EMA200 4H " + (e200 == null ? "—" : w(e200)) + " · EMA100 D " + (e100 == null ? "—" : w(e100)) + "</div>" + (ada.length ? '<div class="btc-alasan ' + kls + '">' + ada.join(" · ") + "</div>" : "");
+}
 function ringkas(semua) {
   if (POLA.waktu) {
     const ps = semua.filter(r => r.p), jalan = ps.filter(r => r.p.st === "jalan"), tutup = ps.filter(r => r.p.st !== "jalan");
@@ -1625,6 +1649,7 @@ function ringkas(semua) {
     $("sBtc").textContent = fHarga(b.harga);
     const ch = b.open24 ? (b.harga / b.open24 - 1) * 100 : null;
     $("sBtc24").innerHTML = `<span class="${ch >= 0 ? "naik" : "turun"}">${fPct(ch)}</span> 24 jam`;
+    try { btcInfo(b, ch); } catch (e) {}
     if (btcD && btcD.ema100) {
       const j = (b.harga / btcD.ema100 - 1) * 100, atas = j >= 0;
       $("sRez").innerHTML = `<span class="${atas ? "naik" : "turun"}">${atas ? "Di atas" : "Di bawah"}</span>`;
@@ -1919,7 +1944,9 @@ setSaring(["semua", "pola"].includes(st.saring) ? st.saring : "semua");
 // harga HIDUP dari terminal ini. Kalau berkas dibuka langsung (file://), jurnal tidak tersedia.
 let JR = null, jrPilih = baca("jrPilih", "POLA 4H"), halAktif = baca("hal", "Terminal");
 function pindahHal(h) {
+  const beda = halAktif !== h;
   halAktif = h; simpan("hal", h);
+  if (beda) { window.scrollTo(0, 0); if (document.scrollingElement) document.scrollingElement.scrollTop = 0; setTimeout(() => window.scrollTo(0, 0), 0); }   // permintaan user 2026-09-26: tab baru selalu mulai dari atas
   for (const x of ["Terminal", "Riwayat", "Jurnal", "Akun", "Info"]) { $("hal" + x).hidden = x !== h; $("tb" + x).setAttribute("aria-selected", x === h ? "true" : "false"); }
   if (h === "Jurnal") { if (!JR) muatJurnal(); else gambarJurnal(); }
   if (h === "Akun" && window.muatAkun) window.muatAkun();
@@ -2814,6 +2841,7 @@ function periksaAlarm() {
       const ew = s.ew || {}; if ((PG.polaBoleh || []).includes("EW") && ew.dataT && Date.now() - ew.dataT > 3 * 3600e3) A.push(["kng", "Data Elliott dari GitHub basi (" + Math.round((Date.now() - ew.dataT) / 3600e3) + " jam) — cek GitHub Actions."]); }
   }
   const t = window.ALARM_TANPA_SL; if (t && t.nilai > 5) A.push(["turun", Math.round(t.nilai).toLocaleString("en-US") + " USDT (" + t.pct.toFixed(0) + "% saldo) tanpa stop-loss: " + t.nama.join(", ") + "."]);
+  { const bs = window.BTC_STATUS; if (bs && bs.tingkat === "bahaya") A.push(["turun", "BTC BAHAYA: " + bs.alasan.join(" · ") + ". Altcoin biasanya ikut turun — periksa posisi Anda (info saja, bot tidak menutup otomatis)."]); }
   const d = $("dot"); if (d && d.classList.contains("off")) A.push(["kng", "Harga hidup terputus."]);
   const el = $("alarm"); if (!el) return;
   const kunci = A.map(x => x[1]).join("|");
