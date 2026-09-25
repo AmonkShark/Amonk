@@ -530,6 +530,25 @@ td.pnl .pil{margin-right:4px}
 .strip>div[data-arti]:hover .k-info{opacity:1;color:var(--biru)}
 .trm-atas.dua{align-items:start}
 .pm-b .nilai{font:600 13px var(--f-num);color:var(--teks);margin-left:6px}
+/* PERBANDINGAN TF 1H/4H/1D (2026-09-26): informasi saja */
+.banding-ring{display:grid!important;grid-template-columns:1fr;overflow:visible;scroll-snap-type:none}
+.banding-ring[hidden]{display:none!important}
+.banding-ring>.jr-kotak{flex:none;min-width:0}
+.bd-tab{width:100%;border-collapse:collapse;font:12.5px var(--f-ui)}
+.bd-tab th{font:600 10.5px var(--f-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--label);text-align:right;padding:6px 8px;border-bottom:1px solid var(--garis);background:none;position:static;cursor:default}
+.bd-tab th:first-child,.bd-tab td:first-child{text-align:left;position:static;background:none;font-family:var(--f-ui);font-weight:600;font-size:12.5px}
+.bd-tab td{padding:7px 8px;text-align:right;font:500 12.5px var(--f-num);border-bottom:1px solid color-mix(in srgb,var(--garis) 60%,transparent);white-space:nowrap}
+.bd-tab tr:last-child td{border-bottom:0}
+.bd-tab .tfp{display:inline-block;font:600 10.5px var(--f-ui);letter-spacing:.05em;padding:2px 8px;border-radius:999px;border:1px solid var(--garis);color:var(--teks);background:var(--bg2);cursor:pointer}
+.bd-tab .tfp.tf4h{border-color:var(--hijau);color:var(--hijau);background:var(--hijau-bg)}
+.bd-tab small{color:var(--label);font:11px var(--f-ui)}
+.bd-kurva{width:100%;height:70px;display:block;margin:4px 0}
+.bd-leg{display:flex;gap:14px;font:11px var(--f-ui);color:var(--label);flex-wrap:wrap}
+.bd-leg i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.bd-catatan{font:11.5px var(--f-ui);color:var(--label);line-height:1.5;padding:8px 10px;border-radius:9px;background:color-mix(in srgb,var(--kuning) 9%,transparent);border:1px solid color-mix(in srgb,var(--kuning) 30%,transparent)}
+.bd-pola{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.banding-ring .jr-kotak h3{flex-wrap:wrap;gap:2px 8px}
+@media(max-width:640px){.bd-tab td,.bd-tab th{padding:6px 5px;font-size:11.5px}.bd-tab th:first-child,.bd-tab td:first-child{font-size:11.5px}}
 /* 7. header kaca: bilah status & tab tembus pandang buram saat menggulung */
 .pita{backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);background:color-mix(in srgb,var(--bg1) 74%,transparent);border-radius:12px}
 .tab{backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);background:color-mix(in srgb,var(--bg) 80%,transparent)}
@@ -651,6 +670,7 @@ td.pnl .pil{margin-right:4px}
     <button class="btn kecil" type="button" id="rwKolToggle" aria-expanded="false" aria-controls="rwKolForm" style="margin-bottom:8px">⚙ Kolom</button>
     <div class="ak-set" id="rwKolForm" hidden></div>
     <div class="jr-ring" id="rwRing"><div class="kosong memuat">Riwayat muncul sesudah lilin 4H termuat…</div></div>
+    <div class="jr-ring banding-ring" id="bandingRw" hidden></div>
     <div class="jr-pilih seg" role="group" aria-label="Periode riwayat" id="rwPeriode">
       <button data-m="maju" aria-pressed="false">Maju sejak 22-09-2026</button>
       <button data-m="semua" aria-pressed="true">Semua (dihitung ulang ~100 hari)</button>
@@ -671,6 +691,7 @@ td.pnl .pil{margin-right:4px}
 
   <div class="hal" id="halJurnal" hidden>
     <div class="jr-ring" id="jrRing"><div class="kosong memuat">Memuat jurnal…</div></div>
+    <div class="jr-ring banding-ring" id="bandingJn" hidden></div>
     <div class="rk-jn" id="jnRingkas" hidden></div>
     <div class="geser-info">‹ geser untuk melihat pola / sinyal lain · ketuk kartu untuk menyaring daftar ›</div>
     <div class="rw-tabel" id="jnPolaKartu"></div>
@@ -2139,7 +2160,7 @@ async function muatJurnal() {
     JR = await r.json();
   } catch (e) {
     $("jrRing").innerHTML = `<div class="kosong">Jurnal belum tersedia di sini. Jurnal hanya ada di versi online (amonkshark.github.io/Amonk) sesudah laptop mengirim data_jurnal.json.</div>`;
-    $("jrList").innerHTML = ""; return;
+    $("jrList").innerHTML = ""; gambarBanding("bandingJn", false); return;
   }
   gambarJurnal();
 }
@@ -2214,6 +2235,7 @@ function kurvaJ(tutup) {
     `<polygon points="${x(0)},${y(0)} ${pts} ${x(c.length - 1)},${y(0)}" fill="${w}" opacity=".12"/><polyline points="${pts}" fill="none" stroke="${w}" stroke-width="1.8"/></svg>`;
 }
 function gambarJurnal() {
+  gambarBanding("bandingJn", false);
   if (!JR) return;
   const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2);
   const kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
@@ -3380,11 +3402,58 @@ function gambarRiwayatAI() {
       (KOL.hasil ? `<div class="ha"><b class="${kl(t.us)}">${f2(t.us)}</b><span class="rp">${t.R == null ? "" : f2(t.R) + " R"}</span>${st}</div>` : "") + `</div>`;
   }).join("") || `<div class="kosong">Tidak ada trade di sini.</div>`;
 }
+// ===== PERBANDINGAN TF (2026-09-26, permintaan user): pola 1H / 4H / 1D, 100 hari, simulasi 1000 USDT. Dihitung GitHub (notif/banding_tf.cjs), INFORMASI SAJA.
+let BANDING = null, bandingMuatT = 0, bandingGagal = false;
+async function muatBanding() {
+  if (BANDING && Date.now() - bandingMuatT < 10 * 60e3) return BANDING;
+  try { const r = await fetch("banding_tf.json?t=" + Math.floor(Date.now() / 6e5), { cache: "no-store" }); if (!r.ok) throw 0; BANDING = await r.json(); bandingMuatT = Date.now(); bandingGagal = false; }
+  catch (e) { bandingGagal = true; }
+  return BANDING;
+}
+const BD_TF = [["1h", "1H", "var(--biru)"], ["4h", "4H", "var(--hijau)"], ["1d", "1D", "var(--kuning)"]];
+function bandingKurva(B) {
+  const W = 300, H = 70, garis = BD_TF.map(([k]) => (B.tf[k] && B.tf[k].kurva) || []);
+  const semua = garis.flat(); if (!semua.length) return "";
+  const t0 = Math.min(...semua.map(p => p[0])), t1 = Math.max(...semua.map(p => p[0]), Date.now()), lo = Math.min(0, ...semua.map(p => p[1])), hi = Math.max(0, ...semua.map(p => p[1])), rg = (hi - lo) || 1;
+  const px = t => (2 + (t - t0) / ((t1 - t0) || 1) * (W - 4)).toFixed(1), py = v => (3 + (hi - v) / rg * (H - 6)).toFixed(1);
+  return '<svg class="bd-kurva" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="' + W + '" y1="' + py(0) + '" y2="' + py(0) + '" stroke="var(--garis)" stroke-dasharray="3 3"/>' +
+    garis.map((g, i) => g.length < 2 ? "" : '<polyline fill="none" stroke="' + BD_TF[i][2] + '" stroke-width="1.8" stroke-linejoin="round" points="' + px(t0) + "," + py(0) + " " + g.map(p => px(p[0]) + "," + py(p[1])).join(" ") + '"/>').join("") + "</svg>" +
+    '<div class="bd-leg">' + BD_TF.map(([k, n, w]) => '<span><i style="background:' + w + '"></i>' + n + " " + ((B.tf[k] && B.tf[k].n) || 0) + " trade</span>").join("") + "</div>";
+}
+function gambarBanding(id, lengkap) {
+  const el = $(id); if (!el) return;
+  muatBanding().then(B => {
+    if (!B || !B.tf) { el.hidden = true; return; }
+    const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + (+v).toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun", f0 = v => v == null ? "—" : (v >= 0 ? "+" : "") + Math.round(v);
+    const jam = new Date(B.t).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    let h = '<div class="jr-kotak"><h3>Perbandingan TF · 1H · 4H · 1D <small>' + B.hari + ' hari · ' + B.koin + ' koin · simulasi ' + B.nominal + ' USDT · dihitung ' + jam + '</small></h3>' +
+      '<div class="bd-pola"><table class="bd-tab"><thead><tr><th>TF</th><th>Tutup</th><th>WR</th><th>Rata/trade</th><th>Total</th><th>Rata R</th><th>Jalan</th></tr></thead><tbody>' +
+      BD_TF.map(([k, n]) => { const T = B.tf[k]; if (!T) return ""; return '<tr><td><button type="button" class="tfp tf' + k + '" data-bd="' + k + '" title="Lihat daftar trade ' + n + '">' + n + (k === "4h" ? " · dipakai" : "") + '</button></td><td>' + T.n + ' <small>' + T.tp2 + '/' + T.be + '/' + T.sl + '</small></td><td>' + (T.wr == null ? "—" : T.wr + "%") + '</td><td class="' + kl(T.rata) + '">' + f2(T.rata) + '</td><td class="' + kl(T.tot) + '"><b>' + f0(T.tot) + '</b></td><td class="' + kl(T.rR) + '">' + (T.rR == null ? "—" : f2(T.rR)) + '</td><td>' + T.jalan + ' <small class="' + kl(T.jalanUsdt) + '">' + f0(T.jalanUsdt) + '</small></td></tr>'; }).join("") +
+      '</tbody></table></div>' + bandingKurva(B);
+    if (lengkap) {
+      const pola = [...new Set(BD_TF.flatMap(([k]) => Object.keys((B.tf[k] && B.tf[k].perPola) || {})))].filter(p => KODE_TAMPIL.has(p)).sort((a, b) => ((B.tf["4h"].perPola[b] || {}).tot || 0) - ((B.tf["4h"].perPola[a] || {}).tot || 0));
+      h += '<div class="bd-pola"><table class="bd-tab"><thead><tr><th>Per pola</th>' + BD_TF.map(([k, n]) => "<th>" + n + "</th>").join("") + '</tr></thead><tbody>' +
+        pola.map(p => '<tr><td>' + (KODE_POLA[p] || p) + '</td>' + BD_TF.map(([k]) => { const x = B.tf[k] && B.tf[k].perPola[p]; return "<td>" + (x ? '<span class="' + kl(x.tot) + '"><b>' + f0(x.tot) + '</b></span> <small>' + x.n + ' · ' + x.wr + '%</small>' : '<small>—</small>') + "</td>"; }).join("") + "</tr>").join("") + '</tbody></table></div>';
+    }
+    h += '<div class="bd-catatan">Informasi saja: bot dan alert hanya memakai <b>4H</b>. Uji proyek: 4H lebih baik dari 1H tapi keduanya ±impas setelah biaya; 1D tidak lebih baik dari entry acak. Jumlah trade 1H yang lebih banyak bukan berarti lebih bagus — bandingkan <b>rata/trade</b> dan <b>rata R</b>, bukan total. Tutup = TP2 / BE / SL. Posisi jalan dinilai di close terakhir.</div></div>';
+    el.innerHTML = h; el.hidden = false;
+  });
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest(".bd-tab .tfp"); if (!b || !BANDING) return;
+  const k = b.dataset.bd, T = BANDING.tf[k], n = BD_TF.find(x => x[0] === k)[1], f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + (+v).toFixed(2), kl = v => v >= 0 ? "naik" : "turun";
+  const jam = t => t ? new Date(t).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
+  const isi = '<p class="sub redup">' + T.n + ' trade tutup · WR ' + T.wr + '% · total ' + f2(T.tot) + ' USDT · ' + T.jalan + ' jalan. Menampilkan ' + T.trade.length + ' sinyal terbaru (100 hari).</p><div class="jr-list">' +
+    T.trade.map(t => '<div class="jr-tr ' + (t.st === "jalan" ? "buka" : t.usdt >= 0 ? "untung" : "rugi") + '"><div><div class="nm">' + t.k + ' <span class="chip ' + (t.st === "jalan" ? "jalan" : t.st === "SL" ? "sl" : "tp") + '">' + (t.st === "jalan" ? (t.kenaTp1 ? "Jalan 50%" : "Jalan") : t.st) + '</span></div><div class="sub">' + (KODE_POLA[t.kode] || t.kode) + ' · masuk ' + jam(t.masukT) + (t.keluarT ? ' · keluar ' + jam(t.keluarT) : "") + '</div></div>' +
+      '<div class="lv">E ' + fHarga(t.entry) + ' · SL ' + fHarga(t.sl) + '<br>TP1 ' + fHarga(t.tp1) + (t.kenaTp1 ? " ✓" : "") + ' · TP2 ' + fHarga(t.tp2) + '</div><div class="ha"><b class="' + kl(t.usdt) + '">' + f2(t.usdt) + '</b><span class="rp">' + (t.R == null ? "" : f2(t.R) + " R") + '</span></div></div>').join("") + "</div>";
+  popupTampil("Trade pola " + n + " (simulasi 1000 USDT)", isi, false);
+});
 window.gambarRiwayat = function () {
   const ai = rwSumber === "AI";
   $("rwPeriode").hidden = ai; $("rwKetAI").hidden = !ai; $("rwKetPola").hidden = ai;
   $("rwJudulPer").innerHTML = ai ? `Hasil per koin <small>ketuk koin untuk melihat trade-nya · urut dari total USDT terbesar</small>`
     : `Hasil per pola <small><span class="hpsj">geser ‹ › untuk pola lain · </span>ketuk untuk melihat trade-nya</small>`;
+  $("bandingRw").hidden = true; if (!ai) gambarBanding("bandingRw", true);
   if (ai) return gambarRiwayatAI();
   const semuaRw = Object.values(RW);
   if (rwMode === "maju" && !MAJU_GH.t) ambilMajuGH();
