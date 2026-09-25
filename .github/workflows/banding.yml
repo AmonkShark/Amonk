@@ -1,0 +1,33 @@
+# BANDING TF (2026-09-26): hitung hasil simulasi pola 1H / 4H / 1D untuk 100 hari terakhir, informasi saja
+# (tidak ke bot, tidak ke Telegram). Ditulis ke banding_tf.json di akar repo, dibaca aplikasi (tab Riwayat & Jurnal).
+# Sekali sehari 18:20 UTC (04:20 Sydney AEST / 05:20 AEDT) + bisa dijalankan manual.
+name: banding-tf
+on:
+  schedule:
+    - cron: "20 18 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: banding-tf
+  cancel-in-progress: true
+jobs:
+  hitung:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Hitung pola 1H / 4H / 1D (100 hari)
+        run: node notif/banding_tf.cjs
+      - name: Simpan banding_tf.json
+        run: |
+          git config user.name "amonk-notif"
+          git config user.email "amonk-notif@users.noreply.github.com"
+          git add banding_tf.json
+          if ! git diff --cached --quiet; then
+            git commit -m "banding: pola 1H/4H/1D"
+            for i in 1 2 3; do git pull --rebase && git push && break; sleep 5; done
+          fi
