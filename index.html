@@ -814,7 +814,7 @@ td.kosong::before{display:none}
         <label style="display:none"><input type="checkbox" value="CH"> 7 Cup &amp; Handle</label>
         <label title="Limit beli di kedalaman 0.90 gelombang 3 (dihitung GitHub tiap jam). Sesudah terisi sama dengan pola: 50% TP1, SL ke entry, 50% TP2. Tanpa batas jumlah sendiri (ikut maks entry); limit menunggu memakai slot & modal s/d ~10 hari."><input type="checkbox" value="EW"> 10 Elliott Wave (limit)</label></div>
       <div class="set-judul">🧩 Pembagian modal</div><div class="bt-pola" style="grid-column:1/-1"><span>Cara membagi modal:</span>
-        <label title="Modal bot dibagi RATA ke tiap jenis yang dicentang (pola, Elliott). Tiap kantong tumbuh/menyusut sendiri dari hasil jenis itu, dan tiap jenis hanya boleh punya SATU posisi/order sekaligus. Jumlah slot mengikuti jumlah jenis, bukan Maks entry."><input type="checkbox" id="btKantong"> Modal per jenis sinyal (kantong) — mis. 600 dengan 6 jenis = 100 per jenis</label></div>
+        <label title="Modal bot dibagi RATA ke tiap jenis yang dicentang (pola, Elliott). Slot per jenis (2026-09-27): TB 3, EW 3, ST 2, AT 1, FW 1. Ukuran entry = modal bot dibagi jumlah slot semua jenis, lalu dipangkas Batas rugi per trade. Hasil tiap jenis tetap dicatat per kantong."><input type="checkbox" id="btKantong"> Slot per jenis sinyal — TB 3 · EW 3 · ST 2 · AT 1 · FW 1 (ukuran = modal ÷ jumlah slot)</label></div>
       <div class="tb"><button class="btn" type="submit" id="btSimpan">Simpan ke bot</button></div>
     </form>
     <p class="ak-pesan" id="btPesan">Pengaturan ini disimpan DI BOT, jadi tetap berlaku walau aplikasi tertutup. Modal bot = modal awal + hasil semua trade bot yang sudah tutup (untung menambah, rugi mengurangi). Ukuran tiap posisi = modal bot ÷ maks entry, lalu dipangkas kalau rugi bila kena SL melewati batas rugi bot. SL SELALU dari sinyal; batas rugi hanya mengubah ukuran. Total posisi terbuka tidak pernah melewati modal bot. Mengganti angka modal awal = mulai hitungan baru.</p>
@@ -3081,16 +3081,16 @@ function gambarBot(s) {
   // KANTONG PER JENIS (2026-09-23): isi tiap kantong = bagian modal + hasil jenis itu sendiri
   const KT = s.kantong || {};
   if (KT.aktif) {
-    const dipakai = new Set((s.posisi || []).map(p => p.kode).concat(((s.ew || {}).order || []).length ? ["EW"] : []));
+    const nPakai = {}; for (const p of (s.posisi || [])) nPakai[p.kode] = (nPakai[p.kode] || 0) + 1; nPakai.EW = (nPakai.EW || 0) + ((s.ew || {}).order || []).length; const dipakai = new Set(Object.keys(nPakai).filter(k => nPakai[k] > 0));
     const NAMA_J = { FW: "Falling Wedge", ST: "Symmetrical Triangle", PEN: "Bullish Pennant", IHS: "Inverse H&S", AT: "Ascending Triangle", TB: "Triple Bottom", CH: "Cup & Handle", EW: "Elliott Wave" };
     const tot = KT.jenis.reduce((a, k) => a + (KT.per[k] ? KT.per[k].kini : 0), 0);
-    baris.push(`<div class="jr-kotak"><h3>Modal per jenis sinyal <small>${KT.jenis.length} kantong · total ${usd(tot)}</small></h3>` +
+    baris.push(`<div class="jr-kotak"><h3>Modal per jenis sinyal <small>${KT.totalSlot || KT.jenis.length} slot · total ${usd(tot)}</small></h3>` +
       KT.jenis.map(k => { const p = KT.per[k] || { awal: 0, laba: 0, kini: 0, nTutup: 0 };
         return `<div class="jr-tr bt-baris"><div style="min-width:0"><div class="nm">${NAMA_J[k] || k} <span class="jn-label">${k}</span></div>` +
-          `<div class="sub">awal ${usd(p.awal)} · ${p.nTutup} trade tutup${dipakai.has(k) ? " · sedang dipakai" : ""}</div></div>` +
+          `<div class="sub">awal ${usd(p.awal)} · ${p.nTutup} trade tutup · slot ${nPakai[k] || 0}/${p.slot || 1}</div></div>` +
           `<div class="lv">${dipakai.has(k) ? "posisi/order jalan" : "menunggu sinyal"}</div>` +
           `<div class="ha"><b class="${kl(p.laba)}">${f2(p.laba)} USDT</b><span class="rp">kantong ${usd(p.kini)}</span></div></div>`; }).join("") +
-      `<p class="jr-ket">Tiap jenis memakai kantongnya sendiri: untung menambah, rugi mengurangi, dan jenis lain tidak terpengaruh. Satu jenis = maksimal satu posisi/order sekaligus; ukuran entry = isi kantong saat itu. Mengganti modal awal atau centang jenis membagi ulang kantong secara rata.</p></div>`);
+      `<p class="jr-ket">Tiap jenis memakai kantongnya sendiri: untung menambah, rugi mengurangi, dan jenis lain tidak terpengaruh. Tiap jenis punya slot sendiri (TB 3, EW 3, ST 2, AT 1, FW 1); ukuran entry = modal bot ÷ jumlah slot, dipangkas Batas rugi per trade (disarankan 0.5%). Mengganti modal awal atau centang jenis membagi ulang kantong secara rata.</p></div>`);
   }
   // ELLIOTT (2026-09-23): limit yang menunggu, sama gaya dengan kotak FIB
   const EWd = s.ew || {};
