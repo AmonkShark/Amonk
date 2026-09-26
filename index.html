@@ -138,7 +138,7 @@ svg.sp{display:block;width:84px;height:22px}
 .catatan b{color:var(--teks);font-weight:500}
 .kosong{padding:28px;text-align:center;color:var(--label);font-family:var(--f-ui)}
 /* APLIKASI SATU KLIK (2026-09-22): tiga tab — Terminal, Jurnal, Info. */
-.tab{display:flex;gap:4px;border-bottom:1px solid var(--garis);margin-bottom:12px;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5;padding-top:4px}
+.tab{display:flex;gap:4px;border-bottom:1px solid var(--garis);margin-bottom:12px;position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--pitaT,0px));background:var(--bg);z-index:19;padding-top:4px}   /* 2026-09-27: menempel di BAWAH pita status (dulu tertutup pita, user laptop) */
 .tab button{font:600 14px var(--f-ui);color:var(--label);background:none;border:0;border-bottom:2px solid transparent;padding:9px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .tab button svg{width:16px;height:16px;flex:none}
 .tab button[aria-selected="true"] svg{color:var(--hijau)}
@@ -3828,5 +3828,6 @@ setInterval(() => { if (!memuat) gambar(); }, 2000);
 muatSemua();
 sambung();
 </script>
+<script>(function(){const p=document.getElementById("pita");function ukur(){const st=getComputedStyle(p);const sticky=st.position==="sticky"&&!p.hidden;document.documentElement.style.setProperty("--pitaT",sticky?(p.getBoundingClientRect().height+parseFloat(st.marginBottom||0))+"px":"0px");}ukur();new ResizeObserver(ukur).observe(p);window.addEventListener("resize",ukur);setInterval(ukur,3000);})();</script>
 </body>
 </html>
