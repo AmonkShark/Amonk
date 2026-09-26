@@ -709,6 +709,7 @@ td.kosong::before{display:none}
   </div>
 
   <div class="hal" id="halRiwayat" hidden>
+    <div class="seg tf-seg" role="group" aria-label="Timeframe riwayat" id="rwTF" style="margin-bottom:8px"><button data-tf="4H">4H · dipakai bot</button><button data-tf="1D">1D · info</button></div>
     <div class="seg" role="group" aria-label="Sumber riwayat" id="rwSumber" style="margin-bottom:10px">
       <button data-v="POLA">POLA 4H · level chart</button><button data-v="AI">AI 4H · analisa Claude</button>
     </div>
@@ -735,6 +736,7 @@ td.kosong::before{display:none}
   </div>
 
   <div class="hal" id="halJurnal" hidden>
+    <div class="seg tf-seg" role="group" aria-label="Timeframe jurnal" id="jnTF" style="margin-bottom:8px"><button data-tf="4H">4H · dipakai bot</button><button data-tf="1D">1D · info</button></div>
     <div class="jr-ring" id="jrRing"><div class="kosong memuat">Memuat jurnal…</div></div>
     <div class="jr-ring banding-ring" id="bandingJn" hidden></div>
     <div class="rk-jn" id="jnRingkas" hidden></div>
@@ -2261,6 +2263,60 @@ setSaring(["semua", "pola"].includes(st.saring) ? st.saring : "semua");
 // fwd12/ekspor_jurnal_app.cjs + kirim_github.cjs). Trade yang masih jalan dinilai dengan
 // harga HIDUP dari terminal ini. Kalau berkas dibuka langsung (file://), jurnal tidak tersedia.
 let JR = null, jrPilih = baca("jrPilih", "POLA 4H"), halAktif = baca("hal", "Terminal");
+// POLA 1D DI RIWAYAT & JURNAL (2026-09-27, user: "masukkan sinyal 1 day di riwayat dan jurnal, bisa klik per TF").
+// INFORMASI SAJA: bot, alert, dan notifikasi tetap 4H. Aturan pola, entry, SL/TP, keluar bertahap & trailing SAMA dengan 4H
+// (modul PolaDC yang sama, ambang DC 2.5 seperti notif/banding_tf.cjs). Lilin 1D diambil saat tombol 1D pertama kali dipilih
+// (500 lilin ≈ 16 bulan), disimpan di memori, diambil ulang bila > 1 jam.
+var TF_RW = baca("rwTF", "4H"), TF_JN = baca("jnTF", "4H"), R1D = { t: 0, rw: {}, memuat: false, n: 0, galat: 0 };
+const polaJn = () => TF_JN === "1D" ? "POLA 1D" : "POLA 4H";
+async function muat1D() {
+  if (R1D.memuat) return; R1D.memuat = true; R1D.n = 0; R1D.galat = 0;
+  const rw = {}, antri = KOIN.slice(), sekarang = Date.now();
+  const tulis = () => { const t = `Mengambil lilin 1D dari Binance… ${R1D.n}/${KOIN.length}`;
+    if (halAktif === "Riwayat" && TF_RW === "1D" && !R1D.t) $("rwRing").innerHTML = `<div class="kosong memuat">${t}</div>`;
+    if (halAktif === "Jurnal" && TF_JN === "1D" && !R1D.t) $("jrRing").innerHTML = `<div class="kosong memuat">${t}</div>`; };
+  await Promise.all(Array.from({ length: 6 }, async () => {
+    while (antri.length) { const k = antri.shift();
+      try { const j = await getJ(`/api/v3/klines?symbol=${k}USDT&interval=1d&limit=500`);
+        if (Array.isArray(j) && j.length >= 60) { const b = j.filter(x => +x[6] < sekarang);
+          if (sekarang - +b[b.length - 1][6] <= 3 * 864e5) {   // koin basi (delisting) dilewati
+            const dd = { t: b.map(x => +x[0]), o: b.map(x => +x[1]), h: b.map(x => +x[2]), l: b.map(x => +x[3]), c: b.map(x => +x[4]), v: b.map(x => +x[5]) };
+            for (const t of polaSemua(dd)) rw[k + "|" + t.masukT] = { koin: k, nama: t.nama, kode: t.kode, masukT: t.masukT, keluarT: t.keluarT, entry: t.entry, sl: t.sl,
+              tp1: t.tp1, tp2: t.tp2, st: t.st, kenaTp1: t.kenaTp1, sisa: t.sisa, real: t.real, keluarPx: t.keluarPx, tf: "1D" }; } }
+        else R1D.galat++; } catch (e) { R1D.galat++; }
+      R1D.n++; if (R1D.n % 10 === 0) tulis(); } }));
+  R1D.rw = rw; R1D.t = Date.now(); R1D.memuat = false;
+  if (halAktif === "Riwayat" && window.gambarRiwayat) window.gambarRiwayat();
+  if (halAktif === "Jurnal") gambarJurnal();
+}
+// bentuk buku jurnal (sama dengan data_jurnal.json) dari trade 1D
+function jr1D() {
+  const tr = Object.values(R1D.rw).filter(t => KODE_TAMPIL.has(t.kode)).map(t => {
+    const buka = t.st === "jalan", iso = x => x ? new Date(x).toISOString().slice(0, 16) : null, us = buka ? null : pnlTrade(t);
+    const exit = buka ? null : t.st === "TP2" ? (t.keluarPx ?? t.tp2) : t.st === "BE" ? t.entry : t.sl;
+    const sebab = buka ? null : t.st === "TP2" ? (TRAIL_TAMPIL.has(t.kode) ? "TP1+TRAIL" : "TP1+TP2") : t.st === "BE" ? "TP1+BE" : "SL";
+    return { koin: t.koin, jenis: t.nama, masuk: iso(t.masukT), keluar: buka ? null : iso(t.keluarT), entry: t.entry, sl: t.sl, tp: t.tp2, tp1: t.tp1, tp1Kena: !!t.kenaTp1,
+      exit, sebab, terbuka: buka, usdt: us == null ? null : +us.toFixed(2), pct: us == null ? null : +(us / MODAL_POLA * 100).toFixed(2) };
+  });
+  return { waktu: new Date(R1D.t).toISOString(), nominal: MODAL_POLA, biaya: BIAYA_POLA, tf: "1D",
+    sinyal: { "POLA 1D": { ket: "Pola 1D · aturan & keluar SAMA dengan 4H · 500 lilin terakhir · 1000 USDT per trade. INFORMASI SAJA — bot & alert hanya 4H. Uji proyek: pola 1D tidak lebih baik dari entry acak.", trades: tr } } };
+}
+const jV = () => TF_JN === "1D" ? (R1D.t ? jr1D() : null) : JR;   // buku yang sedang ditampilkan di Jurnal
+function pasangTF(id, kunci, gambar) {
+  const tandai = () => document.querySelectorAll("#" + id + " button").forEach(b => b.setAttribute("aria-pressed", b.dataset.tf === (kunci === "rwTF" ? TF_RW : TF_JN) ? "true" : "false"));
+  tandai();
+  document.querySelectorAll("#" + id + " button").forEach(b => b.addEventListener("click", () => {
+    if (kunci === "rwTF") { TF_RW = b.dataset.tf; rwPola = null; } else { TF_JN = b.dataset.tf; JN_S.sinyal = "semua"; JN_S.grup = null; simpan("jnS", JN_S); jnSegSinyal(); }
+    simpan(kunci, b.dataset.tf); tandai();
+    if (b.dataset.tf === "1D" && (!R1D.t || Date.now() - R1D.t > 3600e3)) muat1D();
+    gambar(); }));
+}
+// tombol sinyal Jurnal: 4H = Semua / POLA 4H / AI 4H; 1D = Semua / POLA 1D
+function jnSegSinyal() {
+  const bs = document.querySelectorAll("#jnSinyal button"); if (bs.length < 3) return;
+  bs[1].dataset.v = polaJn(); bs[1].textContent = polaJn(); bs[2].hidden = TF_JN === "1D";
+  bs.forEach(x => x.setAttribute("aria-pressed", x.dataset.v === JN_S.sinyal ? "true" : "false"));
+}
 function pindahHal(h) {
   const beda = halAktif !== h;
   halAktif = h; simpan("hal", h);
@@ -2286,7 +2342,7 @@ async function muatJurnal() {
 }
 const hargaKini = k => (data[k] && data[k].harga) || null;
 // posisi POLA terbuka yang sudah kena TP1: 50% sudah terjual di harga TP1 (2026-09-25), 50% sisanya dinilai dengan harga kini
-const uangJ = (e, px, t) => e > 0 && px > 0 ? JR.nominal * (t && t.tp1Kena && t.tp1 > 0 ? 0.5 * (t.tp1 / e - 1) + 0.5 * (px / e - 1) : (px / e - 1)) - JR.nominal * JR.biaya : null;
+const uangJ = (e, px, t) => { const N = JR ? JR.nominal : MODAL_POLA, Bi = JR ? JR.biaya : BIAYA_POLA; return e > 0 && px > 0 ? N * (t && t.tp1Kena && t.tp1 > 0 ? 0.5 * (t.tp1 / e - 1) + 0.5 * (px / e - 1) : (px / e - 1)) - N * Bi : null; };
 // sparkline kumulatif kecil (tanpa sumbu) untuk kartu pola/sinyal
 function wrCincin(wr, n) {
   const C = 2 * Math.PI * 18, w = n ? wr : 0, warna = w >= 55 ? "var(--hijau)" : w >= 45 ? "var(--kuning)" : "var(--merah)";
@@ -2320,26 +2376,26 @@ function jnPanel(daftar) {
       (fil.length ? '<div class="rk-fil">Filter aktif: ' + fil.join(" · ") + ' <button type="button" class="btn kecil" id="jnResetF">✕ Reset filter</button></div>' : "") + modal;
   }
   const semua = jnBaris(), pa = jnPolaAktif(), batas = +JN_S.periode ? Date.now() - +JN_S.periode * 864e5 : 0;
-  const dasar = semua.filter(t => t.mT >= batas && (t.sinyal !== "POLA 4H" || !t.jenis || pa.has(t.jenis)));
+  const dasar = semua.filter(t => t.mT >= batas && (t.sinyal !== polaJn() || !t.jenis || pa.has(t.jenis)));
   const kartu = (id, nama, arr, aktif) => {
     const tt = arr.filter(t => !t.terbuka), hh = jnHitung(tt), jalan = arr.length - tt.length;
     const seq = tt.slice().sort((a, b) => (a.kT || a.mT) - (b.kT || b.mT)).map(t => t.us || 0);
     return '<button type="button" class="rw-pola" data-p="' + id + '" aria-pressed="' + aktif + '"><div class="j"><b>' + nama + '</b><span class="' + kl(hh.tot) + '">' + (hh.n ? f2(hh.tot) : "—") + "</span></div>" + sparkMini(seq) +
       '<div class="d"><span><em>' + hh.n + "</em> tutup</span><span>WR <em>" + (hh.n ? Math.round(hh.wr) : 0) + '%</em></span><span>rata <em class="' + kl(hh.rata) + '">' + f2(hh.rata) + "</em></span>" + (jalan ? "<span>jalan <em>" + jalan + "</em></span>" : "") + "</div></button>";
   };
-  const pola = dasar.filter(t => t.sinyal === "POLA 4H"), per = {};
+  const pola = dasar.filter(t => t.sinyal === polaJn()), per = {};
   for (const t of pola) (per[t.jenis || "—"] = per[t.jenis || "—"] || []).push(t);
   const urut = Object.entries(per).sort((a, b) => jnHitung(b[1].filter(t => !t.terbuka)).tot - jnHitung(a[1].filter(t => !t.terbuka)).tot);
   const semuaAktif = JN_S.sinyal === "semua" && !JN_S.grup, aiAktif = JN_S.sinyal === "AI 4H" && !JN_S.grup;
-  $("jnPolaKartu").innerHTML = kartu("__semua", "Semua sinyal", dasar, semuaAktif) + kartu("__ai", "AI 4H", dasar.filter(t => t.sinyal === "AI 4H"), aiAktif) +
-    urut.map(([nm, arr]) => kartu(nm, nm, arr, JN_S.sinyal === "POLA 4H" && JN_S.grup === nm)).join("");
+  $("jnPolaKartu").innerHTML = kartu("__semua", TF_JN === "1D" ? "Semua pola 1D" : "Semua sinyal", dasar, semuaAktif) + (TF_JN === "1D" ? "" : kartu("__ai", "AI 4H", dasar.filter(t => t.sinyal === "AI 4H"), aiAktif)) +
+    urut.map(([nm, arr]) => kartu(nm, nm, arr, JN_S.sinyal === polaJn() && JN_S.grup === nm)).join("");
   const sel = $("jnPolaKartu").querySelector('[aria-pressed="true"]'); if (sel) { const c = $("jnPolaKartu"); c.scrollTo({ left: sel.offsetLeft - (c.clientWidth - sel.clientWidth) / 2, behavior: "smooth" }); }
 }
 $("jnPolaKartu").addEventListener("click", e => {
   const b = e.target.closest(".rw-pola"); if (!b) return; const p = b.dataset.p;
   if (p === "__semua") { JN_S.sinyal = "semua"; JN_S.grup = null; }
   else if (p === "__ai") { JN_S.sinyal = "AI 4H"; JN_S.grup = null; }
-  else { JN_S.sinyal = "POLA 4H"; JN_S.rinci = "jenis"; JN_S.grup = p; }
+  else { JN_S.sinyal = polaJn(); JN_S.rinci = "jenis"; JN_S.grup = p; }
   simpan("jnS", JN_S);
   document.querySelectorAll("#jnSinyal button").forEach(x => x.setAttribute("aria-pressed", x.dataset.v === JN_S.sinyal ? "true" : "false"));
   gambarJurnal();
@@ -2356,10 +2412,12 @@ function kurvaJ(tutup) {
 }
 function gambarJurnal() {
   gambarBanding("bandingJn", false);
-  if (!JR) return;
+  if (TF_JN === "1D" && !R1D.t) { $("jrRing").innerHTML = `<div class="kosong memuat">Mengambil lilin 1D dari Binance… ${R1D.n}/${KOIN.length}</div>`; $("jrList").innerHTML = ""; $("jnPolaKartu").innerHTML = ""; $("jnRingkas").hidden = true; if (!R1D.memuat) muat1D(); return; }
+  const JV = jV();
+  if (!JV) return;
   const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2);
   const kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
-  $("jrRing").innerHTML = Object.entries(JR.sinyal).map(([nm, sg]) => {
+  $("jrRing").innerHTML = Object.entries(JV.sinyal).map(([nm, sg]) => {
     const tutup = sg.trades.filter(t => !t.terbuka), buka = sg.trades.filter(t => t.terbuka);
     const tot = tutup.reduce((a, t) => a + t.usdt, 0), menang = tutup.filter(t => t.usdt > 0).length;
     const jalan = buka.reduce((a, t) => a + (uangJ(t.entry, hargaKini(t.koin), t) || 0), 0);
@@ -2389,8 +2447,9 @@ function gambarJurnal() {
       (KOL.hasil ? `<div class="ha"><b class="${kl(t.us)}">${f2(t.us)}</b><span class="rp">${t.R == null ? "" : f2(t.R) + " R"}</span>${st}</div>` : "") +
       (buka ? jnDetailHtml(t) : "") + `</div>`;
   }).join("") + (daftar.length > 300 ? `<div class="kosong">+${daftar.length - 300} trade lebih lama tidak ditampilkan.</div>` : "") : `<div class="kosong">Tidak ada trade yang cocok dengan saringan ini.</div>`;
-  const w = new Date(JR.waktu);
-  $("jrWaktu").textContent = `Jurnal dikirim dari laptop ${jamLokal(w)} ${ZONA} · trade "Jalan" dinilai dengan harga hidup · jam ditampilkan dalam zona perangkat ini.`;
+  const w = new Date(JV.waktu);
+  $("jrWaktu").textContent = JV.tf === "1D" ? `Pola 1D dihitung di perangkat ini ${jamLokal(w)} ${ZONA} dari lilin 1D Binance (diambil ulang tiap 1 jam) · informasi saja, bot & alert tetap 4H.`
+    : `Jurnal dikirim dari laptop ${jamLokal(w)} ${ZONA} · trade "Jalan" dinilai dengan harga hidup · jam ditampilkan dalam zona perangkat ini.`;
 }
 // ---------- pembantu jurnal ----------
 const KODE_POLA = { FW: "Falling Wedge", ST: "Symmetrical Triangle", PEN: "Bullish Pennant", IHS: "Inverse H&S", AT: "Ascending Triangle", TB: "Triple Bottom", CH: "Cup & Handle", EW: "Elliott Wave" };
@@ -2404,13 +2463,13 @@ const JN_BUKA = new Set();
 const tUtc = s => s ? Date.parse(/Z$|[+-]\d\d:?\d\d$/.test(s) ? s : s + "Z") : null;   // jurnal menulis jam UTC tanpa "Z"
 const jnLama = j => j == null || !isFinite(j) ? "—" : j < 48 ? Math.round(j) + " jam" : (j / 24).toFixed(1) + " hari";
 const HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-function jnBaris() {
-  const out = []; if (!JR) return out;
-  for (const [nm, sg] of Object.entries(JR.sinyal)) for (const t of sg.trades) {
+function jnBaris(buku) {
+  const out = [], JV = buku || jV(); if (!JV) return out;
+  for (const [nm, sg] of Object.entries(JV.sinyal)) for (const t of sg.trades) {
     const mT = tUtc(t.masuk), kT = t.keluar ? tUtc(t.keluar) : null;
     const px = t.terbuka ? hargaKini(t.koin) : t.exit, us = t.terbuka ? uangJ(t.entry, px, t) : t.usdt;
-    const riskU = t.entry > t.sl && t.sl > 0 ? JR.nominal * (t.entry - t.sl) / t.entry : null;   // rugi bila kena SL (tanpa biaya)
-    out.push({ ...t, sinyal: nm, mT, kT, px, us, pc: us == null ? null : us / JR.nominal * 100, R: us != null && riskU ? us / riskU : null,
+    const riskU = t.entry > t.sl && t.sl > 0 ? JV.nominal * (t.entry - t.sl) / t.entry : null;   // rugi bila kena SL (tanpa biaya)
+    out.push({ ...t, sinyal: nm, mT, kT, px, us, pc: us == null ? null : us / JV.nominal * 100, R: us != null && riskU ? us / riskU : null,
       jam: ((kT || Date.now()) - mT) / 3600e3, rr: t.entry > t.sl && t.tp > t.entry ? (t.tp - t.entry) / (t.entry - t.sl) : null,
       slPct: t.entry > 0 && t.sl > 0 ? (t.entry - t.sl) / t.entry * 100 : null });
   }
@@ -2419,7 +2478,7 @@ function jnBaris() {
 function jnSaring(a) {
   const batas = +JN_S.periode ? Date.now() - +JN_S.periode * 864e5 : 0, cari = JN_S.cari.trim().toUpperCase(), polaAktif = jnPolaAktif();
   return a.filter(t => (JN_S.sinyal === "semua" || t.sinyal === JN_S.sinyal) && t.mT >= batas && (!cari || t.koin.toUpperCase().includes(cari)) &&
-    (t.sinyal !== "POLA 4H" || !t.jenis || polaAktif.has(t.jenis)) &&
+    (t.sinyal !== polaJn() || !t.jenis || polaAktif.has(t.jenis)) &&
     (JN_S.status === "semua" || (JN_S.status === "jalan" ? t.terbuka : JN_S.status === "tutup" ? !t.terbuka
       : JN_S.status === "untung" ? !t.terbuka && t.us > 0 : !t.terbuka && t.us <= 0)));
 }
@@ -2502,6 +2561,8 @@ function jnPasangSeg(id, kunci) {
   });
 }
 jnPasangSeg("jnSinyal", "sinyal"); jnPasangSeg("jnStatus", "status"); jnPasangSeg("jnRinciPilih", "rinci");
+if (TF_JN === "1D" && (JN_S.sinyal === "POLA 4H" || JN_S.sinyal === "AI 4H")) JN_S.sinyal = "semua";
+jnSegSinyal(); pasangTF("jnTF", "jnTF", () => gambarJurnal());
 $("jnPolaForm").innerHTML = Object.entries(KODE_POLA).map(([k, nm]) =>
   `<label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" data-pola="${k}" ${JN_S.pola[k] ? "checked" : ""}>${nm}</label>`).join("");
 $("jnPolaForm").addEventListener("change", e => { const k = e.target.dataset.pola; if (!k) return;
@@ -3241,7 +3302,7 @@ function pnlSumber() {
   if (PNL_MODE === "manual") return pnlManual(bot).filter(r => r.keluarT >= PNL_MANUAL_SEJAK);
   if (PNL_MODE === "gab") return bot.concat(pnlManual(bot));
   const pa = jnPolaAktif();
-  return jnBaris().filter(t => !t.terbuka && t.kT > 0 && (PNL_SIN === "semua" || t.sinyal === PNL_SIN) && (t.sinyal !== "POLA 4H" || !t.jenis || pa.has(t.jenis)))
+  return jnBaris(JR).filter(t => !t.terbuka && t.kT > 0 && (PNL_SIN === "semua" || t.sinyal === PNL_SIN) && (t.sinyal !== "POLA 4H" || !t.jenis || pa.has(t.jenis)))
     .map(t => ({ keluarT: t.kT, hasil: t.us, hasilPct: t.pc, sym: t.koin, pola: t.sinyal === "AI 4H" ? "AI 4H" : (t.jenis || t.sinyal) }));
 }
 function pnlPeta() {
@@ -3498,12 +3559,13 @@ document.querySelectorAll("#rwSumber button").forEach(b => {
   b.addEventListener("click", () => { rwSumber = b.dataset.v; simpan("rwSumber", rwSumber); rwPola = null;
     document.querySelectorAll("#rwSumber button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false")); window.gambarRiwayat(); });
 });
+pasangTF("rwTF", "rwTF", () => window.gambarRiwayat());
 function gambarRiwayatAI() {
   if (!JR) { $("rwRing").innerHTML = `<div class="kosong memuat">Memuat buku AI 4H…</div>`; $("rwPola").innerHTML = $("rwList").innerHTML = "";
     muatJurnal().then(() => { if (halAktif !== "Riwayat" || rwSumber !== "AI") return;
       if (JR) gambarRiwayatAI(); else $("rwRing").innerHTML = `<div class="kosong">Buku AI 4H belum tersedia di sini. Buku ini hanya ada di versi online (amonkshark.github.io/Amonk).</div>`; }); return; }
   const f2 = v => v == null || !isFinite(v) ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
-  const semua = jnBaris().filter(t => t.sinyal === "AI 4H");
+  const semua = jnBaris(JR).filter(t => t.sinyal === "AI 4H");
   const tutup = semua.filter(t => !t.terbuka), jalan = semua.filter(t => t.terbuka), H = jnHitung(tutup);
   const uJ = jalan.reduce((a, t) => a + (t.us || 0), 0);
   const awal = semua.length ? Math.min(...semua.map(t => t.mT)) : null;
@@ -3589,14 +3651,21 @@ document.addEventListener("click", e => {
   popupTampil("Trade pola " + n + " (simulasi 1000 USDT)", isi, false);
 });
 window.gambarRiwayat = function () {
-  const ai = rwSumber === "AI";
+  const ai = rwSumber === "AI", tf1 = !ai && TF_RW === "1D";
+  $("rwTF").hidden = ai; { const bp = document.querySelector('#rwSumber button[data-v="POLA"]'); if (bp) bp.textContent = "POLA " + TF_RW + " · level chart"; }
+  if (tf1 && !R1D.t) { $("rwRing").innerHTML = `<div class="kosong memuat">Mengambil lilin 1D dari Binance… ${R1D.n}/${KOIN.length}</div>`; $("rwPola").innerHTML = ""; $("rwList").innerHTML = ""; $("rwPeriode").hidden = true; if (!R1D.memuat) muat1D(); return; }
+  if (tf1 && Date.now() - R1D.t > 3600e3 && !R1D.memuat) muat1D();
+  const m0 = rwMode; if (tf1) rwMode = "semua";
+  try { return gambarRiwayatTF(ai, tf1); } finally { rwMode = m0; }
+};
+function gambarRiwayatTF(ai, tf1) {
   if (!TAMPIL.maju && rwMode === "maju") rwMode = "semua";
-  $("rwPeriode").hidden = ai || !TAMPIL.maju; $("rwKetAI").hidden = !ai; $("rwKetPola").hidden = ai;
+  $("rwPeriode").hidden = ai || tf1 || !TAMPIL.maju; $("rwKetAI").hidden = !ai; $("rwKetPola").hidden = ai;
   $("rwJudulPer").innerHTML = ai ? `Hasil per koin <small>ketuk koin untuk melihat trade-nya · urut dari total USDT terbesar</small>`
     : `Hasil per pola <small><span class="hpsj">geser ‹ › untuk pola lain · </span>ketuk untuk melihat trade-nya</small>`;
   $("bandingRw").hidden = true; if (!ai) gambarBanding("bandingRw", true);
   if (ai) return gambarRiwayatAI();
-  const semuaRw = Object.values(RW);
+  const semuaRw = tf1 ? Object.values(R1D.rw) : Object.values(RW);
   if (rwMode === "maju" && !MAJU_GH.t) ambilMajuGH();
   if (!semuaRw.length && !(rwMode === "maju" && MAJU_GH.rec)) return;
   const semua = (rwMode === "maju" ? gabungMaju() : semuaRw).filter(t => KODE_TAMPIL.has(t.kode));
@@ -3613,7 +3682,7 @@ window.gambarRiwayat = function () {
     $("rwPola").innerHTML = ""; $("rwList").innerHTML = ""; return;
   }
   const kurva = kurvaJ(tutup.map(t => ({ usdt: t.pnl, keluar: new Date(t.keluarT || t.masukT).toISOString(), masuk: "" })));
-  $("rwRing").innerHTML = `<div class="jr-kotak"><h3>Riwayat trade pola 4H <small>sejak ${mulai}</small></h3>` +
+  $("rwRing").innerHTML = `<div class="jr-kotak"><h3>Riwayat trade pola ${tf1 ? "1D" : "4H"} <small>sejak ${mulai}${tf1 ? " · info saja, bot & alert tetap 4H" : ""}</small></h3>` +
     `<div class="jr-angka"><div><span>Tutup</span><b>${tutup.length}</b></div><div><span>WR</span><b>${tutup.length ? Math.round(menang / tutup.length * 100) : 0}%</b></div>` +
     `<div><span>Profit tutup (USDT)</span><b class="${kl(tot)}">${f2(tot)}</b></div></div>` +
     `<div class="jr-angka"><div><span>Jalan</span><b>${jalan.length}</b></div><div><span>Rata/trade</span><b class="${kl(tot)}">${tutup.length ? f2(tot / tutup.length) : "—"}</b></div>` +
@@ -3641,7 +3710,7 @@ window.gambarRiwayat = function () {
       (rwMode === "maju" ? majuHtml(nm, x, semua) : "") + `</button>`;
   }).join("") + (Object.values(per).some(x => x.n < 30) ? '<div class="rw-kaki">Pola dengan kurang dari 30 trade belum bisa disimpulkan.</div>' : "");
   { const sel = $("rwPola").querySelector('[aria-pressed="true"]'); if (sel) { const c = $("rwPola"); c.scrollTo({ left: sel.offsetLeft - (c.clientWidth - sel.clientWidth) / 2, behavior: "smooth" }); } }
-  RW_TAMPIL = { sumber: "POLA", semua };                             // dipakai pop-up
+  RW_TAMPIL = { sumber: "POLA", semua, tf: tf1 ? "1D" : "4H" };                             // dipakai pop-up
   let rows = semua.slice();
   if (rwPola) rows = rows.filter(t => t.nama === rwPola);
   rwTabHitung({ semua: rows.length, jalan: rows.filter(t => t.st === "jalan" && !t.luar).length, tutup: rows.filter(t => t.st !== "jalan").length, untung: rows.filter(t => t.st !== "jalan" && t.pnl > 0).length, rugi: rows.filter(t => t.st !== "jalan" && t.pnl <= 0).length });
@@ -3715,7 +3784,7 @@ function rwPopupGrup(nilai) {
     T.map(t => `<div class="jr-tr rw-baris popup-baris${t.terbuka ? " buka" : ""}${klsSt(t.terbuka, t.us)}" data-k="${t.k}" tabindex="0" role="button">` +
       `<div style="min-width:0"><div class="nm">${S === "POLA" ? t.koin : jamLokal(t.mT)}</div><div class="sub">${S === "POLA" ? jamLokal(t.mT) + " · " : ""}${t.terbuka ? "jalan" : t.sebab} · ${jnLama(t.jam)}</div></div>` +
       `<div class="ha"><b class="${kl(t.us)}">${f2(t.us)}</b><span class="rp">${t.R == null ? "" : f2(t.R) + " R"}</span></div></div>`).join("");
-  popupTampil(`${nilai} <small>${S === "AI" ? "AI 4H" : "POLA 4H"}</small>`, html, false);
+  popupTampil(`${nilai} <small>${S === "AI" ? "AI 4H" : RW_TAMPIL.tf === "1D" ? "POLA 1D" : "POLA 4H"}</small>`, html, false);
 }
 function rwPopupTrade(kunci, dariGrup) {
   const S = RW_TAMPIL.sumber, t = RW_TAMPIL.semua.map(x => rwNorm(x, S)).find(x => x.k === kunci);
