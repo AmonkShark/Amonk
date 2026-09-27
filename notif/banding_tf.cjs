@@ -20,7 +20,7 @@ const NOMINAL = 1000, BIAYA = 0.002, HARI = 100, JENDELA = HARI * 864e5;
 // per TF: ambang DC (mx), lama lilin, jumlah lilin diambil (jendela 100 hari + pemanasan)
 const TF = { "1h": { mx: 3.5, bar: 3600e3, ambil: 3000 }, "4h": { mx: 2.5, bar: 4 * 3600e3, ambil: 800 }, "1d": { mx: 2.5, bar: 864e5, ambil: 500 } };
 const TP_A = { FW: [1.5, null], ST: [1.5, 2], AT: [1, null], TB: [1.5, 3], EW: [0.5, null] };
-const TRAIL_K = new Set(["FW", "TB", "EW"]), TRAIL_P = 0.15;
+const TRAIL_K = new Set(["FW", "TB", "EW"]), TRAIL_P = 0.15, TB_MURNI_P = 0.25;
 const F_OUT = path.join(__dirname, "..", "banding_tf.json");
 
 async function getJ(p) {
@@ -48,11 +48,13 @@ function level(d, e) {
   const entry = e.entry != null ? e.entry : d.c[e.i], sl = e.batal, tpB = e.level + e.tinggi;
   if (!(entry > sl) || !(tpB > entry)) return null;
   const { tp1, tp2 } = tpAturan(e.kode, entry, sl, tpB);
-  return { entry, sl, tp1, tp2, trailP: TRAIL_K.has(e.kode) ? TRAIL_P : 0 };
+  return { entry, sl, tp1, tp2, trailP: e.kode === "TB" ? TB_MURNI_P : TRAIL_K.has(e.kode) ? TRAIL_P : 0, murni: e.kode === "TB" };
 }
 // sama dengan simTrade() aplikasi / simTahap() notif_pola.cjs
 function sim(d, i, L) {
-  const n = d.c.length; let st = "jalan", kenaTp1 = false, sisa = 1, real = 0, keluarT = null, puncak = 0;
+  const n = d.c.length;
+  if (L.murni) { let pk = d.h[i], st = "jalan", keluarT = null, real = null; for (let k = i + 1; k < n; k++) { const stop = Math.max(L.sl, pk * (1 - L.trailP)); if (d.l[k] <= stop) { real = Math.min(d.o[k], stop) / L.entry - 1; st = stop > L.sl * 1.0005 ? "TP2" : "SL"; keluarT = d.t[k]; break; } if (d.h[k] > pk) pk = d.h[k]; }
+    const fr = real != null ? real : d.c[n - 1] / L.entry - 1; return { st, kenaTp1: false, keluarT, sisa: real != null ? 0 : 1, usdt: +(NOMINAL * fr - NOMINAL * BIAYA).toFixed(2) }; } let st = "jalan", kenaTp1 = false, sisa = 1, real = 0, keluarT = null, puncak = 0;
   const trail = L.trailP > 0, tutup = (w, px) => { real += w * NOMINAL * (px / L.entry - 1); sisa -= w; };
   for (let k = i + 1; k < n && st === "jalan"; k++) {
     if (!kenaTp1) {
