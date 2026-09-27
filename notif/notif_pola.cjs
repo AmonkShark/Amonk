@@ -63,7 +63,7 @@ const atrArr = (h, l, c, n = 14) => {
 // TP per pola (pilihan user 2026-09-24; uji 0 lolos ambang): [TP1 dalam R, TP2 dalam R atau null = target pola]
 const TP_A = { FW: [1.5, null], ST: [1.5, 2], AT: [1, null], TB: [1.5, 3], EW: [0.5, null] };
 // TRAILING sesudah TP1 (user 2026-09-24): FW, TB, EW trailing 15% dari puncak (stop mulai di entry), tanpa TP2; ST & AT tetap TP2
-const TRAIL_K = new Set(["FW", "TB", "EW"]), TRAIL_P = 0.15;
+const TRAIL_K = new Set(["FW", "TB", "EW"]), TRAIL_P = 0.15, TB_MURNI_P = 0.25;   // TB murni 25% (2026-09-28, keputusan user)
 function tpAturan(kode, entry, sl, tpBuku) {
   const [a, t] = TP_A[kode] || [0.75, null], tp2 = t ? entry + t * (entry - sl) : tpBuku;
   let tp1 = entry + a * (entry - sl); if (tp1 >= tp2) tp1 = entry + 0.5 * (tp2 - entry);
@@ -74,11 +74,16 @@ function level(d, e) {
   const entry = e.entry != null ? e.entry : d.c[e.i], sl = e.batal, tpB = e.level + e.tinggi;
   if (!(entry > sl) || !(tpB > entry)) return null;
   const { tp1, tp2 } = tpAturan(e.kode, entry, sl, tpB);
-  return { entry, sl, tp1, tp2, trailP: TRAIL_K.has(e.kode) ? TRAIL_P : 0 };
+  return { entry, sl, tp1, tp2, trailP: e.kode === "TB" ? TB_MURNI_P : TRAIL_K.has(e.kode) ? TRAIL_P : 0, murni: e.kode === "TB" };
 }
 // Simulasi aturan aplikasi sampai lilin terakhir; sama dengan simTrade() di aplikasi.
 function simTahap(d, i, L) {
   const n = d.c.length;
+  if (L.murni) {   // TB MURNI (2026-09-28): 100% posisi, trailing L.trailP dari puncak sejak masuk, lantai SL awal, tanpa TP1/BE
+    let pk = d.h[i], st = "jalan", keluarT = null, keluarPx = null, real = 0, sisa = 1;
+    for (let k = i + 1; k < n; k++) { const stop = Math.max(L.sl, pk * (1 - L.trailP)); if (d.l[k] <= stop) { const px = Math.min(d.o[k], stop); real = NOMINAL * (px / L.entry - 1); sisa = 0; keluarPx = px; st = stop > L.sl * 1.0005 ? "TP2" : "SL"; keluarT = d.t[k]; break; } if (d.h[k] > pk) pk = d.h[k]; }
+    return { st, kenaTp1: false, tTp1: null, keluarT, sisa, real, trail: true, keluarPx, usdt: sisa === 0 ? real - NOMINAL * BIAYA : null };
+  }
   let st = "jalan", kenaTp1 = false, sisa = 1, real = 0, tTp1 = null, keluarT = null;
   const tutup = (w, px) => { real += w * NOMINAL * (px / L.entry - 1); sisa -= w; };
   let puncak = 0, keluarPx = null; const trail = L.trailP > 0;
@@ -227,7 +232,7 @@ function pesanExit(k, nama, kode, L, s, jenis, validT) {
   const hasil = s.usdt != null ? `\n📊 Hasil trade: <b>${(s.usdt >= 0 ? "+" : "") + (s.usdt / NOMINAL * 100).toFixed(2)}%</b> (${(s.usdt >= 0 ? "+" : "") + s.usdt.toFixed(2)} USDT per 1000, sesudah biaya)` : "";
   const isi = {
     TP1: `🎯 <b>TP1 TERCAPAI</b> di ${fx(L.tp1)} (${pc(L.tp1, L.entry)})\n👉 Ambil 50%, <b>pindahkan SL sisa ke entry ${fx(L.entry)}</b>\n` + (L.trailP ? `🔁 Sisa: trailing ${Math.round(L.trailP * 100)}% dari puncak (stop naik mengikuti harga, tanpa TP2)` : `🎯 Sisa menunggu TP2 ${fx(L.tp2)}`),
-    TRAIL: `🔁🏁 <b>TRAILING ${Math.round(L.trailP * 100)}% KENA</b> di ~${s.keluarPx ? fx(s.keluarPx) : "?"} (${s.keluarPx ? pc(s.keluarPx, L.entry) : ""}) — sisa 50% keluar, trade selesai\nTP1 ${fx(L.tp1)} (50%) · sisa dengan trailing`,
+    TRAIL: `🔁🏁 <b>TRAILING ${Math.round(L.trailP * 100)}% KENA</b> di ~${s.keluarPx ? fx(s.keluarPx) : "?"} (${s.keluarPx ? pc(s.keluarPx, L.entry) : ""}) — ${L.murni ? "posisi penuh keluar (TB murni, tanpa TP1)" : "sisa 50% keluar"}, trade selesai${L.murni ? "" : "\nTP1 " + fx(L.tp1) + " (50%) · sisa dengan trailing"}`,
     TP2: `🏁 <b>TP2 TERCAPAI</b> di ${fx(L.tp2)} (${pc(L.tp2, L.entry)}) — trade selesai`,
     TP1TP2: `🎯🏁 <b>TP1 & TP2 TERCAPAI</b> — trade selesai\nTP1 ${fx(L.tp1)} · TP2 ${fx(L.tp2)}`,
     BE: `↩️ <b>Sisa 50% keluar di entry</b> ${fx(L.entry)} (impas) — trade selesai`,
@@ -449,7 +454,7 @@ function pesanScan(tf, V, H, dicek) {
     `   E ${fx(x.L.entry)} (kini ${pc(x.px, x.L.entry)}) · SL ${fx(x.L.sl)} (${pc(x.L.sl, x.L.entry)}) · TP1 ${fx(x.L.tp1)} · ${x.L.trailP ? "sisa trailing " + Math.round(x.L.trailP * 100) + "%" : "TP2 " + fx(x.L.tp2)}${tipis(x)}`).join("\n");
   const bH = H.sort((a, b) => Math.abs(a.jarak) - Math.abs(b.jarak)).slice(0, SCAN_MAKS).map(x =>
     `• <b>${esc(x.k)}</b> ${PERINGKAT(x.kode)} ${esc(x.nama)}${x.tahap === "CALON" ? " <i>(calon)</i>" : ""} · ${x.kode === "EW" ? "limit beli" : "tembus"} ${fx(x.E)} (<b>${x.jarak >= 0 ? "+" : ""}${x.jarak.toFixed(1)}%</b>)\n` +
-    `   SL ${fx(x.S)} (${pc(x.S, x.E)}) · ${TRAIL_K.has(x.kode) ? "sisa trailing " + Math.round(TRAIL_P * 100) + "%" : "TP2 " + fx(x.T2) + " (" + pc(x.T2, x.E) + ")"}${tipis(x)}`).join("\n");
+    `   SL ${fx(x.S)} (${pc(x.S, x.E)}) · ${x.kode === "TB" ? "tanpa TP1 · trailing " + Math.round(TB_MURNI_P * 100) + "% murni" : TRAIL_K.has(x.kode) ? "sisa trailing " + Math.round(TRAIL_P * 100) + "%" : "TP2 " + fx(x.T2) + " (" + pc(x.T2, x.E) + ")"}${tipis(x)}`).join("\n");
   return `<b>AMONK SINYAL · SCAN HARIAN ${tfT}</b>\n◻️◻️◻️◻️◻️\n📅 ${lokal(Date.now()).teks} waktu ${esc(KOTA)} · ${dicek} koin\n\n` +
     `✅ <b>Valid, masih di area entry</b> (≤ +${SCAN_AREA_R}R, belum TP1/SL): ${V.length}\n${bV || "   — tidak ada"}` +
     (V.length > SCAN_MAKS ? `\n   … +${V.length - SCAN_MAKS} lagi` : "") + `\n\n` +
