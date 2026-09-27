@@ -1405,8 +1405,8 @@ function tpAturan(kode, entry, sl, tpBuku) {
   return { tp1, tp2 };
 }
 // Teks TP2 di tampilan: FW/TB/EW = sisa trailing 15% (tanpa TP2), ST/AT = harga TP2
-const TRAIL_TAMPIL = new Set(["FW", "TB", "EW"]);
-const tp2T = (kode, v) => TRAIL_TAMPIL.has(kode) ? "trailing 15%" : fHarga(v);
+const TRAIL_TAMPIL = new Set(["FW", "TB", "EW"]), TB_MURNI_P = 0.25;   // TB murni (2026-09-28): tanpa TP1/BE, trailing 25% sejak masuk, lantai SL
+const tp2T = (kode, v) => kode === "TB" ? "trailing 25% murni" : TRAIL_TAMPIL.has(kode) ? "trailing 15%" : fHarga(v);
 function simTrade(d, e) {
   // Elliott (EW) masuk lewat LIMIT: entry = harga limit, bukan close bar isian
   const n = d.c.length, entry = e.entry != null ? e.entry : d.c[e.i], sl = e.batal;
@@ -1417,6 +1417,10 @@ function simTrade(d, e) {
   // SL dan TP1 bersamaan = SL (anggapan terburuk); lilin yang menyentuh TP1 dan TP2
   // bersamaan = keduanya tertutup. Sesudah TP1, sentuhan entry menutup sisa di entry (BE).
   let st = "jalan", kenaTp1 = false, sisa = 1, real = 0, keluarT = null;
+  if (e.kode === "TB") {   // TB MURNI: 100% posisi, stop = max(SL, puncak x 0.75), tanpa TP1/BE
+    let pk = d.h[e.i], kpx = null; for (let k = e.i + 1; k < n && st === "jalan"; k++) { const stop = Math.max(sl, pk * (1 - TB_MURNI_P)); if (d.l[k] <= stop) { const px = Math.min(d.o[k], stop); real = MODAL_POLA * (px / entry - 1); sisa = 0; kpx = px; st = stop > sl * 1.0005 ? "TP2" : "SL"; keluarT = d.t[k]; } else if (d.h[k] > pk) pk = d.h[k]; }
+    return { nama: e.nama, kode: e.kode, masukT: d.t[e.i], umur: n - 1 - e.i, entry, sl, tp1: null, tp2, st, keluarT, kenaTp1: false, sisa, real, trail: true, keluarPx: kpx, murni: true };
+  }
   // TRAILING sesudah TP1 (user 2026-09-24): FW, TB, EW; ST & AT tetap TP2. p = 15% dari puncak, stop mulai di entry
   const trail = ["FW", "TB", "EW"].includes(e.kode) && tp1 != null, tp = trail ? 0.15 : 0; let puncak = 0, keluarPx = null;
   const tutup = (w, px) => { real += w * MODAL_POLA * (px / entry - 1); sisa -= w; };
@@ -1711,7 +1715,7 @@ function chipEw(r) {
 }
 function chipPola(P) {
   return P.st === "jalan" ? (P.kenaTp1 ? `<span class="chip jalan">Jalan 50%</span>` : `<span class="chip jalan">Jalan</span>`)
-    : P.st === "TP2" ? `<span class="chip tp">${TRAIL_TAMPIL.has(P.kode) ? "TP1+Trailing" : "TP1+TP2"}</span>` : P.st === "BE" ? `<span class="chip tp">TP1+BE</span>` : `<span class="chip sl">Kena SL</span>`;
+    : P.st === "TP2" ? `<span class="chip tp">${P.kode === "TB" ? "Trailing 25%" : TRAIL_TAMPIL.has(P.kode) ? "TP1+Trailing" : "TP1+TP2"}</span>` : P.st === "BE" ? `<span class="chip tp">TP1+BE</span>` : `<span class="chip sl">Kena SL</span>`;
 }
 function gambarHP(rs) {
   const [K, A] = URUT_HP[$("urutHP").value] || URUT_HP.pnl;
@@ -2294,7 +2298,7 @@ function jr1D() {
   const tr = Object.values(R1D.rw).filter(t => KODE_TAMPIL.has(t.kode)).map(t => {
     const buka = t.st === "jalan", iso = x => x ? new Date(x).toISOString().slice(0, 16) : null, us = buka ? null : pnlTrade(t);
     const exit = buka ? null : t.st === "TP2" ? (t.keluarPx ?? t.tp2) : t.st === "BE" ? t.entry : t.sl;
-    const sebab = buka ? null : t.st === "TP2" ? (TRAIL_TAMPIL.has(t.kode) ? "TP1+TRAIL" : "TP1+TP2") : t.st === "BE" ? "TP1+BE" : "SL";
+    const sebab = buka ? null : t.st === "TP2" ? (t.kode === "TB" ? "TRAIL 25%" : TRAIL_TAMPIL.has(t.kode) ? "TP1+TRAIL" : "TP1+TP2") : t.st === "BE" ? "TP1+BE" : "SL";
     return { koin: t.koin, jenis: t.nama, masuk: iso(t.masukT), keluar: buka ? null : iso(t.keluarT), entry: t.entry, sl: t.sl, tp: t.tp2, tp1: t.tp1, tp1Kena: !!t.kenaTp1,
       exit, sebab, terbuka: buka, usdt: us == null ? null : +us.toFixed(2), pct: us == null ? null : +(us / MODAL_POLA * 100).toFixed(2) };
   });
@@ -3535,7 +3539,7 @@ function chipRw(t) {
   if (t.st === "TP") return `<span class="chip tp">TP</span>`;              // FIB: TP tunggal, bukan TP1+TP2
   if (t.st === "WAKTU") return `<span class="chip nd">Batas waktu</span>`;  // FIB: 60 lilin 1H tak tersentuh
   if (t.st === "GAGAL") return `<span class="chip nd">Gagal syarat, jual close</span>`;   // FIB: EMA/dasar gagal sesudah isian
-  return t.st === "TP2" ? `<span class="chip tp">${TRAIL_TAMPIL.has(t.kode) ? "TP1+Trailing" : "TP1+TP2"}</span>` : t.st === "BE" ? `<span class="chip tp">TP1+BE</span>` : `<span class="chip sl">Kena SL</span>`;
+  return t.st === "TP2" ? `<span class="chip tp">${t.kode === "TB" ? "Trailing 25%" : TRAIL_TAMPIL.has(t.kode) ? "TP1+Trailing" : "TP1+TP2"}</span>` : t.st === "BE" ? `<span class="chip tp">TP1+BE</span>` : `<span class="chip sl">Kena SL</span>`;
 }
 // Progres pola menuju ambang proyek: >= 30 trade tutup DAN >= 6 bulan sejak trade pertama.
 // Vonis hanya sesudah dua-duanya terpenuhi; sebelum itu angka apa pun belum berarti.
@@ -3746,7 +3750,7 @@ function rwNorm(t, sumber) {
   const risk = t.entry > t.sl && t.sl > 0 ? MODAL_POLA * (t.entry - t.sl) / t.entry : null;
   // FIB (kode "FIB"): TP tunggal, dan dua akhir netral yang tidak ada di pola chart — WAKTU (60 lilin
   // tak tersentuh) & GAGAL (syarat EMA/dasar gagal sesudah isian, dijual di close lilin isian itu juga).
-  const sebab = jalan ? null : t.st === "TP2" ? (TRAIL_TAMPIL.has(t.kode) ? "TP1+Trailing" : "TP1+TP2") : t.st === "BE" ? "TP1+BE" : t.st === "TP" ? "TP"
+  const sebab = jalan ? null : t.st === "TP2" ? (t.kode === "TB" ? "Trailing 25%" : TRAIL_TAMPIL.has(t.kode) ? "TP1+Trailing" : "TP1+TP2") : t.st === "BE" ? "TP1+BE" : t.st === "TP" ? "TP"
     : t.st === "WAKTU" ? "WAKTU" : t.st === "GAGAL" ? "Gagal syarat" : "SL";
   const exit = jalan ? null : t.st === "TP2" || t.st === "TP" ? (t.keluarPx ?? t.tp2) : t.st === "BE" ? t.entry
     : t.st === "WAKTU" || t.st === "GAGAL" ? (t.keluarPx ?? t.sl) : t.sl;
