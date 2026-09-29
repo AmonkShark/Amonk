@@ -2687,6 +2687,10 @@ window.muatAkun = async function (paksa) {
       }
       const r = akTrade[k].r;
       if (r && b.px) { b.rata = r.rata; b.pnl = (b.px - r.rata) * Math.min(b.jml, r.qTercatat); b.pct = (b.px / r.rata - 1) * 100; b.sebagian = r.qTercatat < b.jml * 0.98; }
+      // 2026-09-29 (user: XLM tampil +31 USDT padahal bot baru masuk): kalau koin ini POSISI BOT dan jumlah yang dipegang ≈ jumlah bot,
+      // harga beli & PnL kartu memakai harga ISI BOT (rata-rata akun bisa tercampur pembelian lama di luar 500 trade terakhir).
+      { const pb = BT_S && (BT_S.posisi || []).find(p => p.sym === k + "USDT"); const qb = pb ? (pb.qtySisa || pb.qty || 0) : 0;
+        if (pb && pb.isi > 0 && b.px && qb > 0 && Math.abs(b.jml / qb - 1) <= 0.05) { b.rata = pb.isi; b.pnl = (b.px - pb.isi) * b.jml; b.pct = (b.px / pb.isi - 1) * 100; b.sebagian = false; b.dariBot = true; } }
     }
     if (gen !== akGen) return;
     await ambilKurs();
@@ -2810,7 +2814,7 @@ function gambarAkun(baris, akun) {
     donatAlokasi(baris, total) + risikoSerentak(baris, total, akun);
   $("akList").innerHTML = baris.sort((a, b) => (b.nilai || 0) - (a.nilai || 0)).map(b =>
     `<div class="jr-tr ak-aset${klsSt(false, b.pnl)}"><div style="min-width:0"><div class="nm"><i class="ak-av" style="background:${WARNA_AV(b.aset)}">${b.aset.slice(0, 3)}</i>${b.aset}<span class="ak-pc">${total > 0 && b.nilai > 0 ? (b.nilai / total * 100).toFixed(1) + "%" : ""}</span></div><div class="sub">${b.jml.toLocaleString("en-US", { maximumFractionDigits: 8 })}${b.terkunci ? ` · ${b.terkunci} terkunci di order` : ""}</div></div>` +
-    `<div class="lv">${b.px == null ? "harga —" : "Kini " + fHarga(b.px)}${b.rata ? `<br>Beli ${fHarga(b.rata)}${b.sebagian ? " (sebagian)" : ""}` : ""}` +
+    `<div class="lv">${b.px == null ? "harga —" : "Kini " + fHarga(b.px)}${b.rata ? `<br>Beli ${fHarga(b.rata)}${b.dariBot ? " (isi bot)" : b.sebagian ? " (sebagian)" : ""}` : ""}` +
     (() => { const pb = BT_S && (BT_S.posisi || []).find(p => p.sym === b.aset + "USDT"); if (!pb || !(pb.isi > 0) || b.px == null) return ""; const pp = (b.px / pb.isi - 1) * 100;   // 2026-09-29: PnL menurut harga isi BOT (rata-rata akun bisa tercampur riwayat lama)
       return `<br><span class="${kl(pp)}">Bot: isi ${fHarga(pb.isi)} → ${f2(pp)}%</span>`; })() + `</div>` +
     `<div class="ha"><b>${b.nilai == null ? "—" : b.nilai.toFixed(2) + " USDT"}</b><span class="rp">${rpN(b.nilai)}</span>` +
