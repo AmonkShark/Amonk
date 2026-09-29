@@ -3133,8 +3133,9 @@ function gambarBot(s) {
     const px = hargaKini(p.sym.replace(/USDT$/, "")), pnl = px ? (p.qtySisa || 0) * px + (p.jualUsdt || 0) - (p.beliUsdt || 0) : null;
     const risk = +p.rugiBilaSl > 0 ? +p.rugiBilaSl : p.isi > p.sl ? (p.beliUsdt || 0) * (p.isi - p.sl) / p.isi : null;
     baris.push(`<div class="jr-tr buka j bt-baris"><div style="min-width:0"><div class="nm">${p.sym.replace(/USDT$/, "")} <span class="jn-label sinyal">${p.kode}</span></div>` +
-      `<div class="sub">${p.pola} · masuk ${jamLokal(p.t)} · ${p.tahap === "tp1" ? "TP1 ✓, SL di entry" : p.tahap === "tunggu-close" ? "menunggu close lilin isian" : "menunggu TP1"}</div></div>` +
-      `<div class="lv">Isi ${fHarga(p.isi)} · ${Math.round(p.beliUsdt)} USDT · kini ${px ? fHarga(px) : "—"}<br>SL ${fHarga(p.sl)}${p.tp1 ? " · TP1 " + fHarga(p.tp1) : ""} · ${TRAIL_TAMPIL.has(p.kode) ? "sisa trailing 15%" : "TP2 " + fHarga(p.tp2)}</div>` +
+      `<div class="sub">${p.pola} · masuk ${jamLokal(p.t)} · ${p.tahap === "tp1" ? "TP1 ✓, trailing" : p.tahap === "murni" ? "TB murni · trailing 25%" : p.tahap === "tunggu-close" ? "menunggu close lilin isian" : "menunggu TP1"}</div></div>` +
+      (() => { const stopKini = Math.max(p.sl || 0, ...(p.oco || []).filter(o => !o.selesai).map(o => +o.sl || 0)); const naik = stopKini > (p.sl || 0) * 1.0005;
+        return `<div class="lv">Isi ${fHarga(p.isi)} · ${Math.round(p.beliUsdt)} USDT · kini ${px ? fHarga(px) : "—"}<br>${naik ? `<b class="${stopKini > p.isi ? "naik" : ""}">stop kini ${fHarga(stopKini)}</b>${px ? " (" + fPct((stopKini / px - 1) * 100, 1) + " dari harga)" : ""} · SL awal ${fHarga(p.sl)}` : `SL ${fHarga(p.sl)}${px ? " (" + fPct((p.sl / px - 1) * 100, 1) + ")" : ""}`}${p.tp1 ? " · TP1 " + fHarga(p.tp1) : ""} · ${p.murni ? "trailing 25% murni" : TRAIL_TAMPIL.has(p.kode) ? "sisa trailing 15%" : "TP2 " + fHarga(p.tp2)}</div>`; })() +
       `<div class="ha">${pnl == null ? `<span class="chip jalan">Jalan</span>` : `<b class="${kl(pnl)}">${f2(pnl)} USDT</b><span class="rp">${risk ? f2(pnl / risk) + " R" : ""}</span>`}</div>` +
       jalurPosisi(p, px) + `</div>`);
   }
@@ -3149,13 +3150,15 @@ function gambarBot(s) {
     const nPakai = {}; for (const p of (s.posisi || [])) nPakai[p.kode] = (nPakai[p.kode] || 0) + 1; nPakai.EW = (nPakai.EW || 0) + ((s.ew || {}).order || []).length; const dipakai = new Set(Object.keys(nPakai).filter(k => nPakai[k] > 0));
     const NAMA_J = { FW: "Falling Wedge", ST: "Symmetrical Triangle", PEN: "Bullish Pennant", IHS: "Inverse H&S", AT: "Ascending Triangle", TB: "Triple Bottom", CH: "Cup & Handle", EW: "Elliott Wave" };
     const tot = KT.jenis.reduce((a, k) => a + (KT.per[k] ? KT.per[k].kini : 0), 0);
-    baris.push(`<div class="jr-kotak"><h3>Modal per jenis sinyal <small>tanpa batas slot · total ${usd(tot)}</small></h3>` +
-      KT.jenis.map(k => { const p = KT.per[k] || { awal: 0, laba: 0, kini: 0, nTutup: 0 };
+    // HASIL PER POLA BOT (2026-09-29, user): trade tutup, WR, total, rata — dari riwayat bot akun asli (bukan simulasi)
+    const stat = {}; for (const r of R) { const z = stat[r.kode || "?"] = stat[r.kode || "?"] || { n: 0, w: 0, u: 0 }; z.n++; if (r.hasil > 0) z.w++; z.u += +r.hasil || 0; }
+    baris.push(`<div class="jr-kotak"><h3>Hasil per pola (bot) <small>${R.length} trade tutup · total ${f2(R.reduce((a, r) => a + (+r.hasil || 0), 0))} USDT</small></h3>` +
+      KT.jenis.map(k => { const z = stat[k] || { n: 0, w: 0, u: 0 };
         return `<div class="jr-tr bt-baris"><div style="min-width:0"><div class="nm">${NAMA_J[k] || k} <span class="jn-label">${k}</span></div>` +
-          `<div class="sub">awal ${usd(p.awal)} · ${p.nTutup} trade tutup · jalan ${nPakai[k] || 0}</div></div>` +
-          `<div class="lv">${dipakai.has(k) ? "posisi/order jalan" : "menunggu sinyal"}</div>` +
-          `<div class="ha"><b class="${kl(p.laba)}">${f2(p.laba)} USDT</b><span class="rp">kantong ${usd(p.kini)}</span></div></div>`; }).join("") +
-      `<p class="jr-ket">Tiap jenis memakai kantongnya sendiri: untung menambah, rugi mengurangi, dan jenis lain tidak terpengaruh. Tidak ada batas slot per jenis: sinyal diambil selama modal ada, diurut menurut peringkat pola. Ukuran entry = modal bot ÷ 10, dipangkas Batas rugi per trade (0.5%). Mengganti modal awal atau centang jenis membagi ulang kantong secara rata.</p></div>`);
+          `<div class="sub">${z.n} tutup · WR ${z.n ? Math.round(z.w / z.n * 100) : 0}% · jalan ${nPakai[k] || 0}</div></div>` +
+          `<div class="lv">${z.n ? "rata " + f2(z.u / z.n) + " USDT/trade" : "belum ada trade tutup"}</div>` +
+          `<div class="ha"><b class="${kl(z.u)}">${f2(z.u)} USDT</b><span class="rp">${dipakai.has(k) ? "posisi/order jalan" : "menunggu sinyal"}</span></div></div>`; }).join("") +
+      `<p class="jr-ket">Hasil nyata bot akun asli sesudah biaya. Tanpa batas slot per jenis (Elliott maks 5); ukuran entry = modal bot ÷ 10, dipangkas Batas rugi per trade 0.5%. TB memakai trailing 25% murni (tanpa TP1).</p></div>`);
   }
   // ELLIOTT (2026-09-23): limit yang menunggu, sama gaya dengan kotak FIB
   const EWd = s.ew || {};
