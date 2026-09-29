@@ -50,9 +50,17 @@ async function cariHost() {
 const samaAman = (a, b) => { a = Buffer.from(String(a || "")); b = Buffer.from(String(b || "")); return a.length === b.length && a.length > 0 && crypto.timingSafeEqual(a, b); };
 const kirim = (res, status, obj) => { res.writeHead(status, { "Content-Type": "application/json" }); res.end(JSON.stringify(obj)); };
 
-async function teruskan(m, p, q) {
+// publik=true (2026-09-29): data PASAR diteruskan TANPA tanda tangan & kunci Binance (endpoint publik menolak parameter tambahan, -1104).
+// Dipakai bot saat semua alamat Binance menolak server Cloudflare-nya. Tetap wajib HMAC perantara. Hanya GET & jalur data yang diizinkan.
+const JALUR_PUBLIK = new RegExp("^/api/v3/(ticker/price|ticker/24hr|klines|exchangeInfo|time|ping|depth|trades|avgPrice)$");
+async function teruskan(m, p, q, publik) {
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(q || {})) if (v !== undefined && v !== null && k !== "signature" && k !== "timestamp") qs.set(k, String(v));
+  if (publik) {
+    if (m !== "GET" || !JALUR_PUBLIK.test(p)) return { status: 400, isi: { msg: "jalur publik tidak diizinkan: " + p } };
+    const r = await fetch(`${await cariHost()}${p}?${qs}`); const teks = await r.text(); let isi; try { isi = JSON.parse(teks); } catch (e) { isi = { msg: teks.slice(0, 200) }; }
+    return { status: r.status, isi };
+  }
   qs.set("recvWindow", "10000"); qs.set("timestamp", String(Date.now()));
   qs.set("signature", crypto.createHmac("sha256", RAHASIA).update(qs.toString()).digest("hex"));
   const r = await fetch(`${await cariHost()}${p}?${qs}`, { method: m, headers: { "X-MBX-APIKEY": KUNCI } });
@@ -76,9 +84,9 @@ const server = http.createServer(async (req, res) => {
     if (!b.n || nonceTerpakai.has(b.n)) return kirim(res, 401, { msg: "permintaan ulang ditolak" });
     nonceTerpakai.set(b.n, skr);
     const m = String(b.m || "").toUpperCase();
-    if (!(JALUR[m] || []).includes(b.p)) return kirim(res, 403, { msg: `jalur tidak diizinkan: ${m} ${b.p}` });
+    if (b.publik === true ? !(m === "GET" && JALUR_PUBLIK.test(String(b.p || ""))) : !(JALUR[m] || []).includes(b.p)) return kirim(res, 403, { msg: `jalur tidak diizinkan: ${m} ${b.p}` });   // publik: hanya jalur data pasar (2026-09-29)
     let hasil;
-    try { hasil = await teruskan(m, b.p, b.q); }
+    try { hasil = await teruskan(m, b.p, b.q, b.publik === true); }
     catch (e) { hostOk = null; console.error(new Date().toISOString(), "GAGAL", m, b.p, galatLengkap(e)); return kirim(res, 502, { msg: "ke Binance: " + galatLengkap(e) }); }
     console.log(new Date().toISOString(), m, b.p, (b.q && b.q.symbol) || "", hasil.status);
     return kirim(res, 200, hasil);
