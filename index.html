@@ -2810,7 +2810,9 @@ function gambarAkun(baris, akun) {
     donatAlokasi(baris, total) + risikoSerentak(baris, total, akun);
   $("akList").innerHTML = baris.sort((a, b) => (b.nilai || 0) - (a.nilai || 0)).map(b =>
     `<div class="jr-tr ak-aset${klsSt(false, b.pnl)}"><div style="min-width:0"><div class="nm"><i class="ak-av" style="background:${WARNA_AV(b.aset)}">${b.aset.slice(0, 3)}</i>${b.aset}<span class="ak-pc">${total > 0 && b.nilai > 0 ? (b.nilai / total * 100).toFixed(1) + "%" : ""}</span></div><div class="sub">${b.jml.toLocaleString("en-US", { maximumFractionDigits: 8 })}${b.terkunci ? ` · ${b.terkunci} terkunci di order` : ""}</div></div>` +
-    `<div class="lv">${b.px == null ? "harga —" : "Kini " + fHarga(b.px)}${b.rata ? `<br>Beli ${fHarga(b.rata)}${b.sebagian ? " (sebagian)" : ""}` : ""}</div>` +
+    `<div class="lv">${b.px == null ? "harga —" : "Kini " + fHarga(b.px)}${b.rata ? `<br>Beli ${fHarga(b.rata)}${b.sebagian ? " (sebagian)" : ""}` : ""}` +
+    (() => { const pb = BT_S && (BT_S.posisi || []).find(p => p.sym === b.aset + "USDT"); if (!pb || !(pb.isi > 0) || b.px == null) return ""; const pp = (b.px / pb.isi - 1) * 100;   // 2026-09-29: PnL menurut harga isi BOT (rata-rata akun bisa tercampur riwayat lama)
+      return `<br><span class="${kl(pp)}">Bot: isi ${fHarga(pb.isi)} → ${f2(pp)}%</span>`; })() + `</div>` +
     `<div class="ha"><b>${b.nilai == null ? "—" : b.nilai.toFixed(2) + " USDT"}</b><span class="rp">${rpN(b.nilai)}</span>` +
     (b.pnl == null || !KOL.akNilai ? "" : `<span class="${kl(b.pnl)}" style="font-size:12px;display:block">${f2(b.pnl)} USDT (${f2(b.pct)}%)</span><span class="rp ${kl(b.pnl)}">${fRp(b.pnl)}</span>`) +
     `</div>${polaAkun(b.aset)}</div>`).join("") ||
