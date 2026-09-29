@@ -387,7 +387,15 @@ body.privasi .ak-hero b,body.privasi .jr-angka b,body.privasi .rk-jn b,body.priv
 #jnRing .jr-kotak[data-grup]::before{content:attr(data-grup);position:absolute;top:8px;left:14px;font:600 10px var(--f-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--biru)}
 #jnRing h3{flex-wrap:wrap;gap:4px 8px}
 .info-btn{margin-left:auto;background:none;border:1px solid var(--garis);border-radius:50%;width:22px;height:22px;color:var(--label);font:12px var(--f-ui);cursor:pointer;padding:0}
-.jn-kartu-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px}
+.jn-kartu-bar{display:none}
+.jn-simpel .jr-angka b{font-size:20px}
+.jn-simpul{margin:10px 0 0;padding:10px 12px;border-radius:8px;background:var(--bg2);color:var(--teks);font-size:13px;line-height:1.5}
+.jn-rinci{margin:10px 0 4px}
+.jn-rinci>summary{cursor:pointer;list-style:none;font:600 13px var(--f-ui);color:var(--label);padding:10px 12px;border:1px solid var(--garis);border-radius:8px;background:var(--bg1)}
+.jn-rinci>summary::-webkit-details-marker{display:none}
+.jn-rinci>summary::before{content:"▸ ";color:var(--hijau)}
+.jn-rinci[open]>summary::before{content:"▾ "}
+.jn-rinci-isi{display:grid;gap:10px;margin-top:10px}
 .jn-kartu-l{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--redup)}
 .chip-k{font:12px var(--f-ui);padding:5px 11px;border-radius:999px;border:1px solid var(--garis);background:var(--bg2);color:var(--label);cursor:pointer}
 .chip-k[aria-pressed="true"]{border-color:var(--biru);color:var(--teks);background:rgba(66,165,245,.12)}
@@ -2942,7 +2950,7 @@ function gambarJurnalNyata() {
   const sin = tutup.filter(e => e.sinyal), luar = tutup.filter(e => !e.sinyal);
   const simSin = sin.reduce((x, e) => x + (e.sim || 0), 0);
   const wr = a => a.length ? Math.round(a.filter(e => e.pnl > 0).length / a.length * 100) : 0;
-  $("jnRing").innerHTML =
+  const kartuLama =
     `<div class="jr-kotak"><h3>Trade nyata <small>${tutup.length} tutup · ${buka.length} terbuka</small></h3>` +
     `<div class="jr-angka"><div><span>PnL tutup</span><b class="${kl(sum(tutup))}">${f2(sum(tutup))} USDT</b><span class="rp ${kl(sum(tutup))}">${rpN(sum(tutup))}</span></div>` +
     `<div><span>WR</span><b>${wr(tutup)}%</b></div>` +
@@ -2954,6 +2962,23 @@ function gambarJurnalNyata() {
     `<p class="jr-ket">Selisih "sesuai sinyal" vs "simulasi" = efek eksekusimu (harga masuk, disiplin TP/SL, biaya). Hanya 500 trade terakhir per koin; koin yang dijual tanpa riwayat beli tidak dihitung.` +
     ` Dimuat ${new Date(JN.t).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}${JN.gagal ? ` · ${JN.gagal} koin gagal dibaca` : ""}.</p></div>` +
     kotakJeda(tutup) + kotakBiayaNyata(eps, sin) + kotakPilihan(eps);
+  // RINGKASAN SEDERHANA (2026-09-29, user: "buat simpel dan menunya gampang"): satu kartu, tiga angka, satu kalimat; sisanya di "Rincian"
+  const totNy = sum(tutup), totSin = sum(sin), totLuar = sum(luar);
+  let simpul;
+  if (!tutup.length) simpul = "Belum ada trade yang tutup.";
+  else if (luar.length >= 10 && totLuar < 0 && totSin >= 0) simpul = `Kerugian datang dari <b>trade di luar sinyal</b> (${luar.length} trade, WR ${wr(luar)}%). Trade sesuai sinyal positif, tapi baru ${sin.length} — belum cukup untuk disimpulkan (perlu ≥ 30).`;
+  else if (luar.length >= 10 && totLuar >= 0 && totSin < 0) simpul = `Trade di luar sinyal justru positif, sesuai sinyal negatif (${sin.length} trade). Sampel sinyal masih kecil.`;
+  else if (sin.length >= 30) simpul = `Sesuai sinyal ${sin.length} trade, WR ${wr(sin)}%, ${f2(totSin)} USDT — sudah cukup untuk dinilai. Di luar sinyal ${luar.length} trade, ${f2(totLuar)} USDT.`;
+  else simpul = `Sesuai sinyal ${sin.length} trade (${f2(totSin)} USDT), di luar sinyal ${luar.length} trade (${f2(totLuar)} USDT). Sampel masih kecil.`;
+  const jedaHtml = kotakJeda(tutup), jedaKena = /class="turun"/.test(jedaHtml) && /Jeda|jeda/.test(jedaHtml) && /turun">(?!0<)/.test(jedaHtml);
+  const ringkasNyata = `<div class="jr-kotak jn-simpel"><h3>Hasil trading Anda <small>${tutup.length} tutup · ${buka.length} terbuka · dimuat ${new Date(JN.t).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</small></h3>` +
+    `<div class="jr-angka"><div><span>Total (nyata)</span><b class="${kl(totNy)}">${f2(totNy)} USDT</b><span class="rp ${kl(totNy)}">${rpN(totNy) || "WR " + wr(tutup) + "%"}</span></div>` +
+    `<div><span>Sesuai sinyal</span><b class="${kl(totSin)}">${f2(totSin)}</b><span class="rp">${sin.length} trade · WR ${wr(sin)}%</span></div>` +
+    `<div><span>Di luar sinyal</span><b class="${kl(totLuar)}">${f2(totLuar)}</b><span class="rp">${luar.length} trade · WR ${wr(luar)}%</span></div></div>` +
+    `<p class="jn-simpul">${simpul}</p></div>`;
+  const rinciBuka = !!baca("jnRinciBuka", false);
+  $("jnRing").innerHTML = ringkasNyata + `<details class="jn-rinci"${rinciBuka ? " open" : ""}><summary>Rincian — sesuai vs di luar sinyal, aturan jeda, biaya nyata, sinyal diambil vs dilewati</summary><div class="jn-rinci-isi">` + kartuLama + `</div></details>`;
+  { const d = $("jnRing").querySelector("details.jn-rinci"); if (d) d.addEventListener("toggle", () => simpan("jnRinciBuka", d.open)); }
   $("jnList").innerHTML = eps.slice(0, 200).map(e => {
     const tg = jamLokal(e.mulai);
     const lab = e.sinyal ? `<span class="jn-label sinyal">${PERINGKAT_APP(e.sinyal.kode)} ${e.sinyal.nama}</span>` : `<span class="jn-label">di luar sinyal</span>`;
@@ -3201,14 +3226,14 @@ $("btList").addEventListener("click", e => { if (e.target.closest("#btRiwToggle"
   const tutup = () => new Set(baca("jnKartuSembunyi", []));
   const judulKartu = k => { const h = k.querySelector("h3"); const n = h && [...h.childNodes].find(x => x.nodeType === 3 && x.nodeValue.trim()); return n ? n.nodeValue.trim() : (h ? h.textContent.trim() : ""); };
   function rapikan() {
-    const ring = $("jnRing"), kartu = [...ring.querySelectorAll(":scope > .jr-kotak")]; if (!kartu.length) { const b = $("jnKartuBar"); if (b) b.hidden = true; return; }
-    const sembunyi = tutup(); let bar = $("jnKartuBar");
-    if (!bar) { bar = document.createElement("div"); bar.id = "jnKartuBar"; bar.className = "jn-kartu-bar"; ring.parentNode.insertBefore(bar, ring); }
-    bar.hidden = false;
+    const ring = $("jnRing"), kartu = [...ring.querySelectorAll(".jr-kotak")]; { const b = $("jnKartuBar"); if (b) b.hidden = true; }   // 2026-09-29: bar chip dibuang, diganti <details> Rincian
+    if (!kartu.length) return;
+    const sembunyi = new Set(); let bar = $("jnKartuBar");
+    if (!bar) { bar = document.createElement("div"); bar.id = "jnKartuBar"; bar.className = "jn-kartu-bar"; bar.hidden = true; ring.parentNode.insertBefore(bar, ring); }
     const daftar = kartu.map(k => { const j = judulKartu(k); k.dataset.judul = j; k.dataset.grup = GRUP[j] || "Lain"; k.hidden = sembunyi.has(j);
       if (!k.querySelector(".info-btn") && k.querySelector(".jr-ket")) { const b = document.createElement("button"); b.type = "button"; b.className = "info-btn"; b.textContent = "ⓘ"; b.title = "Penjelasan"; k.querySelector("h3").appendChild(b); }
       return j; });
-    bar.innerHTML = '<span class="jn-kartu-l">Kartu:</span>' + daftar.map(j => '<button type="button" class="chip-k" aria-pressed="' + !sembunyi.has(j) + '" data-j="' + j.replace(/"/g, "&quot;") + '">' + j + '</button>').join("");
+    void daftar;
   }
   new MutationObserver(rapikan).observe($("jnRing"), { childList: true });
   $("jnRing").addEventListener("click", e => { const b = e.target.closest(".info-btn"); if (b) b.closest(".jr-kotak").classList.toggle("info"); });
