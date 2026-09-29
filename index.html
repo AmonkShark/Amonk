@@ -3212,7 +3212,7 @@ function gambarBot(s) {
   const jenisKls = l => /galat|gagal|DARURAT|terlewati|tolak|mati/.test(l.jenis) ? "merah" : /^masuk$|terisi/.test(l.jenis) ? "hijau"
     : l.jenis === "tutup" ? (l.hasil >= 0 ? "hijau" : "merah") : /rencana|FIB order|dana bot|jeda|lanjut|pulih/.test(l.jenis) ? "biru" : /lewati|batal|ditahan/.test(l.jenis) ? "abu" : "";
   if (kelompok.length) baris.push(`<div class="jr-kotak"><h3>Catatan bot terakhir <small>jam ${ZONA || "lokal"}</small></h3>` + kelompok.map(({ l, n, tAwal }) =>
-    `<div class="bt-log"><span class="bt-tag ${jenisKls(l)}">${l.jenis}</span><span class="bt-jam">${jamLokal(l.t)}${n > 1 ? ` ×${n} sejak ${jamLokal(tAwal).slice(6)}` : ""}</span>` +
+    `<div class="bt-log"><span class="bt-tag ${jenisKls(l)}">${String(l.jenis).replace(/^galat/, "error")}</span><span class="bt-jam">${jamLokal(l.t)}${n > 1 ? ` ×${n} sejak ${jamLokal(tAwal).slice(6)}` : ""}</span>` +
     `<span class="bt-isi">${[l.sym ? "<b>" + l.sym.replace(/USDT$/, "") + "</b>" : "", l.alasan || "", l.galat || "",
       l.jenis === "tutup" && l.hasil != null ? `${f2(l.hasil)} USDT` : l.nilai != null ? `${l.nilai} USDT${l.rugiBilaSl != null ? ", rugi bila SL " + l.rugiBilaSl : ""}` : "",
       l.jenis === "pengaturan" ? `pola ${l.pola || "—"} · koin ${l.koin || "semua"}` : ""].filter(Boolean).join(" · ")}</span></div>`).join("") + `</div>`);
