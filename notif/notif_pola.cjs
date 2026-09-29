@@ -501,7 +501,7 @@ async function rekap() {
   const baris = Object.entries(per).sort((a, b) => b[1].u - a[1].u).slice(0, 6)
     .map(([nm, x]) => `   ${PERINGKAT(x.kode)} ${esc(nm)}: ${x.n}× · ${f2(x.u)} USDT`).join("\n");
   const teks =
-    `<b>AMONK SINYAL · REKAP MINGGUAN</b>\n◻️◻️◻️◻️◻️\n` +
+    `<b>AMONK SINYAL · REKAP MINGGUAN</b>\n<i>SIMULASI 1000 USDT per trade dari pola chart — BUKAN hasil bot akun asli (lihat Telegram bot → 📈 Per pola)</i>\n◻️◻️◻️◻️◻️\n` +
     `📅 ${wib(awal).slice(0, 5)} – ${wib(skr).slice(0, 5)}\n\n` +
     `🆕 Pola baru minggu ini: <b>${baru.length}</b>\n` +
     `✅ Tutup minggu ini: <b>${tutupMinggu.length}</b> (TP1+TP2 ${h.tp2} · TP1+BE ${h.be} · SL ${h.sl})\n` +
