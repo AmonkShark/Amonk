@@ -148,6 +148,17 @@ svg.sp{display:block;width:84px;height:22px}
 .jr-kotak{background:var(--bg1);border:1px solid var(--garis);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
 .jr-kotak h3{margin:0;font:600 15px var(--f-ui);display:flex;justify-content:space-between;align-items:baseline}
 .jr-kotak h3 small{font-weight:400;color:var(--label);font-size:12px}
+/* Elliott 4H: daftar order jadi kisi supaya sisi kanan tidak kosong di laptop (user 2026-10-01) */
+.ew-daftar{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:8px;margin-top:4px}
+.ew-kartu{border:1px solid var(--garis);border-radius:10px;padding:8px 11px;font-size:13px;line-height:1.5;background:color-mix(in srgb,var(--bg2) 55%,transparent)}
+.ew-kartu b.sym{font-size:14px}
+.ew-ringkas{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--label);margin-top:2px}
+.ew-ringkas b{color:var(--teks)}
+/* Jurnal trade nyata: daftar per trade bisa disembunyikan (user 2026-10-01) */
+.jn-lipat>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;font:600 13px var(--f-ui);color:var(--label);padding:8px 2px;user-select:none}
+.jn-lipat>summary::-webkit-details-marker{display:none}
+.jn-lipat>summary::before{content:"▸";font-size:12px;transition:transform .15s}
+.jn-lipat[open]>summary::before{transform:rotate(90deg)}
 .jr-angka{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 .jr-angka div{display:flex;flex-direction:column}
 .jr-angka b{font:500 16px var(--f-num)}
@@ -833,7 +844,7 @@ td.kosong::before{display:none}
     <div class="jn-kepala"><h3>Jurnal trade nyata</h3><button class="btn" type="button" id="jnMuat">Muat dari Binance</button></div>
     <p class="ak-pesan" id="jnPesan">Membaca riwayat beli/jual Binance-mu (500 trade terakhir per koin), menyusunnya jadi trade, lalu mencocokkan dengan sinyal pola 4H. Butuh ±1–2 menit.</p>
     <div class="jr-ring" id="jnRing"></div>
-    <div class="jr-list" id="jnList"></div>
+    <details class="jn-lipat" id="jnLipat"><summary><span id="jnLipatJudul">Daftar per trade</span></summary><div class="jr-list" id="jnList"></div></details>
   </div>
 
   <div class="hal info" id="halInfo" hidden>
@@ -2985,6 +2996,7 @@ function gambarJurnalNyata() {
   const rinciBuka = !!baca("jnRinciBuka", false);
   $("jnRing").innerHTML = ringkasNyata + `<details class="jn-rinci"${rinciBuka ? " open" : ""}><summary>Rincian — sesuai vs di luar sinyal, aturan jeda, biaya nyata, sinyal diambil vs dilewati</summary><div class="jn-rinci-isi">` + kartuLama + `</div></details>`;
   { const d = $("jnRing").querySelector("details.jn-rinci"); if (d) d.addEventListener("toggle", () => simpan("jnRinciBuka", d.open)); }
+  { const d = $("jnLipat"); if (d && !d.dataset.siap) { d.dataset.siap = "1"; d.open = !!baca("jnLipatBuka", false); d.addEventListener("toggle", () => { simpan("jnLipatBuka", d.open); const t = $("jnLipatJudul"); if (t) t.textContent = t.textContent.replace(/untuk (sembunyikan|tampilkan)$/, "untuk " + (d.open ? "sembunyikan" : "tampilkan")); }); } const j = $("jnLipatJudul"); if (j) j.textContent = `Daftar per trade (${eps.length}) — ketuk untuk ${$("jnLipat") && $("jnLipat").open ? "sembunyikan" : "tampilkan"}`; }
   $("jnList").innerHTML = eps.slice(0, 200).map(e => {
     const tg = jamLokal(e.mulai);
     const lab = e.sinyal ? `<span class="jn-label sinyal">${PERINGKAT_APP(e.sinyal.kode)} ${e.sinyal.nama}</span>` : `<span class="jn-label">di luar sinyal</span>`;
@@ -3196,16 +3208,18 @@ function gambarBot(s) {
   if ((PG.polaBoleh || []).includes("EW") || (EWd.order || []).length) {
     const umurE = EWd.dataT ? Math.round((Date.now() - EWd.dataT) / 60e3) : null;
     baris.push(`<div class="jr-kotak"><h3>Elliott Wave 4H <small>${(PG.polaBoleh || []).includes("EW") ? "dicentang" : "tidak dicentang"} · ${EWd.maks ? "maks " + EWd.maks : "tanpa batas sendiri"}</small></h3><div class="sub">Data dari GitHub: ${umurE == null ? "<b class='turun'>belum pernah diterima</b> — kode bot & GitHub perlu versi elliott" : umurE > 150 ? `<b class='turun'>${umurE} menit lalu (basi)</b>` : umurE + " menit lalu"} · ${EWd.setupAktif || 0} limit hidup · ${(EWd.order || []).length} order menunggu</div>` +
+      ((EWd.order || []).length ? (() => { const O = EWd.order, tot = O.reduce((a, o) => a + (+o.nilai || 0), 0), rugi = O.reduce((a, o) => a + (+o.nilai || 0) * (o.p - o.sl) / o.p, 0), dekat = O.map(o => { const px = hargaKini(o.sym.replace(/USDT$/, "")); return px ? { s: o.sym.replace(/USDT$/, ""), j: (o.p / px - 1) * 100 } : null; }).filter(Boolean).sort((a, b) => b.j - a.j)[0]; return `<div class="ew-ringkas"><span>Total menunggu <b>${Math.round(tot)} USDT</b></span><span>Rugi bila semua terisi lalu SL <b>${rugi.toFixed(2)} USDT</b></span>${dekat ? `<span>Paling dekat terisi <b>${dekat.s}</b> (${fPct(dekat.j, 1)})</span>` : ""}<span>Terisi otomatis saat harga turun ke limit · batal sendiri bila kedaluwarsa</span></div>`; })() : "") +
+      `<div class="ew-daftar">` +
       (EWd.order || []).map(o => {
         // TP1 Elliott = 0.5R (TP2 = 3R); kedaluwarsa = lilin lahir + 61 lilin 4H
         let tp1 = o.p + 0.5 * (o.p - o.sl); if (tp1 >= o.tp2) tp1 = o.p + 0.5 * (o.tp2 - o.p);
         const px = hargaKini(o.sym.replace(/USDT$/, "")), jarak = px ? (o.p / px - 1) * 100 : null;
         const habis = o.lahirT ? o.lahirT + 61 * 4 * 3600e3 : null, sisaJ = habis ? (habis - Date.now()) / 3600e3 : null;
         const sisaT = sisaJ == null ? "—" : sisaJ <= 0 ? "segera batal" : sisaJ >= 48 ? (sisaJ / 24).toFixed(1) + " hari" : Math.round(sisaJ) + " jam";
-        return `<div class="sub" style="padding:4px 0;border-top:1px solid var(--garis)"><b>${o.sym.replace(/USDT$/, "")}</b> · limit beli <b>${fHarga(o.p)}</b>` +
+        return `<div class="ew-kartu"><b class="sym">${o.sym.replace(/USDT$/, "")}</b> · limit beli <b>${fHarga(o.p)}</b>` +
           `${jarak == null ? "" : ` <span class="${jarak <= 0 ? "naik" : "redup"}">(${fPct(jarak, 1)} dari harga ${fHarga(px)})</span>`} · ${Math.round(o.nilai)} USDT<br>` +
           `SL ${fHarga(o.sl)} · TP1 ${fHarga(tp1)} · sisa trailing 15% · batal otomatis dalam <b>${sisaT}</b> bila tak tersentuh</div>`;
-      }).join("") + `</div>`);
+      }).join("") + `</div></div>`);
   }
   // CATATAN: entri kembar berurutan (jenis + koin + alasan sama) digabung jadi satu baris "×n";
   // tiap jenis diberi warna: beli hijau, jual/tutup menurut hasil, rencana biru, lewati abu, galat merah.
