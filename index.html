@@ -540,6 +540,41 @@ td.pnl .pil{margin-right:4px}
 .strip>div,.jr-kotak,.rw-pola,.aksi,.tabel{animation:muncul .35s ease-out both}
 .strip>div:nth-child(2),.rw-pola:nth-child(2){animation-delay:.05s}.strip>div:nth-child(3),.rw-pola:nth-child(3){animation-delay:.1s}.strip>div:nth-child(4),.rw-pola:nth-child(4){animation-delay:.15s}.strip>div:nth-child(5),.rw-pola:nth-child(5){animation-delay:.2s}
 .strip>div,.jr-kotak,.rw-pola{transition:transform .18s ease,box-shadow .18s ease,border-color .15s}
+/* TAMPILAN JURNAL "LEBIH KEREN" (user 2026-10-01): hero + kartu pola */
+.rk-jn{position:relative;overflow:hidden;gap:0;padding:22px 14px 16px;border-radius:18px;background:radial-gradient(90% 120% at 50% -20%,rgba(66,165,245,.14),transparent 60%),linear-gradient(160deg,var(--bg1),var(--bg2));box-shadow:0 14px 34px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.04)}
+.rk-jn::before{content:"";position:absolute;inset:0 0 auto 0;height:2px;background:linear-gradient(90deg,transparent,var(--biru),var(--hijau),transparent);opacity:.8}
+.rk-jn::after{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:28px 28px;mask-image:radial-gradient(80% 90% at 50% 0%,#000,transparent)}
+.rk-jn>div{position:relative;z-index:1;padding:4px 10px}
+.rk-jn>div:nth-child(2),.rk-jn>div:nth-child(3){border-left:1px solid color-mix(in srgb,var(--garis) 80%,transparent)}
+.rk-jn span{font-size:10.5px;letter-spacing:.14em;opacity:.9}
+.rk-jn b{font:700 clamp(22px,6vw,34px) var(--f-num);letter-spacing:-.02em;line-height:1.1}
+.rk-jn>div:first-child b.naik{background:linear-gradient(180deg,#5fe0d3,var(--hijau));-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 0 18px rgba(38,166,154,.35))}
+.rk-jn>div:first-child b.turun{background:linear-gradient(180deg,#ff8a86,var(--merah));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 18px rgba(239,83,80,.3))}
+body.privasi .rk-jn>div:first-child b{filter:blur(7px)}
+.rk-jn .rk-cap{margin-top:10px;font-size:11.5px;line-height:1.5}
+.rk-fil{margin-top:8px}
+.rk-fil{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px 8px}
+.rk-fil::before{content:"FILTER";font:600 9.5px var(--f-ui);letter-spacing:.14em;padding:2px 7px;border-radius:999px;border:1px solid color-mix(in srgb,var(--kuning) 55%,transparent);color:var(--kuning)}
+.rk-modal{margin-top:8px;padding-top:8px;border-top:1px dashed color-mix(in srgb,var(--garis) 85%,transparent);font-size:12px}
+.geser-info{font-size:11px;letter-spacing:.04em;color:var(--label);opacity:.8;margin:2px 0 8px}
+#jnKartu .rw-pola,.rw-tabel>.rw-pola{position:relative;overflow:hidden;padding:12px 14px 12px 16px;border-radius:16px;background:linear-gradient(160deg,var(--bg1),var(--bg2))}
+.rw-pola::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:var(--label);opacity:.35}
+.rw-pola:has(.j>span.naik)::before{background:var(--hijau);opacity:1;box-shadow:0 0 12px rgba(38,166,154,.5)}
+.rw-pola:has(.j>span.turun)::before{background:var(--merah);opacity:1;box-shadow:0 0 12px rgba(239,83,80,.45)}
+.rw-pola:has(.j>span.naik){background:radial-gradient(70% 60% at 100% 0%,rgba(38,166,154,.10),transparent 70%),linear-gradient(160deg,var(--bg1),var(--bg2))}
+.rw-pola:has(.j>span.turun){background:radial-gradient(70% 60% at 100% 0%,rgba(239,83,80,.09),transparent 70%),linear-gradient(160deg,var(--bg1),var(--bg2))}
+.rw-pola .j b{font:700 15px var(--f-ui);letter-spacing:.01em}
+.rw-pola .j span{font:600 15px var(--f-num)}
+.rw-pola .sp{height:44px;width:100%;margin:2px 0}
+.rw-pola .bar.wr{height:4px;background:color-mix(in srgb,var(--merah) 30%,var(--bg2))}
+.rw-pola .bar.wr i{background:linear-gradient(90deg,var(--hijau),#5fe0d3);border-radius:3px;box-shadow:0 0 8px rgba(38,166,154,.45)}
+.rw-pola .d{display:grid;grid-template-columns:repeat(auto-fit,minmax(60px,1fr));gap:4px 8px;font:11px var(--f-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--label)}
+.rw-pola .d span{display:flex;flex-direction:column;gap:1px}
+.rw-pola .d em{font:600 14px var(--f-num);letter-spacing:0;text-transform:none}
+.rw-pola[aria-pressed="true"]{border-color:var(--biru);box-shadow:0 0 0 1.5px var(--biru) inset,0 12px 30px rgba(66,165,245,.22)}
+.rw-pola[aria-pressed="true"]::after{content:"DIPILIH";position:absolute;top:10px;right:12px;font:600 9px var(--f-ui);letter-spacing:.14em;color:var(--biru);opacity:.9;transform:translateY(-14px)}
+.rw-pola[aria-pressed="true"] .j span{transform:translateY(6px)}
+.rw-pola:hover{border-color:color-mix(in srgb,var(--biru) 45%,var(--garis))}
 @media(hover:hover){.strip>div:hover,.rw-pola:hover,#jnRing .jr-kotak:hover,#akRing .jr-kotak:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(0,0,0,.22);border-color:color-mix(in srgb,var(--label) 45%,var(--garis))}}
 .skel{color:transparent!important;position:relative;border-radius:6px;background:var(--bg2);min-width:64px;display:inline-block;overflow:hidden}
 .skel::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 20%,rgba(128,140,160,.18) 50%,transparent 80%);transform:translateX(-100%);animation:kilau 1.3s infinite}
@@ -2376,9 +2411,11 @@ function sparkMini(vals) {
   const c = [0]; for (const x of vals) c.push(c[c.length - 1] + (+x || 0));
   const lo = Math.min(0, ...c), hi = Math.max(0, ...c), rg = (hi - lo) || 1, W = 200, H = 38;
   const px = i => (2 + i / (c.length - 1) * (W - 4)).toFixed(1), py = v => (3 + (hi - v) / rg * (H - 6)).toFixed(1);
-  const pts = c.map((v, i) => px(i) + "," + py(v)).join(" "), w = c[c.length - 1] >= 0 ? "var(--hijau)" : "var(--merah)";
+  const pts = c.map((v, i) => px(i) + "," + py(v)).join(" "), w = c[c.length - 1] >= 0 ? "#26A69A" : "#EF5350", gid = "spg" + (c[c.length - 1] >= 0 ? "h" : "m") + (sparkMini.k = (sparkMini.k || 0) + 1);
   return '<svg class="sp" viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="' + W + '" y1="' + py(0) + '" y2="' + py(0) + '" stroke="var(--garis)" stroke-dasharray="3 3"/>' +
-    '<polygon points="' + px(0) + "," + py(0) + " " + pts + " " + px(c.length - 1) + "," + py(0) + '" fill="' + w + '" opacity=".14"/><polyline points="' + pts + '" fill="none" stroke="' + w + '" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+    '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + w + '" stop-opacity=".38"/><stop offset="1" stop-color="' + w + '" stop-opacity="0"/></linearGradient></defs>' +
+    '<polygon points="' + px(0) + "," + py(0) + " " + pts + " " + px(c.length - 1) + "," + py(0) + '" fill="url(#' + gid + ')"/><polyline points="' + pts + '" fill="none" stroke="' + w + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
+    '<circle cx="' + px(c.length - 1) + '" cy="' + py(c[c.length - 1]) + '" r="2.6" fill="' + w + '"/></svg>';
 }
 // PANEL JURNAL (2026-09-25): ringkasan besar + kartu geser (Semua / AI 4H / tiap pola). Mengikuti saringan yang sudah ada.
 function jnPanel(daftar) {
@@ -2403,7 +2440,7 @@ function jnPanel(daftar) {
   const kartu = (id, nama, arr, aktif) => {
     const tt = arr.filter(t => !t.terbuka), hh = jnHitung(tt), jalan = arr.length - tt.length;
     const seq = tt.slice().sort((a, b) => (a.kT || a.mT) - (b.kT || b.mT)).map(t => t.us || 0);
-    return '<button type="button" class="rw-pola" data-p="' + id + '" aria-pressed="' + aktif + '"><div class="j"><b>' + nama + '</b><span class="' + kl(hh.tot) + '">' + (hh.n ? f2(hh.tot) : "—") + "</span></div>" + sparkMini(seq) +
+    return '<button type="button" class="rw-pola" data-p="' + id + '" aria-pressed="' + aktif + '"><div class="j"><b>' + nama + '</b><span class="' + kl(hh.tot) + '">' + (hh.n ? f2(hh.tot) : "—") + "</span></div>" + sparkMini(seq) + '<div class="bar wr" title="Win rate"><i style="width:' + (hh.n ? Math.round(hh.wr) : 0) + '%"></i></div>' +
       '<div class="d"><span><em>' + hh.n + "</em> tutup</span><span>WR <em>" + (hh.n ? Math.round(hh.wr) : 0) + '%</em></span><span>rata <em class="' + kl(hh.rata) + '">' + f2(hh.rata) + "</em></span>" + (jalan ? "<span>jalan <em>" + jalan + "</em></span>" : "") + "</div></button>";
   };
   const pola = dasar.filter(t => t.sinyal === polaJn()), per = {};
