@@ -602,7 +602,8 @@ body.privasi .rk-jn>div:first-child b{filter:blur(7px)}
 .trm-alok .donat-isi svg text[font-size="9"]{font-size:8px;letter-spacing:.1em}
 .trm-alok .donat-isi svg text[font-size="12"]{font-size:13px;font-weight:700;fill:var(--teks)}
 .trm-alok .donat-leg{flex:1;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;font-size:14px;color:var(--teks)}
-.trm-alok .donat-leg span{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:baseline;gap:6px 8px;white-space:nowrap}
+.trm-alok .donat-leg span{display:flex;align-items:baseline;gap:8px;white-space:nowrap;min-width:0}
+.donat-leg em{font-style:normal;flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .trm-alok .donat-leg b{font:700 15px var(--f-num);color:var(--teks)}
 .trm-alok .donat-leg small{font:11px var(--f-num);color:var(--label);text-align:right}
 .trm-alok .donat-leg i{width:10px;height:10px;border-radius:3px;box-shadow:0 0 8px currentColor}
@@ -2887,7 +2888,7 @@ function donatAlokasi(baris, total) {
   if (sisa > 0) bagian.push({ nm: "lainnya", v: sisa, w: WARNA_DONAT[6] });
   const R = 42, C = 2 * Math.PI * R; let ofs = 0;
   const seg = bagian.map(b => { const l = b.v / total * C; const t = `<circle r="${R}" cx="56" cy="56" fill="none" stroke="${b.w}" stroke-width="14" stroke-dasharray="${l.toFixed(2)} ${(C - l).toFixed(2)}" stroke-dashoffset="${(-ofs).toFixed(2)}" transform="rotate(-90 56 56)"><title>${b.nm} ${(b.v / total * 100).toFixed(1)}%</title></circle>`; ofs += l; return t; }).join("");
-  const leg = bagian.map(b => `<span><i style="background:${b.w}"></i>${b.nm} <b>${(b.v / total * 100).toFixed(1)}%</b><small>${Math.round(b.v).toLocaleString("en-US")}</small></span>`).join("");
+  const leg = bagian.map(b => `<span><i style="background:${b.w}"></i><em>${b.nm}</em><b>${(b.v / total * 100).toFixed(1)}%</b><small>${Math.round(b.v).toLocaleString("en-US")}</small></span>`).join("");
   const tunai = urut.filter(b => /^(USDT|USDC|FDUSD|BUSD|DAI)$/.test(b.aset)).reduce((a, b) => a + b.nilai, 0), pTunai = tunai / total * 100;
   return `<div class="jr-kotak donat"><h3>Alokasi saldo <small>${urut.length} aset</small></h3><div class="donat-isi">` +
     `<svg viewBox="0 0 112 112" width="112" height="112" role="img" aria-label="Alokasi saldo">${seg}<text x="56" y="52" text-anchor="middle" font-size="9" fill="var(--label)">TOTAL</text><text x="56" y="66" text-anchor="middle" font-size="12" font-weight="600" fill="var(--teks)">${Math.round(total).toLocaleString("en-US")}</text></svg>` +
