@@ -598,12 +598,14 @@ body.privasi .rk-jn>div:first-child b{filter:blur(7px)}
 .trm-alok .jr-kotak h3{font:700 13px var(--f-ui);letter-spacing:.12em;color:var(--teks);opacity:1}
 .trm-alok .jr-kotak h3 small{font-size:11.5px;color:var(--label)}
 .trm-alok .donat-isi{flex:1;align-items:center;gap:18px;flex-wrap:nowrap}
-.trm-alok .donat-isi svg{width:clamp(120px,42%,176px);height:auto;flex:none;filter:drop-shadow(0 6px 14px rgba(0,0,0,.35))}
+.trm-alok .donat-isi svg{width:clamp(110px,36%,150px);height:auto;flex:none;filter:drop-shadow(0 6px 14px rgba(0,0,0,.35))}
 .trm-alok .donat-isi svg text[font-size="9"]{font-size:8px;letter-spacing:.1em}
 .trm-alok .donat-isi svg text[font-size="12"]{font-size:13px;font-weight:700;fill:var(--teks)}
-.trm-alok .donat-leg{flex:1;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;font-size:14px;color:var(--teks)}
+.trm-alok .donat-leg{flex:1;min-width:0;grid-template-columns:1fr;gap:7px 0;font-size:14px;color:var(--teks)}
 .trm-alok .donat-leg span{display:flex;align-items:baseline;gap:8px;white-space:nowrap;min-width:0}
-.donat-leg em{font-style:normal;flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.donat-leg em{font-style:normal;flex:none}
+.donat-leg b{flex:none}
+.trm-alok .donat-leg small{margin-left:auto;flex:none}
 .trm-alok .donat-leg b{font:700 15px var(--f-num);color:var(--teks)}
 .trm-alok .donat-leg small{font:11px var(--f-num);color:var(--label);text-align:right}
 .trm-alok .donat-leg i{width:10px;height:10px;border-radius:3px;box-shadow:0 0 8px currentColor}
@@ -614,7 +616,7 @@ body.privasi .rk-jn>div:first-child b{filter:blur(7px)}
 .donat-tunai .ket b{color:var(--teks);font:700 13px var(--f-num)}
 .donat-tunai{margin-top:4px}
 #akRing .donat-tunai{margin-top:8px}
-@media(max-width:760px){.trm-alok .donat-isi{flex-wrap:wrap;justify-content:center}}
+@media(max-width:760px){.trm-alok .donat-isi{flex-wrap:wrap;justify-content:center}.trm-alok .donat-leg{width:100%}}
 #rwRing>.jr-kotak{position:relative;overflow:hidden;padding:22px 16px 16px;border-radius:18px;background:radial-gradient(90% 120% at 50% -20%,rgba(66,165,245,.14),transparent 60%),linear-gradient(160deg,var(--bg1),var(--bg2));box-shadow:0 14px 34px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.04)}
 #rwRing>.jr-kotak::before{content:"";position:absolute;inset:0 0 auto 0;height:2px;background:linear-gradient(90deg,transparent,var(--biru),var(--hijau),transparent);opacity:.8}
 #rwRing>.jr-kotak::after{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:28px 28px;mask-image:radial-gradient(80% 90% at 50% 0%,#000,transparent)}
