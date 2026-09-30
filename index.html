@@ -575,6 +575,58 @@ body.privasi .rk-jn>div:first-child b{filter:blur(7px)}
 .rw-pola[aria-pressed="true"]::after{content:"DIPILIH";position:absolute;top:10px;right:12px;font:600 9px var(--f-ui);letter-spacing:.14em;color:var(--biru);opacity:.9;transform:translateY(-14px)}
 .rw-pola[aria-pressed="true"] .j span{transform:translateY(6px)}
 .rw-pola:hover{border-color:color-mix(in srgb,var(--biru) 45%,var(--garis))}
+/* RIWAYAT BOT besar (user 2026-10-01) */
+.jr-tr.bt-baris.besar{grid-template-columns:minmax(0,1.15fr) minmax(0,1.35fr) auto;gap:12px 16px;padding:12px 14px;border-radius:12px}
+.jr-tr.bt-baris.besar .nm{font:700 17px var(--f-ui);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.jr-tr.bt-baris.besar .sub{font-size:12.5px;white-space:normal;line-height:1.45}
+.jr-tr.bt-baris.besar .sub b{color:var(--teks);font-weight:600}
+.jr-tr.bt-baris.besar .bt-cat{font-size:11.5px;opacity:.85}
+.bt-jalur{font:600 10px var(--f-ui);letter-spacing:.1em;padding:2px 7px;border-radius:999px;border:1px solid var(--garis);color:var(--label)}
+.bt-jalur.u{color:var(--hijau);border-color:rgba(38,166,154,.5);background:var(--hijau-bg)}
+.bt-jalur.r{color:var(--merah);border-color:rgba(239,83,80,.5);background:var(--merah-bg)}
+.bt-jalur.j{color:var(--kuning);border-color:rgba(255,183,77,.5)}
+.jr-tr.bt-baris.besar .lv{display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:4px 10px;line-height:1.3}
+.jr-tr.bt-baris.besar .lv div{display:flex;flex-direction:column;gap:1px;min-width:0}
+.jr-tr.bt-baris.besar .lv i{font:10px var(--f-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--label);font-style:normal}
+.jr-tr.bt-baris.besar .lv b{font:600 13px var(--f-num);color:var(--teks);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jr-tr.bt-baris.besar .ha b{font-size:19px;font-weight:700}
+.jr-tr.bt-baris.besar .ha .rp{font-size:12px}
+.jr-tr.bt-baris.besar .ha .rp-idr{font-size:11px;opacity:.8}
+/* ALOKASI PORTOFOLIO lebih besar & terang + RIWAYAT hero seperti Jurnal (user 2026-10-01) */
+.trm-alok .jr-kotak{position:relative;overflow:hidden;padding:18px 18px 16px;border-radius:18px;background:radial-gradient(90% 120% at 100% -20%,rgba(38,166,154,.14),transparent 60%),linear-gradient(160deg,var(--bg1),var(--bg2));box-shadow:0 14px 34px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.04);display:flex;flex-direction:column;gap:12px}
+.trm-alok .jr-kotak::before{content:"";position:absolute;inset:0 0 auto 0;height:2px;background:linear-gradient(90deg,transparent,var(--hijau),var(--biru),transparent);opacity:.8}
+.trm-alok .jr-kotak h3{font:700 13px var(--f-ui);letter-spacing:.12em;color:var(--teks);opacity:1}
+.trm-alok .jr-kotak h3 small{font-size:11.5px;color:var(--label)}
+.trm-alok .donat-isi{flex:1;align-items:center;gap:18px;flex-wrap:nowrap}
+.trm-alok .donat-isi svg{width:clamp(120px,42%,176px);height:auto;flex:none;filter:drop-shadow(0 6px 14px rgba(0,0,0,.35))}
+.trm-alok .donat-isi svg text[font-size="9"]{font-size:8px;letter-spacing:.1em}
+.trm-alok .donat-isi svg text[font-size="12"]{font-size:13px;font-weight:700;fill:var(--teks)}
+.trm-alok .donat-leg{flex:1;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;font-size:14px;color:var(--teks)}
+.trm-alok .donat-leg span{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:baseline;gap:6px 8px;white-space:nowrap}
+.trm-alok .donat-leg b{font:700 15px var(--f-num);color:var(--teks)}
+.trm-alok .donat-leg small{font:11px var(--f-num);color:var(--label);text-align:right}
+.trm-alok .donat-leg i{width:10px;height:10px;border-radius:3px;box-shadow:0 0 8px currentColor}
+.donat-leg small{font:10.5px var(--f-num);color:var(--label);margin-left:auto}
+.donat-tunai .bar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:color-mix(in srgb,var(--biru) 35%,var(--bg2))}
+.donat-tunai .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--hijau),#5fe0d3);border-radius:3px;box-shadow:0 0 8px rgba(38,166,154,.5)}
+.donat-tunai .ket{display:flex;justify-content:space-between;gap:8px;margin-top:6px;font-size:12px;color:var(--label)}
+.donat-tunai .ket b{color:var(--teks);font:700 13px var(--f-num)}
+.donat-tunai{margin-top:4px}
+#akRing .donat-tunai{margin-top:8px}
+@media(max-width:760px){.trm-alok .donat-isi{flex-wrap:wrap;justify-content:center}}
+#rwRing>.jr-kotak{position:relative;overflow:hidden;padding:22px 16px 16px;border-radius:18px;background:radial-gradient(90% 120% at 50% -20%,rgba(66,165,245,.14),transparent 60%),linear-gradient(160deg,var(--bg1),var(--bg2));box-shadow:0 14px 34px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.04)}
+#rwRing>.jr-kotak::before{content:"";position:absolute;inset:0 0 auto 0;height:2px;background:linear-gradient(90deg,transparent,var(--biru),var(--hijau),transparent);opacity:.8}
+#rwRing>.jr-kotak::after{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:28px 28px;mask-image:radial-gradient(80% 90% at 50% 0%,#000,transparent)}
+#rwRing>.jr-kotak>*{position:relative;z-index:1}
+#rwRing .jr-kotak>h3{font:700 16px var(--f-ui);letter-spacing:.02em}
+#rwRing .jr-angka>div{padding:12px 12px;border-radius:12px;background:color-mix(in srgb,var(--label) 6%,transparent);text-align:center}
+#rwRing .jr-kotak .jr-angka span{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--label)}
+#rwRing .jr-kotak .jr-angka b{font:700 clamp(20px,2.6vw,30px) var(--f-num);letter-spacing:-.02em;line-height:1.15}
+#rwRing .jr-kotak .jr-angka b.naik{background:linear-gradient(180deg,#5fe0d3,var(--hijau));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 14px rgba(38,166,154,.35))}
+#rwRing .jr-kotak .jr-angka b.turun{background:linear-gradient(180deg,#ff8a86,var(--merah));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 14px rgba(239,83,80,.3))}
+#rwRing .jr-kotak .jr-angka b.kecil{font:600 13px var(--f-ui);background:none;color:var(--teks);filter:none;-webkit-text-fill-color:initial}
+body.privasi #rwRing .jr-angka b{filter:blur(7px)}
+@media(max-width:760px){.jr-tr.bt-baris.besar{grid-template-columns:minmax(0,1fr) auto}.jr-tr.bt-baris.besar .lv{grid-column:1/-1;grid-row:2;grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(hover:hover){.strip>div:hover,.rw-pola:hover,#jnRing .jr-kotak:hover,#akRing .jr-kotak:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(0,0,0,.22);border-color:color-mix(in srgb,var(--label) 45%,var(--garis))}}
 .skel{color:transparent!important;position:relative;border-radius:6px;background:var(--bg2);min-width:64px;display:inline-block;overflow:hidden}
 .skel::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 20%,rgba(128,140,160,.18) 50%,transparent 80%);transform:translateX(-100%);animation:kilau 1.3s infinite}
@@ -2828,10 +2880,12 @@ function donatAlokasi(baris, total) {
   if (sisa > 0) bagian.push({ nm: "lainnya", v: sisa, w: WARNA_DONAT[6] });
   const R = 42, C = 2 * Math.PI * R; let ofs = 0;
   const seg = bagian.map(b => { const l = b.v / total * C; const t = `<circle r="${R}" cx="56" cy="56" fill="none" stroke="${b.w}" stroke-width="14" stroke-dasharray="${l.toFixed(2)} ${(C - l).toFixed(2)}" stroke-dashoffset="${(-ofs).toFixed(2)}" transform="rotate(-90 56 56)"><title>${b.nm} ${(b.v / total * 100).toFixed(1)}%</title></circle>`; ofs += l; return t; }).join("");
-  const leg = bagian.map(b => `<span><i style="background:${b.w}"></i>${b.nm} <b>${(b.v / total * 100).toFixed(1)}%</b></span>`).join("");
+  const leg = bagian.map(b => `<span><i style="background:${b.w}"></i>${b.nm} <b>${(b.v / total * 100).toFixed(1)}%</b><small>${Math.round(b.v).toLocaleString("en-US")}</small></span>`).join("");
+  const tunai = urut.filter(b => /^(USDT|USDC|FDUSD|BUSD|DAI)$/.test(b.aset)).reduce((a, b) => a + b.nilai, 0), pTunai = tunai / total * 100;
   return `<div class="jr-kotak donat"><h3>Alokasi saldo <small>${urut.length} aset</small></h3><div class="donat-isi">` +
     `<svg viewBox="0 0 112 112" width="112" height="112" role="img" aria-label="Alokasi saldo">${seg}<text x="56" y="52" text-anchor="middle" font-size="9" fill="var(--label)">TOTAL</text><text x="56" y="66" text-anchor="middle" font-size="12" font-weight="600" fill="var(--teks)">${Math.round(total).toLocaleString("en-US")}</text></svg>` +
-    `<div class="donat-leg">${leg}</div></div></div>`;
+    `<div class="donat-leg">${leg}</div></div>` +
+    `<div class="donat-tunai"><div class="bar"><i style="width:${pTunai.toFixed(1)}%"></i></div><div class="ket"><span>Tunai <b>${pTunai.toFixed(1)}%</b> · ${Math.round(tunai).toLocaleString("en-US")} USDT</span><span>Koin <b>${(100 - pTunai).toFixed(1)}%</b> · ${Math.round(total - tunai).toLocaleString("en-US")} USDT</span></div></div></div>`;
 }
 function trmAlok() {
   const el = $("trmAlok"), sn = baca("akSnap", null);
@@ -3221,9 +3275,20 @@ function gambarBot(s) {
   }
   const rwBuka = !!baca("btRiwBuka", true);
   if (R.length) baris.push(`<h4 class="bt-sub bt-sub-toggle">Riwayat bot <small>${R.length} trade</small><button class="btn kecil" type="button" id="btRiwToggle" aria-expanded="${rwBuka}">${rwBuka ? "Sembunyikan" : "Tampilkan"}</button></h4>`);
-  for (const r of (rwBuka ? R.slice(0, 20) : [])) { const rr = rBot(r);
-    baris.push(`<div class="jr-tr bt-baris${klsSt(false, r.hasil)}"><div style="min-width:0"><div class="nm">${r.sym.replace(/USDT$/, "")} <span class="jn-label">${r.kode}</span></div><div class="sub">${r.pola} · tutup ${jamLokal(r.keluarT)} · ${r.catatan || ""}</div></div>` +
-      `<div class="lv">Isi ${fHarga(r.isi)} · selip ${r.selip}%<br>${Math.round(r.beliUsdt)} → ${Math.round(r.jualUsdt)} USDT</div><div class="ha"><b class="${kl(r.hasil)}">${f2(r.hasil)} USDT</b><span class="rp">${f2(r.hasilPct)}%${rr != null ? " · " + f2(rr) + " R" : ""}</span></div></div>`); }
+  // RIWAYAT BOT lebih besar & informatif (user 2026-10-01): lama dipegang, jalur keluar, isi -> jual, R, rupiah
+  const jalurKeluar = r => { const c = String(r.catatan || ""), untung = r.hasil >= 0 ? "u" : "r";
+    if (/DARURAT|dijual market|OCO gagal/i.test(c)) return ["DARURAT", "r"]; if (/ditukar/i.test(c)) return ["TUKAR", "j"];
+    if (/TRAIL:SL awal/i.test(c)) return ["SL", "r"]; if (/TRAIL:stop trailing/i.test(c)) return ["TRAILING", untung];
+    const t1 = (c.match(/TP1:(TP|SL)/) || [])[1], t2 = (c.match(/TP2:(TP|SL)/) || [])[1];
+    if (t1 === "SL") return ["SL", "r"]; if (t1 === "TP" && t2 === "TP") return ["TP1 + TP2", "u"];
+    if (t1 === "TP") return [r.untungTp1 != null && r.hasil > r.untungTp1 * 1.05 ? "TP1 + TRAILING" : "TP1 + BE", "u"];
+    if (!t1 && t2 === "TP") return ["TP2", "u"]; if (!t1 && t2 === "SL") return ["SL", "r"]; if (/TP1 lalu/i.test(c)) return ["TP1 + BE", "u"];
+    return [c ? c.slice(0, 16).toUpperCase() : "TUTUP", untung]; };
+  const lamaTeks = ms => !(ms > 0) ? "—" : ms < 3600e3 ? Math.round(ms / 60e3) + " mnt" : ms < 48 * 3600e3 ? (ms / 3600e3).toFixed(ms < 10 * 3600e3 ? 1 : 0) + " jam" : (ms / 864e5).toFixed(1) + " hari";
+  for (const r of (rwBuka ? R.slice(0, 20) : [])) { const rr = rBot(r), jual = r.jualUsdt > 0 && r.beliUsdt > 0 && r.isi > 0 ? r.isi * r.jualUsdt / r.beliUsdt : null, [jk, jkls] = jalurKeluar(r), lama = r.masukT && r.keluarT ? r.keluarT - r.masukT : null;
+    baris.push(`<div class="jr-tr bt-baris besar${klsSt(false, r.hasil)}"><div style="min-width:0"><div class="nm">${r.sym.replace(/USDT$/, "")} <span class="jn-label">${r.kode}</span> <span class="bt-jalur ${jkls}">${jk}</span></div><div class="sub">${r.pola} · masuk ${r.masukT ? jamLokal(r.masukT) : "—"} → tutup ${jamLokal(r.keluarT)} · dipegang <b>${lamaTeks(lama)}</b></div><div class="sub bt-cat">${r.catatan || ""}</div></div>` +
+      `<div class="lv"><div><i>Isi</i><b>${fHarga(r.isi)}</b></div><div><i>Jual</i><b>${jual ? fHarga(jual) : "—"}</b></div><div><i>SL</i><b>${r.sl ? fHarga(r.sl) : "—"}</b></div><div><i>Modal</i><b>${Math.round(r.beliUsdt)} → ${Math.round(r.jualUsdt)}</b></div>${r.untungTp1 != null ? `<div><i>TP1</i><b class="naik">${f2(r.untungTp1)}</b></div>` : ""}<div><i>Selip</i><b>${r.selip}%</b></div></div>` +
+      `<div class="ha"><b class="${kl(r.hasil)}">${f2(r.hasil)} USDT</b><span class="rp">${f2(r.hasilPct)}%${rr != null ? " · " + f2(rr) + " R" : ""}</span><span class="rp rp-idr">${KURS.idr ? "≈ Rp " + Math.round(r.hasil * KURS.idr).toLocaleString("id-ID") : ""}</span></div></div>`); }
   // KANTONG PER JENIS (2026-09-23): isi tiap kantong = bagian modal + hasil jenis itu sendiri
   const KT = s.kantong || {};
   if (KT.aktif) {
