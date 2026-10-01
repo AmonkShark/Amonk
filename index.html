@@ -575,15 +575,7 @@ body.privasi .rk-jn>div:first-child b{filter:blur(7px)}
 .rw-pola[aria-pressed="true"]::after{content:"DIPILIH";position:absolute;top:10px;right:12px;font:600 9px var(--f-ui);letter-spacing:.14em;color:var(--biru);opacity:.9;transform:translateY(-14px)}
 .rw-pola[aria-pressed="true"] .j span{transform:translateY(6px)}
 .rw-pola:hover{border-color:color-mix(in srgb,var(--biru) 45%,var(--garis))}
-/* TAB AGEN (2026-10-01) */
-.ag-tabel{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))!important}
-.ag-kartu::before{background:var(--agw)!important;opacity:1!important;box-shadow:0 0 12px var(--agw)!important}
-.ag-ek{font:700 24px var(--f-num);letter-spacing:-.02em}.ag-ek small{font:11px var(--f-ui);color:var(--label);letter-spacing:0}
-.ag-ket{font-size:11.5px;color:var(--label)}.ag-ket b{font-family:var(--f-num)}
-.ag-kurva svg{display:block;margin-top:6px}.ag-leg{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--label)}
-.ag-leg span{display:flex;align-items:center;gap:6px}.ag-leg i{width:12px;height:3px;border-radius:2px}
-.ag-saring{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}.ag-saring .btn.aktif{border-color:var(--biru);color:var(--biru)}
-#halAgen .jr-kotak{margin-bottom:12px}#halAgen .bt-log{font-size:13.5px;padding:7px 0}#halAgen .bt-log small{color:var(--label)}
+
 /* RIWAYAT BOT besar (user 2026-10-01) */
 .jr-tr.bt-baris.besar{grid-template-columns:minmax(0,1.15fr) minmax(0,1.35fr) auto;gap:12px 16px;padding:12px 14px;border-radius:12px}
 .jr-tr.bt-baris.besar .nm{font:700 17px var(--f-ui);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -752,7 +744,6 @@ td.kosong::before{display:none}
     <button role="tab" id="tbRiwayat" data-hal="Riwayat" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Riwayat</span></button>
     <button role="tab" id="tbJurnal" data-hal="Jurnal" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5z"/><path d="M8 10h8M8 14h8"/></svg><span>Jurnal</span></button>
     <button role="tab" id="tbAkun" data-hal="Akun" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M15 15h3"/></svg><span>Akun</span></button>
-    <button role="tab" id="tbAgen" data-hal="Agen" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 16h6"/></svg><span>Agen</span></button>
     <button role="tab" id="tbInfo" data-hal="Info" hidden aria-selected="false" style="display:none"><span>Info</span></button>
   </nav>
 
@@ -954,10 +945,6 @@ td.kosong::before{display:none}
     <details class="jn-lipat" id="jnLipat"><summary><span id="jnLipatJudul">Daftar per trade</span></summary><div class="jr-list" id="jnList"></div></details>
   </div>
 
-  <div class="hal" id="halAgen" hidden>
-    <div class="jn-kepala"><h3>Agen virtual · paper trading</h3><button class="btn" type="button" id="agMuat">Segarkan</button></div>
-    <div id="agIsi"><div class="kosong memuat">Memuat agen…</div></div>
-  </div>
   <div class="hal info" id="halInfo" hidden>
     <section><h3>Yang ada di aplikasi ini</h3><ul>
       <li><b>Terminal</b> — 109 koin watchlist hijau, harga hidup, pola 4H terakhir tiap koin dengan Entry/SL/TP1/TP2 dan PnL simulasi 1000 USDT. Dihitung sendiri di HP ini, tidak butuh Claude.</li>
@@ -2455,61 +2442,13 @@ function pindahHal(h) {
   const beda = halAktif !== h;
   halAktif = h; simpan("hal", h);
   if (beda) { window.scrollTo(0, 0); if (document.scrollingElement) document.scrollingElement.scrollTop = 0; setTimeout(() => window.scrollTo(0, 0), 0); }   // permintaan user 2026-09-26: tab baru selalu mulai dari atas
-  for (const x of ["Terminal", "Riwayat", "Jurnal", "Akun", "Agen", "Info"]) { $("hal" + x).hidden = x !== h; $("tb" + x).setAttribute("aria-selected", x === h ? "true" : "false"); }
+  for (const x of ["Terminal", "Riwayat", "Jurnal", "Akun", "Info"]) { $("hal" + x).hidden = x !== h; $("tb" + x).setAttribute("aria-selected", x === h ? "true" : "false"); }
   if (h === "Jurnal") { if (!JR) muatJurnal(); else gambarJurnal(); }
   if (h === "Akun" && window.muatAkun) window.muatAkun();
   if (h === "Akun" && window.muatBotBilaAda) window.muatBotBilaAda();
   if (h === "Riwayat" && window.gambarRiwayat) window.gambarRiwayat();
   if (h === "Terminal") { gambar(); if (window.paskanOtomatis) window.paskanOtomatis(); }
-  if (h === "Agen") muatAgen(); else clearTimeout(agTimer);
 }
-// ---------- TAB AGEN VIRTUAL (2026-10-01, user: "agen virtual yang melakukan trading ... bisa di pantau setiap saat") ----------
-// Data dari Worker amonk-agen (paper, TIDAK memasang order). Otak = Claude (1H & 4H tiap 4 jam, aturan scalp), tangan = Worker tiap 5 menit.
-const AGEN_URL = "https://amonk-agen.amonkpubg.workers.dev", AGEN_URUT = ["scalp", "1h", "4h"], AGEN_WARNA = { scalp: "#FFB74D", "1h": "#42A5F5", "4h": "#26A69A" };
-let AG = null, agTimer = null, agPilih = baca("agPilih", "semua");
-async function muatAgen() {
-  try { const r = await fetch(AGEN_URL + "/status?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) throw new Error("HTTP " + r.status); AG = await r.json(); gambarAgen(); }
-  catch (e) { $("agIsi").innerHTML = `<div class="kosong">Mesin agen belum bisa dibaca (${e.message}). Kalau Worker amonk-agen baru dipasang, tunggu putaran pertama (≤ 5 menit).</div>`; }
-  clearTimeout(agTimer); if (halAktif === "Agen") agTimer = setTimeout(muatAgen, 60e3);
-}
-function gambarAgen() {
-  const f2 = v => v == null || !isFinite(v) ? "—" : (v >= 0 ? "+" : "") + (+v).toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun", sel = AGEN_URUT.filter(id => AG.agen[id]);
-  const umur = t => { if (!t) return "belum pernah"; const m = Math.round((Date.now() - t) / 60e3); return m < 60 ? m + " mnt lalu" : m < 2880 ? Math.round(m / 60) + " jam lalu" : Math.round(m / 1440) + " hari lalu"; };
-  if (!sel.length) { $("agIsi").innerHTML = `<div class="kosong">Mesin agen hidup tapi belum menjalankan putaran pertama.</div>`; return; }
-  const kartu = sel.map(id => { const A = AG.agen[id], pct = (A.ekuitas / A.awal - 1) * 100, btc = A.btcAwal && AG.hargaBtc ? (AG.hargaBtc / A.btcAwal - 1) * 100 : null;
-    return `<button type="button" class="rw-pola ag-kartu" data-ag="${id}" aria-pressed="${agPilih === id}" style="--agw:${AGEN_WARNA[id]}"><div class="j"><b>${A.nama}</b><span class="${kl(pct)}">${f2(pct)}%</span></div>` +
-      `<div class="ag-ek">${A.ekuitas.toLocaleString("en-US", { maximumFractionDigits: 2 })} <small>USDT virtual</small></div>` +
-      `<div class="d"><span>Hari ini<em class="${kl(A.hasil24j)}">${f2(A.hasil24j)}</em></span><span>Tutup<em>${A.tutup}</em></span><span>WR<em>${A.wr == null ? "—" : Math.round(A.wr) + "%"}</em></span><span>Posisi<em>${A.posisi.length}</em></span></div>` +
-      `<div class="ag-ket">vs pegang BTC: <b class="${kl(btc == null ? null : pct - btc)}">${btc == null ? "—" : f2(pct - btc) + " pp"}</b> · analisa: ${id === "scalp" ? "aturan v" + (AG.aturanScalp || {}).versi + ", mesin tiap 5 mnt" : umur((A.terakhirAnalisa || {}).t)}</div></button>`; }).join("");
-  const W = 900, H = 220, semua = sel.flatMap(id => AG.agen[id].kurva.map(k => k[0])), t0 = Math.min(...semua), t1 = Math.max(...semua, t0 + 3600e3);
-  const nilai = sel.flatMap(id => AG.agen[id].kurva.flatMap(k => [k[1], k[2]].filter(v => v != null))), lo = Math.min(990, ...nilai), hi = Math.max(1010, ...nilai);
-  const px = t => (8 + (t - t0) / (t1 - t0) * (W - 16)).toFixed(1), py = v => (8 + (hi - v) / (hi - lo) * (H - 24)).toFixed(1);
-  const garis = sel.map(id => { const K = AG.agen[id].kurva; return K.length < 2 ? "" : `<polyline points="${K.map(k => px(k[0]) + "," + py(k[1])).join(" ")}" fill="none" stroke="${AGEN_WARNA[id]}" stroke-width="2.2" stroke-linejoin="round"/>`; }).join("");
-  const Kb = (AG.agen["4h"] || AG.agen[sel[0]]).kurva.filter(k => k[2] != null);
-  const btcG = Kb.length > 1 ? `<polyline points="${Kb.map(k => px(k[0]) + "," + py(k[2])).join(" ")}" fill="none" stroke="var(--label)" stroke-width="1.4" stroke-dasharray="4 4"/>` : "";
-  const kurva = `<div class="jr-kotak ag-kurva"><h3>Kurva saldo virtual <small>garis putus = pegang BTC 1000 USDT sejak mulai</small></h3><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:${H}px"><line x1="0" x2="${W}" y1="${py(1000)}" y2="${py(1000)}" stroke="var(--garis)" stroke-dasharray="3 3"/>${btcG}${garis}</svg>` +
-    `<div class="ag-leg">${sel.map(id => `<span><i style="background:${AGEN_WARNA[id]}"></i>${AG.agen[id].nama}</span>`).join("")}<span><i style="background:var(--label)"></i>BTC</span></div></div>`;
-  const pilih = agPilih === "semua" ? sel : sel.filter(id => id === agPilih);
-  const pos = pilih.flatMap(id => AG.agen[id].posisi.map(p => ({ ...p, ag: id })));
-  const ord = pilih.flatMap(id => AG.agen[id].order.map(o => ({ ...o, ag: id })));
-  const jur = pilih.flatMap(id => AG.agen[id].jurnal.map(j => ({ ...j, ag: id }))).sort((a, b) => (b.keluarT || 0) - (a.keluarT || 0)).slice(0, 60);
-  const lbl = id => `<span class="jn-label" style="color:${AGEN_WARNA[id]};border-color:${AGEN_WARNA[id]}">${AG.agen[id].nama}</span>`;
-  const tPos = pos.length ? pos.map(p => `<div class="jr-tr${klsSt(true, null)}"><div style="min-width:0"><div class="nm">${p.sym.replace(/USDT$/, "")} ${lbl(p.ag)}</div><div class="sub">masuk ${jamLokal(p.masukT)} · ${Math.round(p.nilai)} USDT · ${p.alasan || ""}</div></div>` +
-      `<div class="lv">Isi ${fHarga(p.isi)} · kini ${p.kini ? fHarga(p.kini) : "—"}<br>SL ${fHarga(p.sl)}${p.tp ? " · TP " + fHarga(p.tp) : ""}${p.trail ? " · trailing " + Math.round(p.trail * 100) + "%" : ""}${p.maksLilin ? " · batas " + Math.round(p.maksLilin * 5 / 60) + " jam" : ""}</div>` +
-      `<div class="ha"><b class="${kl(p.pnl)}">${f2(p.pnl)} USDT</b><span class="rp">risiko ${p.risiko} USDT</span></div></div>`).join("") : `<div class="kosong">Tidak ada posisi terbuka.</div>`;
-  const tOrd = ord.length ? `<h4 class="bt-sub">Order menunggu</h4>` + ord.map(o => `<div class="bt-log"><span class="bt-tag biru">${o.tipe}</span><span class="bt-jam">${lbl(o.ag)}</span><span><b>${o.sym.replace(/USDT$/, "")}</b> · ${o.harga ? "limit " + fHarga(o.harga) : "pasar"} · SL ${fHarga(o.sl)}${o.tp ? " · TP " + fHarga(o.tp) : ""} · batal ${jamLokal(o.kadaluarsaT)} · ${o.alasan || ""}</span></div>`).join("") : "";
-  const tJur = jur.length ? jur.map(j => `<div class="bt-log"><span class="bt-tag ${j.isi == null ? "abu" : j.hasil >= 0 ? "hijau" : "merah"}">${j.isi == null ? "info" : j.sebab}</span><span class="bt-jam">${j.keluarT ? jamLokal(j.keluarT) : ""}</span><span>${lbl(j.ag)} <b>${(j.sym || "").replace(/USDT$/, "")}</b>${j.isi != null ? ` · ${fHarga(j.isi)} → ${fHarga(j.keluar)} · <b class="${kl(j.hasil)}">${f2(j.hasil)} USDT</b>${j.R != null ? " (" + f2(j.R) + "R)" : ""}` : " · " + j.sebab} ${j.alasan ? "<small>— " + j.alasan + "</small>" : ""}</span></div>`).join("") : `<div class="kosong">Belum ada trade.</div>`;
-  const a = AG.aturanScalp || {}, catatan = sel.filter(id => id !== "scalp").map(id => `<div class="bt-log"><span class="bt-tag">${AG.agen[id].nama}</span><span class="bt-jam">${AG.agen[id].terakhirAnalisa ? jamLokal(AG.agen[id].terakhirAnalisa.t) : "—"}</span><span>${(AG.agen[id].terakhirAnalisa || {}).catatan || "belum ada analisa"}</span></div>`).join("");
-  const aturan = `<div class="jr-kotak"><h3>Aturan & catatan Claude <small>mesin ${AG.versi} · putaran ${AG.putaranT ? umur(AG.putaranT) : "—"}</small></h3>` +
-    `<div class="sub">Scalping v${a.versi}: rezim 1H di atas EMA${a.emaRezim} yang naik · pemicu RSI${a.rsiP} 5m naik melewati ${a.rsiBawah} + lilin hijau · SL ${(a.slMinPct * 100).toFixed(1)}–${(a.slMaksPct * 100).toFixed(1)}% · TP ${a.tpR}R · batas ${Math.round(a.maksLilin * 5 / 60)} jam · koin ${(a.koin || []).join(" ")}</div>` +
-    (AG.aturanLog || []).slice(0, 5).map(l => `<div class="bt-log"><span class="bt-tag">aturan v${l.versi}</span><span class="bt-jam">${jamLokal(l.t)}</span><span>${l.alasan}</span></div>`).join("") + catatan +
-    `<p class="ak-pesan">Semua agen PAPER: saldo virtual, tidak ada order ke Binance. Biaya 0.1%/sisi dihitung. Agen 1H & 4H dianalisa Claude tiap 4 jam saat laptop menyala; mesin tetap mengelola SL/TP 24 jam.</p></div>`;
-  $("agIsi").innerHTML = `<div class="rw-tabel ag-tabel">${kartu}</div>${kurva}<div class="ag-saring"><button type="button" class="btn kecil${agPilih === "semua" ? " aktif" : ""}" data-ags="semua">Semua agen</button>${sel.map(id => `<button type="button" class="btn kecil${agPilih === id ? " aktif" : ""}" data-ags="${id}">${AG.agen[id].nama}</button>`).join("")}</div>` +
-    `<div class="jr-kotak"><h3>Posisi terbuka <small>${pos.length}</small></h3><div class="jr-list">${tPos}</div>${tOrd}</div><div class="jr-kotak"><h3>Jurnal agen <small>${jur.length} terakhir</small></h3>${tJur}</div>${aturan}`;
-  $("agIsi").querySelectorAll("[data-ag]").forEach(b => b.addEventListener("click", () => { agPilih = agPilih === b.dataset.ag ? "semua" : b.dataset.ag; simpan("agPilih", agPilih); gambarAgen(); }));
-  $("agIsi").querySelectorAll("[data-ags]").forEach(b => b.addEventListener("click", () => { agPilih = b.dataset.ags; simpan("agPilih", agPilih); gambarAgen(); }));
-}
-document.addEventListener("click", e => { if (e.target && e.target.id === "agMuat") muatAgen(); });
 
 document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click", () => pindahHal(b.dataset.hal)));
 async function muatJurnal() {
