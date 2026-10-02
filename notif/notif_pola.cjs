@@ -203,7 +203,7 @@ function pesanSetupEw(k, S, d, vol, ukuran) {
 // lilin 1D TUTUP terakhir, dan hanya dalam 3 jam sesudah lilin itu tutup (run 00:07 + cadangan 00:37, toleransi telat GitHub) (supaya tidak ada kartu
 // basi berjam-jam). Dedupe di terkirim.json dengan kunci berawalan "1D|", tahap langsung "tutup"
 // (update exit 1D TIDAK dikirim). Tidak masuk maju.json: catatan maju hanya untuk 4H.
-const TF1D_AKTIF = process.env.TF1D !== "false", JENDELA_1D_JAM = +(process.env.JENDELA_1D_JAM || 3);
+const TF1D_AKTIF = process.env.TF1D !== "false", JENDELA_1D_JAM = +(process.env.JENDELA_1D_JAM || 20);   // 2026-10-03: 3 -> 20 jam. Run 00:07/00:37 UTC sering telat/terlewat di GitHub (HEI 26-09, BB 25-09, XRP & PLUME 22/23-09 tidak terkirim); run 4-jaman berikutnya kini menyusulkan kartu 1D. Tanpa ganda: kunci "1D|" di terkirim.json.
 async function cek1D(k, status, M, sekarang) {
   const j = await getJ(`/api/v3/klines?symbol=${k}USDT&interval=1d&limit=1000`);
   if (!Array.isArray(j) || j.length < 120) return 0;
