@@ -3442,9 +3442,11 @@ $("btModalMaks").addEventListener("click", async () => {
   if (!btCfg().sandi) { btPesan("Isi sandi bot dulu (⚙ Pengaturan bot).", true); return; }
   try {
     btPesan("Membaca saldo Binance…"); const bebas = await saldoBebasBinance(); await muatBot();
-    const pakai = BT_S && BT_S.terpakai > 0 ? +BT_S.terpakai : 0, v = bawah2(bebas + pakai);
+    // 10-03 perbaikan: USDT yang terkunci di order limit Elliott bot ikut dihitung (tadinya terlewat -> modal terkunci kurang 884)
+    const antri = ((BT_S && BT_S.ew && BT_S.ew.order) || []).reduce((a, o) => a + (+o.nilai || 0), 0);
+    const pakai = BT_S && BT_S.terpakai > 0 ? +BT_S.terpakai : 0, v = bawah2(bebas + pakai + antri);
     if (!(v > 0)) throw new Error("saldo USDT terbaca 0");
-    if (!confirm("Kunci modal bot di " + Math.round(v).toLocaleString("en-US") + " USDT?\n(" + Math.round(bebas) + " USDT bebas + " + Math.round(pakai) + " USDT yang sedang dipakai bot)\n\nSesudah ini modal bot TETAP di angka itu dan hanya berubah oleh hasil trade bot. USDT yang Anda tambahkan nanti TIDAK dipakai bot sampai tombol ini ditekan lagi. Hitungan laba bot mulai lagi dari nol (riwayat trade tetap ada).")) { btPesan(""); return; }
+    if (!confirm("Kunci modal bot di " + Math.round(v).toLocaleString("en-US") + " USDT?\n(" + Math.round(bebas) + " USDT bebas + " + Math.round(pakai) + " USDT di posisi bot + " + Math.round(antri) + " USDT di order limit Elliott)\n\nSesudah ini modal bot TETAP di angka itu dan hanya berubah oleh hasil trade bot. USDT yang Anda tambahkan nanti TIDAK dipakai bot sampai tombol ini ditekan lagi. Hitungan laba bot mulai lagi dari nol (riwayat trade tetap ada).")) { btPesan(""); return; }
     btPesan("Menyimpan…");
     await btPanggil("/atur", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modalMaks: v, modalOtomatis: false }) });
     await muatBot(); btPesan("✔ Modal bot dikunci di " + Math.round(v).toLocaleString("en-US") + " USDT. Tambahan saldo sesudah ini tidak dipakai bot sampai tombol MAKS ditekan lagi.");
