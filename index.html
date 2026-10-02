@@ -927,13 +927,13 @@ td.kosong::before{display:none}
       <label class="cek" style="flex-direction:row;align-items:center;gap:8px"><input id="btBrAktif" type="checkbox"> Circuit breaker aktif (bawaan mati: bot jalan terus)</label>
       <div class="set-judul">🎯 Koin &amp; pola yang diambil bot</div><label for="btKoin" style="grid-column:span 2">Koin yang diambil bot<input id="btKoin" type="text" autocapitalize="characters" placeholder="kosong = semua koin ber-webhook · contoh: XRP, ETH, SOL"></label>
       <div class="bt-pola" style="grid-column:1/-1"><span>Pola yang diambil bot:</span>
-        <label><input type="checkbox" value="FW"> 1 Falling Wedge</label><label><input type="checkbox" value="ST"> 2 Symmetrical Triangle</label>
-        <label style="display:none"><input type="checkbox" value="PEN"> 3 Bullish Pennant</label><label style="display:none"><input type="checkbox" value="IHS"> 4 Inverse H&amp;S</label>
-        <label><input type="checkbox" value="AT"> 5 Ascending Triangle</label><label><input type="checkbox" value="TB"> 6 Triple Bottom</label>
-        <label style="display:none"><input type="checkbox" value="CH"> 7 Cup &amp; Handle</label>
-        <label title="Limit beli di kedalaman 0.90 gelombang 3 (dihitung GitHub tiap jam). Sesudah terisi sama dengan pola: 50% TP1, SL ke entry, 50% TP2. Tanpa batas jumlah sendiri (ikut maks entry); limit menunggu memakai slot & modal s/d ~10 hari."><input type="checkbox" value="EW"> 10 Elliott Wave (limit)</label></div>
+        <label title="Prioritas 1. Tanpa batas jumlah posisi, ukuran 2× (risiko 1%), trailing murni 25%. Bila dana kurang, order Elliott yang antri dibatalkan untuk TB."><input type="checkbox" value="TB"> 1 Triple Bottom</label>
+        <label title="Prioritas 2. Limit beli di kedalaman 0.90 gelombang 3 (dihitung GitHub tiap jam). Maks 5 (posisi + order). Limit batal bila puncak 5 terbentuk atau 60 lilin tak tersentuh."><input type="checkbox" value="EW"> 2 Elliott Wave (limit)</label>
+        <label title="Prioritas 3. Maks 3 posisi."><input type="checkbox" value="FW"> 3 Falling Wedge</label><label title="Prioritas 4. Maks 3 posisi."><input type="checkbox" value="ST"> 4 Symmetrical Triangle</label>
+        <label title="Prioritas 5. Maks 2 posisi."><input type="checkbox" value="AT"> 5 Ascending Triangle</label>
+        <label style="display:none"><input type="checkbox" value="PEN"> Bullish Pennant</label><label style="display:none"><input type="checkbox" value="IHS"> Inverse H&amp;S</label><label style="display:none"><input type="checkbox" value="CH"> Cup &amp; Handle</label></div>
       <div class="set-judul">🧩 Pembagian modal</div><div class="bt-pola" style="grid-column:1/-1"><span>Cara membagi modal:</span>
-        <label title="Modal bot dibagi RATA ke tiap jenis yang dicentang (pola, Elliott). Tanpa batas slot per jenis (2026-09-27): sinyal diambil selama modal masih ada, urutan menurut peringkat pola. Ukuran entry = modal bot ÷ 10, lalu dipangkas Batas rugi per trade. Order Elliott menunggu maks 5. Hasil tiap jenis tetap dicatat per kantong."><input type="checkbox" id="btKantong"> Ukuran per jenis sinyal — tanpa batas slot (ukuran = modal ÷ 10, dipangkas batas rugi)</label></div>
+        <label title="Modal bot dibagi RATA ke tiap jenis yang dicentang (pola, Elliott). Batas posisi per pola (2026-10-03): Triple Bottom tanpa batas · Elliott 5 · Falling Wedge 3 · Symmetrical Triangle 3 · Ascending Triangle 2. Urutan ambil = angka di depan nama pola. Ukuran entry = modal bot ÷ 10 (Triple Bottom ÷ 5), lalu dipangkas Batas rugi per trade (Triple Bottom 2×). Hasil tiap jenis tetap dicatat per kantong."><input type="checkbox" id="btKantong"> Ukuran per jenis sinyal — batas posisi: TB tanpa batas · EW 5 · FW 3 · ST 3 · AT 2 (ukuran = modal ÷ 10, TB 2×, dipangkas batas rugi)</label></div>
       <div class="tb"><button class="btn" type="submit" id="btSimpan">Simpan ke bot</button></div>
     </form>
     <p class="ak-pesan" id="btPesan">Pengaturan ini disimpan DI BOT, jadi tetap berlaku walau aplikasi tertutup. Modal bot = modal awal + hasil semua trade bot yang sudah tutup (untung menambah, rugi mengurangi). Ukuran tiap posisi = modal bot ÷ maks entry, lalu dipangkas kalau rugi bila kena SL melewati batas rugi bot. SL SELALU dari sinyal; batas rugi hanya mengubah ukuran. Total posisi terbuka tidak pernah melewati modal bot. Mengganti angka modal awal = mulai hitungan baru.</p>
@@ -2817,7 +2817,7 @@ window.muatAkun = async function (paksa) {
 };
 // POLA TERAKHIR per koin yang kamu pegang (2026-09-22, permintaan user). Datanya sama dengan
 // kolom Terminal (pola valid terakhir <= 120 lilin 4H), peringkat = label chart.
-const PERINGKAT_APP = k => ({ FW: 1, ST: 2, PEN: 3, IHS: 4, AT: 5, TB: 6, CH: 7, RC: 8, DB: 9 }[k] || 10);
+const PERINGKAT_APP = k => ({ TB: 1, EW: 2, FW: 3, ST: 4, AT: 5, PEN: 6, IHS: 7, CH: 8, RC: 9, DB: 10 }[k] || 11);   // 2026-10-03: urutan prioritas bot (sama dengan label Pine & worker PERINGKAT5)
 function polaAkun(aset) {
   if (STABIL.has(aset)) return "";
   if (!data[aset]) return `<div class="ak-pola">tidak ada di watchlist — pola tidak dipantau</div>`;
