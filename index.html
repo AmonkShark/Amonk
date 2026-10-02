@@ -1163,6 +1163,8 @@ function elliott(d, A, mx) {
             if (lahir !== null && !terisi) { level = null; lahir = null; tutupCur(i); }
             batal = true; no = -1;
           }
+          // 2026-10-03 (user): puncak 5 SAH (P5 > P3) selagi limit belum terisi -> limit DIBATALKAN (gelombang sudah selesai)
+          if (no === 5 && lahir !== null && !terisi) { level = null; lahir = null; tutupCur(i); }
           if (no === 3) { high3 = eks; b3 = eksB; titik3 = true; }
           if (no === 1) high1 = eks;
           naik = false; eks = lo; eksB = i;
