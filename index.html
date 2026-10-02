@@ -3436,13 +3436,18 @@ async function saldoBebasBinance() {
   return bawah2(t.usdtBebas);
 }
 $("btModalMaks").addEventListener("click", async () => {
+  // 2026-10-03 (user: "saldo bot hanya dihitung ketika aku klik saldo max, biar hanya itu saja yang dipakai"):
+  // tombol MAKS = KUNCI modal bot di saldo USDT akun SAAT INI (bebas + yang sedang dipakai bot). Tidak lagi mengikuti saldo
+  // terus-menerus; USDT yang ditambahkan sesudahnya (mis. untuk trading manual) tidak dipakai bot sampai tombol ditekan lagi.
   if (!btCfg().sandi) { btPesan("Isi sandi bot dulu (⚙ Pengaturan bot).", true); return; }
   try {
-    btPesan("Membaca saldo Binance…"); const v = await saldoBebasBinance();
-    if (!confirm("Pakai SELURUH saldo USDT akun (± " + Math.round(v) + " USDT bebas + yang sedang dipakai bot) sebagai modal bot?\n\nModal akan OTOMATIS mengikuti order yang berjalan dan hasil trade yang selesai (diperbarui ± tiap 5 menit). Mengetik angka lain di kolom Modal mematikan mode otomatis. Perhatian: USDT yang Anda deposit untuk trading manual juga ikut dipakai bot.")) { btPesan(""); return; }
+    btPesan("Membaca saldo Binance…"); const bebas = await saldoBebasBinance(); await muatBot();
+    const pakai = BT_S && BT_S.terpakai > 0 ? +BT_S.terpakai : 0, v = bawah2(bebas + pakai);
+    if (!(v > 0)) throw new Error("saldo USDT terbaca 0");
+    if (!confirm("Kunci modal bot di " + Math.round(v).toLocaleString("en-US") + " USDT?\n(" + Math.round(bebas) + " USDT bebas + " + Math.round(pakai) + " USDT yang sedang dipakai bot)\n\nSesudah ini modal bot TETAP di angka itu dan hanya berubah oleh hasil trade bot. USDT yang Anda tambahkan nanti TIDAK dipakai bot sampai tombol ini ditekan lagi. Hitungan laba bot mulai lagi dari nol (riwayat trade tetap ada).")) { btPesan(""); return; }
     btPesan("Menyimpan…");
-    await btPanggil("/atur", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modalOtomatis: true }) });
-    await muatBot(); btPesan("✔ Modal otomatis aktif: bot memakai seluruh saldo USDT akun dan ikut berubah saat order berjalan/selesai.");
+    await btPanggil("/atur", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modalMaks: v, modalOtomatis: false }) });
+    await muatBot(); btPesan("✔ Modal bot dikunci di " + Math.round(v).toLocaleString("en-US") + " USDT. Tambahan saldo sesudah ini tidak dipakai bot sampai tombol MAKS ditekan lagi.");
   } catch (e) { btPesan("Gagal: " + e.message, true); }
 });
 // KALENDER PNL BOT (2026-09-24, user: "pnl pertanggal seperti binance yang muncul ketika aku tekan").
