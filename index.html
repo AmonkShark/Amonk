@@ -929,7 +929,7 @@ td.kosong::before{display:none}
       <div class="bt-pola" style="grid-column:1/-1"><span>Pola yang diambil bot:</span>
         <label title="Prioritas 1. Tanpa batas jumlah posisi, ukuran 2× (risiko 1%), trailing murni 25%. Bila dana kurang, order Elliott yang antri dibatalkan untuk TB."><input type="checkbox" value="TB"> 1 Triple Bottom</label>
         <label title="Prioritas 2. Limit beli di kedalaman 0.90 gelombang 3 (dihitung GitHub tiap jam). Maks 5 (posisi + order). Limit batal bila puncak 5 terbentuk atau 60 lilin tak tersentuh."><input type="checkbox" value="EW"> 2 Elliott Wave (limit)</label>
-        <label title="Prioritas 3. Maks 3 posisi."><input type="checkbox" value="FW"> 3 Falling Wedge</label><label title="Prioritas 4. Maks 3 posisi."><input type="checkbox" value="ST"> 4 Symmetrical Triangle</label>
+        <label title="Prioritas 3. Maks 3 posisi. Sejak 03-10: hanya diambil bila garis MACD 4H di atas nol saat pola valid (pilihan user; menyaring keadaan pasar naik, sekitar 1 dari 10 sinyal FW lolos)."><input type="checkbox" value="FW"> 3 Falling Wedge (MACD 4H &gt; 0)</label><label title="Prioritas 4. Maks 3 posisi."><input type="checkbox" value="ST"> 4 Symmetrical Triangle</label>
         <label title="Prioritas 5. Maks 2 posisi."><input type="checkbox" value="AT"> 5 Ascending Triangle</label>
         <label style="display:none"><input type="checkbox" value="PEN"> Bullish Pennant</label><label style="display:none"><input type="checkbox" value="IHS"> Inverse H&amp;S</label><label style="display:none"><input type="checkbox" value="CH"> Cup &amp; Handle</label></div>
       <div class="set-judul">🧩 Pembagian modal</div><div class="bt-pola" style="grid-column:1/-1"><span>Cara membagi modal:</span>
