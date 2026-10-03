@@ -480,7 +480,7 @@ function pesanPotensi(P) {
     `Pasar: ${P.filter(x => x.dE200 > 0).length}/${P.length} koin di atas EMA200 4H · median 7 hari ${pr(m42)} · 24 jam ${pr(m5)}\n\n` +
     `💪 <b>Paling kuat & tren rapi</b> (skor ≥ 6 dari 8): ${D.length}\n${baris || "   — tidak ada"}\n\n` +
     (lari.length ? `🚀 <b>Sudah lari jauh</b> (> 60% di atas EMA200, rawan balik): ${lari.slice(0, 5).map(x => esc(x.k) + " " + pr(x.dE200)).join(" · ")}\n\n` : "") +
-    `<i>Bukan sinyal beli. Skor = tren 4H + MACD + lebih kuat dari pasar. Di riset AMONK kekuatan relatif memang ada efeknya tapi kecil (di bawah biaya bila dipakai sendirian); koin di sini sudah naik, jadi masuk sekarang berarti mengejar. 🎯 = harga ≤ 3% di atas EMA50 4H (area retest selama tren utuh). Tembus puncak 7h = kekuatan berlanjut; kembali ke dasar 7h = gagal.</i>`;
+    `<i>Bukan sinyal beli. Skor = tren 4H + MACD + lebih kuat dari pasar. DIUJI 04-10 (2019-2026, 4 kelompok koin): daftar ini TIDAK konsisten mengalahkan koin acak dalam 1-7 hari (menang di 1 kelompok, kalah di 2) — anggap peta kekuatan, bukan ramalan. Koin di sini sudah naik, jadi masuk sekarang berarti mengejar. 🎯 = harga ≤ 3% di atas EMA50 4H (area retest selama tren utuh). Tembus puncak 7h = kekuatan berlanjut; kembali ke dasar 7h = gagal.</i>`;
 }
 function pesanScan(tf, V, H, dicek) {
   const tfT = tf === "1d" ? "1D" : "4H", tipis = x => x.vol < 1e6 ? " ⚠️tipis" : "";
