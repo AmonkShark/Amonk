@@ -429,7 +429,7 @@ async function scanTF(k, tf) {
   const n = d.c.length, px = d.c[n - 1], vol = +b[n - 1][7] * (tf === "1d" ? 1 : 6);
   // ELLIOTT (EW) di 4H DAN 1D (user 2026-09-23: "ikuti juga di 1 day"); >=2H: ambang DC 2.5, kedalaman 0.90 = Pine
   let ev; try { ev = peristiwa(d, atrArr(d.h, d.l, d.c), { setupAkhir: true, calonAkhir: true, elliott: true }) || []; } catch (e) { return null; }
-  const out = { valid: [], hampir: [] };
+  const out = { valid: [], hampir: [], potensi: tf === "4h" ? ciriPotensi(k, d, b) : null };
   for (const e of ev) {
     if (SEMBUNYI.has(e.kode) || n - 1 - e.i > umurMaks) continue;
     const L = level(d, e); if (!L || !(L.sl > 0)) continue;
@@ -446,6 +446,41 @@ async function scanTF(k, tf) {
     out.hampir.push({ k, tahap, nama: s.nama, kode: s.kode, E, S, T2, px, jarak: (E / px - 1) * 100, sisa: s.sisa, vol });
   }
   return out;
+}
+// ---------- 6b. POTENSI NAIK 4H (2026-10-04, user: "laporan setiap hari jam 4 pagi koin yang berpotensi ke telegram").
+// BUKAN sinyal teruji: memakai satu-satunya ciri yang bertahan di riset proyek — kekuatan relatif lintas-koin (Q5-Q1 ~+0.057R per trade,
+// nyata tapi di bawah biaya) — ditambah tren 4H & MACD. Skor (maks 8): tren (harga & EMA50 di atas EMA200) 2 · EMA200 naik 5 hari 1 ·
+// garis MACD > 0 1 · lebih kuat dari median pasar 7 hari 1 (+1 bila 20% teratas) · 24 jam 1 · RSI > 78 −1 · likuiditas < 3 jt/24j −1.
+// Lonjakan (> 60% di atas EMA200 4H) dipisah sebagai "sudah lari jauh", tidak masuk daftar.
+const POTENSI_MAKS = Math.max(1, +(process.env.POTENSI_MAKS || 10));
+const emaP = (c, n) => { if (c.length < n) return null; let e = c.slice(0, n).reduce((a, b) => a + b, 0) / n; const k = 2 / (n + 1); const o = [e]; for (let i = n; i < c.length; i++) { e = c[i] * k + e * (1 - k); o.push(e); } return o; };
+function ciriPotensi(k, d, b) {
+  const n = d.c.length; if (n < 260) return null;
+  const px = d.c[n - 1], e50 = emaP(d.c, 50), e200 = emaP(d.c, 200), e12 = emaP(d.c, 12), e26 = emaP(d.c, 26), A = atrArr(d.h, d.l, d.c);
+  const E50 = e50[e50.length - 1], E200 = e200[e200.length - 1], E200lalu = e200[e200.length - 31];
+  if (!(E200 > 0) || !(A[n - 1] / px >= 0.002)) return null;                       // data kurang / stablecoin
+  let g = 0, l = 0; for (let i = 1; i <= 14; i++) { const x = d.c[i] - d.c[i - 1]; if (x > 0) g += x; else l -= x; } g /= 14; l /= 14;
+  for (let i = 15; i < n; i++) { const x = d.c[i] - d.c[i - 1]; g = (g * 13 + Math.max(x, 0)) / 14; l = (l * 13 + Math.max(-x, 0)) / 14; }
+  let hi = -Infinity, lo = Infinity; for (let q = n - 42; q < n; q++) { hi = Math.max(hi, d.h[q]); lo = Math.min(lo, d.l[q]); }
+  return { k, px, E50, E200, naikE200: E200 > E200lalu, macd: (e12[e12.length - 1] - e26[e26.length - 1]) / px, rsi: l === 0 ? 100 : 100 - 100 / (1 + g / l),
+    r5: px / d.c[n - 7] - 1, r42: px / d.c[n - 43] - 1, likuid: b.slice(-6).reduce((a, x) => a + +x[7], 0), hi, lo };
+}
+function pesanPotensi(P) {
+  const med = a => { const x = a.slice().sort((p, q) => p - q); return x.length ? x[x.length >> 1] : 0; };
+  const m5 = med(P.map(x => x.r5)), m42 = med(P.map(x => x.r42)), p80 = P.map(x => x.r42 - m42).sort((a, b) => a - b)[Math.floor(P.length * 0.8)];
+  for (const x of P) { x.kr5 = x.r5 - m5; x.kr42 = x.r42 - m42; x.dE200 = x.px / x.E200 - 1; x.dE50 = x.px / x.E50 - 1;
+    x.skor = (x.px > x.E200 && x.E50 > x.E200 ? 2 : 0) + (x.naikE200 ? 1 : 0) + (x.macd > 0 ? 1 : 0) + (x.kr42 > 0 ? 1 : 0) + (x.kr42 >= p80 ? 1 : 0) + (x.kr5 > 0 ? 1 : 0) - (x.rsi > 78 ? 1 : 0) - (x.likuid < 3e6 ? 1 : 0); }
+  const lari = P.filter(x => x.dE200 > 0.6).sort((a, b) => b.dE200 - a.dE200);
+  const D = P.filter(x => x.dE200 <= 0.6 && x.skor >= 6).sort((a, b) => b.skor - a.skor || b.kr42 - a.kr42).slice(0, POTENSI_MAKS);
+  const pr = x => (x >= 0 ? "+" : "") + (x * 100).toFixed(1) + "%";
+  const baris = D.map((x, i) => `${i + 1}. <b>${esc(x.k)}</b> ${fx(x.px)} · skor ${x.skor}/8 · RSI ${x.rsi.toFixed(0)}\n` +
+    `   vs pasar 7h <b>${pr(x.kr42)}</b> · 24j ${pr(x.kr5)} · EMA200 ${pr(x.dE200)} · EMA50 ${pr(x.dE50)}${x.dE50 <= 0.03 && x.dE50 >= 0 ? " 🎯 dekat EMA50" : ""}\n` +
+    `   puncak 7h ${fx(x.hi)} · dasar 7h ${fx(x.lo)}${x.likuid < 3e6 ? " · ⚠️ likuiditas tipis" : ""} · ${tautan(x.k)}`).join("\n");
+  return `<b>AMONK · POTENSI NAIK 4H</b>\n◻️◻️◻️◻️◻️\n📅 ${lokal(Date.now()).teks} waktu ${esc(KOTA)} · ${P.length} koin\n` +
+    `Pasar: ${P.filter(x => x.dE200 > 0).length}/${P.length} koin di atas EMA200 4H · median 7 hari ${pr(m42)} · 24 jam ${pr(m5)}\n\n` +
+    `💪 <b>Paling kuat & tren rapi</b> (skor ≥ 6 dari 8): ${D.length}\n${baris || "   — tidak ada"}\n\n` +
+    (lari.length ? `🚀 <b>Sudah lari jauh</b> (> 60% di atas EMA200, rawan balik): ${lari.slice(0, 5).map(x => esc(x.k) + " " + pr(x.dE200)).join(" · ")}\n\n` : "") +
+    `<i>Bukan sinyal beli. Skor = tren 4H + MACD + lebih kuat dari pasar. Di riset AMONK kekuatan relatif memang ada efeknya tapi kecil (di bawah biaya bila dipakai sendirian); koin di sini sudah naik, jadi masuk sekarang berarti mengejar. 🎯 = harga ≤ 3% di atas EMA50 4H (area retest selama tren utuh). Tembus puncak 7h = kekuatan berlanjut; kembali ke dasar 7h = gagal.</i>`;
 }
 function pesanScan(tf, V, H, dicek) {
   const tfT = tf === "1d" ? "1D" : "4H", tipis = x => x.vol < 1e6 ? " ⚠️tipis" : "";
@@ -470,10 +505,10 @@ async function scanHarian() {
     if (st.tgl === L0.tgl) { console.log(`SCAN: sudah terkirim hari ini (${L0.tgl}, ${SCAN_TZ})`); return; }
     if (L0.jam < SCAN_JAM || L0.jam > SCAN_JAM + 2) { console.log(`SCAN: belum jamnya (${SCAN_TZ} pukul ${L0.jam}, target ${SCAN_JAM})`); return; }
   }
-  const hasil = { "4h": { V: [], H: [], n: 0 }, "1d": { V: [], H: [], n: 0 } };
+  const hasil = { "4h": { V: [], H: [], n: 0 }, "1d": { V: [], H: [], n: 0 } }, POT = [];
   for (const k of KOIN) for (const tf of ["4h", "1d"]) {
     const r = await scanTF(k, tf); if (!r) continue;
-    hasil[tf].n++; hasil[tf].V.push(...r.valid); hasil[tf].H.push(...r.hampir);
+    hasil[tf].n++; hasil[tf].V.push(...r.valid); hasil[tf].H.push(...r.hampir); if (r.potensi) POT.push(r.potensi);
   }
   let terkirimSatu = false;
   for (const tf of ["4h", "1d"]) {
@@ -481,6 +516,8 @@ async function scanHarian() {
     console.log(`SCAN ${tf}: ${x.n} koin · valid di area entry ${x.V.length} · hampir valid ${x.H.length} · ${ok ? "terkirim" : "GAGAL"}`);
     if (ok) terkirimSatu = true;
   }
+  // 6b. potensi naik 4H (pesan ketiga)
+  if (POT.length >= 30) { const ok = await kirim(pesanPotensi(POT)); console.log("POTENSI NAIK 4H: " + POT.length + " koin · " + (ok ? "terkirim" : "GAGAL")); if (ok) terkirimSatu = true; }
   if (SCAN_JADWAL && process.env.SCAN !== "true" && terkirimSatu && !DRY) fs.writeFileSync(F_SCAN, JSON.stringify({ tgl: L0.tgl, t: Date.now(), tz: SCAN_TZ }));
 }
 
