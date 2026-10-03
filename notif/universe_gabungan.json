@@ -1,6 +1,6 @@
 {
  "dibuat": "2026-09-01",
- "n": 111,
+ "n": 109,
  "catatan": "Gabungan universe_A + universe_B + universe.json lama. Dipakai cari_puncak3_sekarang.cjs. A+B saja MENGHILANGKAN 5 koin yang ada di daftar lama - jadi ketiganya digabung.",
  "ditambah_manual_20260923": "MINA, S ditambahkan atas permintaan user (volume tinggi tapi terlewat watchlist). ETC & TIA sudah ada sebelumnya. TON DITOLAK (status BREAK di Binance spot).",
  "koin": [
@@ -63,7 +63,6 @@
   "MUBARAK",
   "NEAR",
   "NEIRO",
-  "NFP",
   "NIL",
   "ONDO",
   "ONG",
@@ -88,7 +87,6 @@
   "ROBO",
   "ROSE",
   "S",
-  "SCRT",
   "SEI",
   "SHIB",
   "SKY",
@@ -115,5 +113,6 @@
   "ZEC",
   "ZEN",
   "ZRO"
- ]
+ ],
+ "dibuang_delist_20261004": "SCRT (delist Binance 2026-09-03), NFP (delist 2026-07-10) — harga beku memberi setup palsu"
 }
