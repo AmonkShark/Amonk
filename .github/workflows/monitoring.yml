@@ -1,0 +1,35 @@
+# DAFTAR MONITORING TAG BINANCE untuk bot (2026-10-04, keputusan user).
+# Sekali sehari (+ cadangan): baca judul pengumuman Binance, tulis notif/monitoring_tag.json.
+# Worker bot membacanya (cache 6 jam) dan melewati sinyal di koin yang sedang ber-Monitoring Tag / diumumkan delist.
+# Gagal mengambil data -> berkas lama dibiarkan (bot tetap memakai daftar terakhir).
+name: monitoring-tag
+on:
+  schedule:
+    - cron: "20 23 * * *"
+    - cron: "20 11 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: monitoring-tag
+  cancel-in-progress: false
+jobs:
+  perbarui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Baca pengumuman Binance & tulis daftar Monitoring Tag
+        run: node notif/monitoring_tag.cjs
+      - name: Simpan daftar
+        run: |
+          git config user.name "amonk-notif"
+          git config user.email "amonk-notif@users.noreply.github.com"
+          git add notif/monitoring_tag.json 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "monitoring tag: perbarui daftar"
+            for i in 1 2 3; do git pull --rebase && git push && break; sleep 5; done
+          fi
