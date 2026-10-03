@@ -785,6 +785,15 @@ td.kosong::before{display:none}
 .ao3-peran{font-size:8.5px;font-weight:800;letter-spacing:.08em;color:#fff;background:#3d6bff;padding:1px 6px;border-radius:4px}
 @media (max-width:600px){.ao3-peran{display:none}.ao3-tag.diam{display:none}.ao3-nama{font-size:9px;padding:1px 6px}.ao3-balon{max-width:120px;font-size:9px}}
 .ao3-balon{max-width:170px;white-space:normal;text-align:center;font-size:10px;line-height:1.25;color:#1b1d26;background:#fff;border-radius:10px;padding:4px 8px;box-shadow:0 2px 8px rgba(0,0,0,.3);margin-bottom:2px}
+.ao-meter{display:flex;flex-wrap:wrap;gap:6px 18px;padding:7px 14px;border-bottom:1px solid #3c3f55;background:rgba(20,21,30,.35)}
+.ao-m{display:flex;align-items:center;gap:8px;font-size:11px}
+.ao-m span{font-size:9.5px;font-weight:800;letter-spacing:.1em;color:#a3a6bd}
+.ao-m em{font-style:normal;color:#e9e9f2;font-variant-numeric:tabular-nums}
+.ao-m.peringatan em,.ao-m.peringatan span{color:#ffb74d}
+.ao-mbar{position:relative;width:90px;height:7px;border-radius:4px;background:#45495f;overflow:visible}
+.ao-mbar i{display:block;height:100%;border-radius:4px}
+.ao-mbar b{position:absolute;top:-3px;width:2px;height:13px;background:#fff;border-radius:1px}
+#tbTim{position:relative}#tbTim.ada-baru:after{content:"";position:absolute;top:6px;right:calc(50% - 16px);width:9px;height:9px;border-radius:50%;background:#ef5350;box-shadow:0 0 0 2px var(--bg)}
 /* ==== /TAB TIM RISET v4 ==== */
 </style>
 </head>
@@ -2531,6 +2540,7 @@ function pindahHal(h) {
   if (h === "Akun" && window.muatBotBilaAda) window.muatBotBilaAda();
   if (h === "Riwayat" && window.gambarRiwayat) window.gambarRiwayat();
   if (h === "Tim" && window.muatTim) window.muatTim();
+  if (h === "Tim" && $("tbTim")) $("tbTim").classList.remove("ada-baru");
   if (h === "Terminal") { gambar(); if (window.paskanOtomatis) window.paskanOtomatis(); }
 }
 
@@ -2612,7 +2622,7 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
       if (d.id === "perancang") { m1 = ["PRADAFTAR DITULIS", sl]; m2 = ["TOTAL DIUJI TIM", R.diuji]; }
       if (d.id === "penguji") { m1 = ["UJI SELESAI", sl]; m2 = ["TF ROTASI", "1H→1W"]; }
       if (d.id === "pembantah") { m1 = ["LOLOS (SEMUA)", R.lolos + (R.eksploratif ? " +" + R.eksploratif + " eks" : "")]; m2 = ["GAGAL (SEMUA)", R.gagal]; }
-      if (d.id === "kronos") { m1 = ["RAMALAN", K ? K.jadi + "/" + K.total : "—"]; m2 = ["SELESAI", K ? Math.round(100 * K.jadi / K.total) + "%" : "—"]; }
+      if (d.id === "kronos") { m1 = ["RAMALAN", K ? K.jadi + "/" + K.total + " (" + Math.round(100 * K.jadi / K.total) + "%)" : "—"]; m2 = ["PERKIRAAN SELESAI", K && K.eta ? new Date(K.eta).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—"]; }
       const kx = c[0] - 62, ky = c[1] - 128; catat(kx, ky); catat(kx + 124, ky + 82);
       kartu += `<g class="ao-lantai" data-dep="${d.id}"><rect x="${kx.toFixed(1)}" y="${ky.toFixed(1)}" width="124" height="82" rx="9" fill="#34374b" fill-opacity=".96" stroke="${aktif ? "#9ff3e0" : "#5b5f7c"}" stroke-width="${aktif ? 1.6 : 1}"${aktif ? ' filter="url(#aoGlow)"' : ""}/>
         <circle cx="${(kx + 10).toFixed(1)}" cy="${(ky + 11).toFixed(1)}" r="3" fill="${aktif ? "#9ff3e0" : d.warna}"/><text x="${(kx + 17).toFixed(1)}" y="${(ky + 14).toFixed(1)}" font-size="8.5" font-weight="800" fill="#e9e9f2" letter-spacing=".1em">${d.judul}</text>
@@ -2650,7 +2660,7 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
     const A = (T && T.agen) || [], G = (T && T.gagasan) || [], L = [];
     for (const g of G) { const tahap = ["perancang", "penguji", "pembantah"].map(p => A.find(a => a.label === p + "-" + g.no)), sel = tahap.filter(a => a && a.status === "selesai").length;
       const jalan = tahap.some(a => a && a.status === "bekerja"); const v = g.vonis || null;
-      L.push({ jenis: v ? (v === "LOLOS" || v === "EKSPLORATIF" ? "lolos" : "selesai") : "jalan", st: v ? v : jalan ? Math.round(100 * (sel + .5) / 3) + "%" : Math.round(100 * sel / 3) + "%", nama: g.nama, sub: "PUTARAN INI · GAGASAN #" + g.no + (v ? " · " + v : ""), pct: v ? 100 : Math.round(100 * sel / 3), ket: g.ringkas || "", baru: true }); }
+      L.push({ jenis: v ? (v === "LOLOS" || v === "EKSPLORATIF" ? "lolos" : "selesai") : "jalan", st: v ? v : jalan ? Math.round(100 * (sel + .5) / 3) + "%" : Math.round(100 * sel / 3) + "%", nama: g.nama, sub: "PUTARAN INI · GAGASAN #" + g.no + (v ? " · " + v : ""), pct: v ? 100 : Math.round(100 * sel / 3), ket: g.ringkas || "", baru: true, g }); }
     for (const r of ((T && T.riwayat && T.riwayat.baris) || [])) { if (G.some(g => r.nama && g.nama && r.nama.slice(0, 40) === g.nama.slice(0, 40))) continue;
       L.push({ jenis: r.vonis === "LOLOS" || r.vonis === "EKSPLORATIF" ? "lolos" : "selesai", st: r.vonis, nama: r.nama, sub: [r.tgl, r.tf, r.slot].filter(Boolean).join(" · "), pct: 100, ket: r.ket }); }
     return L;
@@ -2667,6 +2677,15 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
   // daftar orang (agen) datar — dipakai peta 2D dan kantor 3D; mengisi MEJA supaya bukaMeja(i) cocok
   function siapkanMeja() { const M = kumpulMeja(), L = []; MEJA = []; for (const d of DEP) for (const m of M[d.id].slice(0, 6)) { L.push({ dep: d, m, i: MEJA.length }); MEJA.push(m); } return L; }
   let MODE = "3d"; try { MODE = localStorage.getItem("aoMode") || "3d"; } catch (e) {}
+  // putaran tim berikutnya: jadwal tiap 2 jam (jam genap waktu laptop) + gerbang kuota
+  function jadwalBerikut() { const d = new Date(); d.setMinutes(0, 0, 0); d.setHours(d.getHours() + (d.getHours() % 2 ? 1 : 2)); return d; }
+  function etaTeks(iso) { if (!iso) return "—"; const m = Math.round((Date.parse(iso) - Date.now()) / 60e3); if (m <= 0) return "segera"; return (m >= 60 ? Math.floor(m / 60) + " j " : "") + (m % 60) + " mnt (" + new Date(iso).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + ")"; }
+  function meteran() { const Q = T && T.kuota, K = T && T.kronos, H = T && T.kesehatan, nb = jadwalBerikut();
+    const W = Q ? +Q.W : null, B = Q ? +Q.batas : null, pW = W == null ? 0 : Math.min(100, W), pB = B == null ? 0 : Math.min(100, B);
+    return `<div class="ao-m"><span>KUOTA MINGGUAN</span><div class="ao-mbar"><i style="width:${pW}%;background:${W != null && W + 3 > B ? "#f0b54a" : "#38d27a"}"></i><b style="left:${pB}%" title="garis aman"></b></div><em>${W == null ? "—" : W + "% · garis aman " + B + "%"}</em></div>
+      <div class="ao-m"><span>PUTARAN BERIKUT</span><em>${nb.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}${Q ? " · terakhir: " + esc(String(Q.keputusan || "").slice(0, 40)) + " (" + lalu(Q.t) + ")" : ""}</em></div>
+      <div class="ao-m"><span>KRONOS SELESAI</span><em>${K ? (K.jadi >= K.total ? "100% — menunggu penilaian" : etaTeks(K.eta)) : "—"}</em></div>
+      ${H && H.gagalBeruntun > 0 ? `<div class="ao-m peringatan"><span>⚠ RUTIN</span><em>${H.gagalBeruntun}x gagal berturut</em></div>` : ""}`; }
   function barStatus() { return `<i style="background:${T.run && !T.run.selesai ? "#38d27a" : "#f0b54a"};box-shadow:0 0 6px ${T.run && !T.run.selesai ? "#38d27a" : "#f0b54a"}"></i>${T.run && !T.run.selesai ? "putaran berjalan" : "menunggu putaran"} · laptop`; }
   function gambarTim() {
     if (!T) return;
@@ -2678,12 +2697,13 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
         <span class="ao-sambung" id="aoStatus" style="color:#cfd2e6"></span>
         <button class="ao-mode" id="aoMode" type="button">${MODE === "3d" ? "2D" : "3D"}</button>
         <span class="ao-jam" id="aoJam"></span></div>
+      <div class="ao-meter" id="aoMeter"></div>
       <div class="ao-isi"><div class="ao-peta" id="aoPeta"><div id="aoSvg"></div><div id="ao3d" hidden></div><div class="ao-zoom"><button data-z="masuk" aria-label="Perbesar">+</button><button data-z="keluar" aria-label="Perkecil">−</button><button data-z="awal" aria-label="Tampilan awal">⌂</button></div></div>
         <div class="ao-panel" id="aoPanel"></div></div>
       <div id="aoKaki" style="font-size:10.5px;color:#9a9db4;padding:6px 14px 10px"></div></div>`;
       $("timAlur").innerHTML = "";
     }
-    $("aoStatus").innerHTML = barStatus();
+    $("aoStatus").innerHTML = barStatus(); $("aoMeter").innerHTML = meteran();
     $("aoJam").textContent = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
     $("aoPanel").innerHTML = gambarPanel();
     const pakai3d = MODE === "3d" && window.AO3D;
@@ -2706,6 +2726,7 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
     const WARNA = { pencari: 0x3e9e85, perancang: 0x7d6bd6, penguji: 0x4f86c9, pembantah: 0xb85a6a, kronos: 0xb39a45, bot: 0x2f6fd6 };
     const BAJU = { pencari: 0x2fb57e, perancang: 0x8b6cf0, penguji: 0x3d8bf0, pembantah: 0xe0566c, kronos: 0xe9b43c, bot: 0x2552c9 };
     const RAMBUT = [0x2b1d14, 0x5b3417, 0x111114, 0x7a3f1f, 0xd9b26a, 0x3b2a20];
+    let tampak = true, tAkhirGambar = 0;
     let ren, scene, cam, wadah, lapisLabel, jam = new THREE.Clock(), sudut = Math.PI / 4, zoomF = window.innerWidth < 600 ? 1.35 : 1, ORANG = [], MEJA3 = [], otak, hidup = false, datT = null;
     const mat = c => new THREE.MeshLambertMaterial({ color: c });
     const kotak = (w, h, d, c, x, y, z, induk) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(c)); m.position.set(x, y, z); (induk || scene).add(m); return m; };
@@ -2761,6 +2782,7 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
       window.addEventListener("pointermove", e => { if (!turun) return; const dx = e.clientX - turun.x; geser = Math.max(geser, Math.abs(dx)); if (geser > 6) sudut = turun.s - dx * .008; });
       window.addEventListener("pointerup", e => { if (!turun) return; const t = turun; turun = null; if (geser > 6) return; pilih(e); });
       new ResizeObserver(ukur).observe(el); ukur();
+      if ("IntersectionObserver" in window) new IntersectionObserver(en => { tampak = en.some(x => x.isIntersecting); }, { threshold: 0.05 }).observe(el);
       hidup = true; putar();
     }
     function ukur() { if (!ren || !wadah.clientWidth) return; const w = wadah.clientWidth, h = Math.max(260, Math.min(560, w * .72)); ren.setSize(w, h, false); ren.domElement.style.height = h + "px"; aturKamera(); }
@@ -2813,7 +2835,8 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
     }
     function putar() {
       if (!hidup) return; requestAnimationFrame(putar);
-      if (typeof halAktif !== "undefined" && halAktif !== "Tim" || document.hidden || !wadah || wadah.hidden || !wadah.clientWidth) return;
+      if (typeof halAktif !== "undefined" && halAktif !== "Tim" || document.hidden || !tampak || !wadah || wadah.hidden || !wadah.clientWidth) { jam.getDelta(); return; }
+      const kini = performance.now(); if (kini - tAkhirGambar < 33) return; tAkhirGambar = kini;   // maks ~30 fps (hemat baterai HP)
       const dt = Math.min(jam.getDelta(), .05), t = jam.elapsedTime; otak.rotation.y += dt * .5; otak.rotation.x += dt * .2; aturKamera(); gerak(dt, t); ren.render(scene, cam);
     }
     return {
@@ -2837,7 +2860,10 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
       ${s.gagasan ? `<dt>Gagasan</dt><dd>#${s.gagasan.no} ${esc(s.gagasan.nama)}</dd>` : ""}${s.gagasan && s.gagasan.vonis ? `<dt>Vonis akhir</dt><dd>${esc(s.gagasan.vonis)}</dd>` : ""}</dl>
       ${s.gagasan && s.gagasan.ringkas && s.peran === "pembantah" ? `<p><b>Ringkasan pembantah:</b> ${esc(s.gagasan.ringkas)}</p>` : ""}<p><b>Tugas peran ini:</b> ${esc(Pp.tugas)}</p>`); }
   function bukaTugas(i) { const t = TUGAS[+i]; if (!t) return;
-    buka(`<h4>${esc(t.st)}</h4><div class="sub">${esc(t.sub)}</div><p><b>${esc(t.nama)}</b></p>${t.ket ? `<p>${esc(t.ket)}</p>` : ""}<p style="color:#a9acc3">Hanya gagasan yang selamat dari pembantah yang dilaporkan sebagai temuan; yang lolos dipantau maju dulu dan tidak masuk bot tanpa keputusan Anda.</p>`); }
+    const g = t.g || {}, baris = (k, v) => v ? `<dt>${k}</dt><dd>${esc(v)}</dd>` : "";
+    buka(`<h4>${esc(t.st)}</h4><div class="sub">${esc(t.sub)}</div><p><b>${esc(t.nama)}</b></p>${t.ket ? `<p>${esc(t.ket)}</p>` : ""}
+      ${t.g ? `<dl>${baris("Klaim", g.klaim)}${baris("Pembanding", g.patokan)}${baris("Ambang lolos", g.ambang)}${baris("Sampel", g.n)}${baris("Vonis uji", g.vonisUji)}${baris("Pembantah ke-2", g.pembantah2)}</dl>` : ""}
+      ${g.masalah && g.masalah.length ? `<p><b>Temuan pembantah:</b></p><ul style="font-size:12.5px;line-height:1.45;padding-left:18px;color:#dcdeea">${g.masalah.slice(0, 5).map(m => "<li>" + esc(m) + "</li>").join("")}</ul>` : ""}<p style="color:#a9acc3">Hanya gagasan yang selamat dari pembantah yang dilaporkan sebagai temuan; yang lolos dipantau maju dulu dan tidak masuk bot tanpa keputusan Anda.</p>`); }
   function bukaDep(id) { if (id === "brain") { const R = (T && T.riwayat) || {};
       return buka(`<h4>🧠 The Brain</h4><div class="sub">Memori proyek AMONK</div><dl><dt>Catatan memori</dt><dd>${(T && T.memori) || 0} berkas</dd><dt>Gagasan diuji tim</dt><dd>${R.diuji || 0} (lolos ${R.lolos || 0}, gagal ${R.gagal || 0})</dd><dt>Putaran</dt><dd>${esc(T && T.run ? T.run.id : "—")} · ${T && T.run && T.run.selesai ? "selesai" : "berjalan"}</dd></dl><p>Semua temuan (termasuk yang gagal) disimpan di memori supaya tidak diuji ulang. Lebih dari 730 aturan sudah mati sebelum tim ini dibentuk.</p>`); }
     const d = DEP.find(x => x.id === id); if (!d) return; const c = P(d.x + LW / 2, d.y + LD / 2); VB = [c[0] - 150, c[1] - 175, 300, 265]; aturVB(); }
@@ -2857,11 +2883,18 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
     if ((e.key === "Enter" || e.key === " ") && e.target.closest) { const el = e.target.closest("#timKantor .ao-meja, #timKantor .ao-tugas"); if (!el) return; e.preventDefault(); el.classList.contains("ao-meja") ? bukaMeja(el.dataset.i) : bukaTugas(el.dataset.t); }
   });
   window.muatTim = muatTim;
+  // TANDA BARU (2026-10-04): titik di tombol tab Tim bila ada hasil gagasan yang belum dilihat
+  function kunciHasil(X) { return X ? ((X.riwayat && X.riwayat.diuji) || 0) + "|" + ((X.gagasan || []).filter(g => g.vonis).length) + "|" + ((X.run && X.run.id) || "") : ""; }
+  function tandai() { const b = $("tbTim"); if (!b || !T) return; let lihat = ""; try { lihat = localStorage.getItem("timLihat") || ""; } catch (e) {}
+    const k = kunciHasil(T); if (halAktif === "Tim") { try { localStorage.setItem("timLihat", k); } catch (e) {} b.classList.remove("ada-baru"); } else b.classList.toggle("ada-baru", !!lihat && lihat !== k || !lihat && !!k); }
+  const muatAsli = muatTim; window.muatTim = async () => { await muatAsli(); tandai(); };
+  setInterval(async () => { if (halAktif === "Tim" || document.hidden) return; try { const r = await fetch(URL_TIM + "?t=" + Date.now(), { cache: "no-store" }); if (r.ok) { T = await r.json(); tAkhir = Date.now(); tandai(); } } catch (e) {} }, 300000);
+  setTimeout(async () => { try { const r = await fetch(URL_TIM + "?t=" + Date.now(), { cache: "no-store" }); if (r.ok) { T = await r.json(); tAkhir = Date.now(); tandai(); } } catch (e) {} }, 4000);
   window.AO = { bukaMeja, PERAN, bukaBot() { const B = typeof BT_S !== "undefined" && BT_S ? BT_S : null, M = B && B.modal;
     buka(`<h4>🤖 AMONK BOT · TRADER</h4><div class="sub">${B ? (B.aktif ? "🟢 trading (akun asli)" : "🟠 dijeda") : "status belum terbaca"}</div>
       ${B ? `<dl><dt>Versi</dt><dd>${esc(B.versi || "—")}</dd><dt>Modal</dt><dd>${Math.round((M && M.kini) || 0).toLocaleString("en-US")} USDT (laba ${((M && M.laba) || 0).toFixed(2)})</dd><dt>Posisi</dt><dd>${(B.posisi || []).length} terbuka · ${((B.ew && B.ew.order) || []).length} order Elliott</dd><dt>Pola</dt><dd>${esc(((B.pengaturan && B.pengaturan.polaBoleh) || []).join(", "))}</dd></dl>` : "<p>Buka tab Akun (dengan sandi bot) supaya status bot ikut tampil di sini.</p>"}
       <p>Bot memakai pola 4H TB, Elliott dan FW. Tim riset tidak pernah mengubah bot; temuan baru masuk bot hanya atas keputusan Anda.</p>`); } };
-  setInterval(() => { if (halAktif === "Tim" && !document.hidden) muatTim(); }, 30000);
+  setInterval(() => { if (halAktif === "Tim" && !document.hidden) window.muatTim(); }, 30000);
   setInterval(() => { const j = $("aoJam"); if (j && halAktif === "Tim" && !document.hidden) j.textContent = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" }); }, 1000);
 })();
 // ==== /TAB TIM v4 ====
