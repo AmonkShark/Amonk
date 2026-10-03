@@ -797,6 +797,9 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
 .ao-mbar i{display:block;height:100%;border-radius:4px}
 .ao-mbar b{position:absolute;top:-3px;width:2px;height:13px;background:#fff;border-radius:1px}
 #tbTim{position:relative}#tbTim.ada-baru:after{content:"";position:absolute;top:6px;right:calc(50% - 16px);width:9px;height:9px;border-radius:50%;background:#ef5350;box-shadow:0 0 0 2px var(--bg)}
+.ao-kembali{position:absolute;top:10px;right:10px;z-index:3;background:#3d4160;border:1px solid #8a8fb5;color:#fff;border-radius:999px;padding:7px 16px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.45)}
+.ao-kembali:hover{background:#4c5178}
+@media (max-width:600px){.ao-kembali{top:6px;right:6px;padding:4px 10px;font-size:12px}}
 /* ==== /TAB TIM RISET v4 ==== */
 </style>
 </head>
@@ -2708,7 +2711,7 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
         <button class="ao-mode" id="aoMode" type="button">${MODE === "3d" ? "2D" : "3D"}</button>
         <span class="ao-jam" id="aoJam"></span></div>
       <div class="ao-meter" id="aoMeter"></div>
-      <div class="ao-isi"><div class="ao-peta" id="aoPeta"><div id="aoSvg"></div><div id="ao3d" hidden></div><div class="ao-zoom"><button data-z="masuk" aria-label="Perbesar">+</button><button data-z="keluar" aria-label="Perkecil">−</button><button data-z="awal" aria-label="Tampilan awal">⌂</button></div></div>
+      <div class="ao-isi"><div class="ao-peta" id="aoPeta"><div id="aoSvg"></div><div id="ao3d" hidden></div><button class="ao-kembali" id="aoKembali" type="button" hidden aria-label="Tutup, kembali ke seluruh kantor">✕ Tutup</button><div class="ao-zoom"><button data-z="masuk" aria-label="Perbesar">+</button><button data-z="keluar" aria-label="Perkecil">−</button><button data-z="awal" aria-label="Tampilan awal">⌂</button></div></div>
         <div class="ao-panel" id="aoPanel"></div></div>
       <div id="aoKaki" style="font-size:10.5px;color:#9a9db4;padding:6px 14px 10px"></div></div>`;
       $("timAlur").innerHTML = "";
@@ -2720,6 +2723,7 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
     $("aoKaki").textContent = `Diperbarui ${lalu(T.diperbarui)} · ${pakai3d ? "geser untuk memutar kantor, ketuk karakter untuk penjelasan" : "ketuk meja/agen untuk penjelasan, lantai untuk memperbesar"}${K ? " · Kronos " + K.jadi + "/" + K.total : ""}`;
     if (pakai3d) { $("aoSvg").hidden = true; $("ao3d").hidden = false; window.AO3D.perbarui($("ao3d"), siapkanMeja(), T); }
     else { $("ao3d").hidden = true; $("aoSvg").hidden = false; $("aoSvg").innerHTML = gambarPeta(); if (MODE === "3d") muat3d(); }
+    tandaFokus();
   }
   // muat three.js + modul 3D sekali (CDN cdnjs); gagal -> tetap 2D
   let muat3dJalan = false;
@@ -2864,7 +2868,10 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
     };
   }
   // ==== /KANTOR 3D ====
-  function aturVB() { const s = $("aoPeta") && $("aoPeta").querySelector("svg"); if (s && VB) s.setAttribute("viewBox", VB.map(v => v.toFixed(1)).join(" ")); }
+  function aturVB() { const s = $("aoPeta") && $("aoPeta").querySelector("svg"); if (s && VB) s.setAttribute("viewBox", VB.map(v => v.toFixed(1)).join(" ")); tandaFokus(); }
+  // 2026-10-04: tombol "✕ Tutup" muncul selama peta 2D diperbesar (departemen / roda mouse); kembali ke seluruh kantor
+  function tandaFokus() { const b = $("aoKembali"); if (!b) return; const d3 = MODE === "3d" && $("ao3d") && !$("ao3d").hidden; b.hidden = d3 || !VB || !VB0 || Math.abs(VB[2] - VB0[2]) < 1 && Math.abs(VB[0] - VB0[0]) < 1; }
+  function keAwal() { VB = VB0 ? VB0.slice() : null; aturVB(); }
   function zoom(f, cx, cy) { if (!VB) return; const w = VB[2] * f, h = VB[3] * f; cx = cx == null ? VB[0] + VB[2] / 2 : cx; cy = cy == null ? VB[1] + VB[3] / 2 : cy; VB = [cx - w / 2, cy - h / 2, w, h]; aturVB(); }
   async function muatTim() {
     if (Date.now() - tAkhir < 15000 && T) return gambarTim();
@@ -2899,20 +2906,30 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
       ${g.masalah && g.masalah.length ? `<p><b>Temuan pembantah:</b></p><ul style="font-size:12.5px;line-height:1.45;padding-left:18px;color:#dcdeea">${g.masalah.slice(0, 5).map(m => "<li>" + esc(m) + "</li>").join("")}</ul>` : ""}<p style="color:#a9acc3">Hanya gagasan yang selamat dari pembantah yang dilaporkan sebagai temuan; yang lolos dipantau maju dulu dan tidak masuk bot tanpa keputusan Anda.</p>`); }
   function bukaDep(id) { if (id === "brain") { const R = (T && T.riwayat) || {};
       return buka(`<h4>🧠 The Brain</h4><div class="sub">Memori proyek AMONK</div><dl><dt>Catatan memori</dt><dd>${(T && T.memori) || 0} berkas</dd><dt>Gagasan diuji tim</dt><dd>${R.diuji || 0} (lolos ${R.lolos || 0}, gagal ${R.gagal || 0})</dd><dt>Putaran</dt><dd>${esc(T && T.run ? T.run.id : "—")} · ${T && T.run && T.run.selesai ? "selesai" : "berjalan"}</dd></dl><p>Semua temuan (termasuk yang gagal) disimpan di memori supaya tidak diuji ulang. Lebih dari 730 aturan sudah mati sebelum tim ini dibentuk.</p>`); }
-    const d = DEP.find(x => x.id === id); if (!d) return; const c = P(d.x + LW / 2, d.y + LD / 2); VB = [c[0] - 150, c[1] - 175, 300, 265]; aturVB(); }
+    const d = DEP.find(x => x.id === id); if (!d) return; const c = P(d.x + LW / 2, d.y + LD / 2), r = VB0 ? VB0[2] / VB0[3] : 1.4, h = 300, w = Math.max(h * r, 320); VB = [c[0] - w / 2, c[1] - 40 - h / 2, w, h]; aturVB(); }
   document.addEventListener("click", e => {
     const m = $("timModal"); if (m && !m.hidden) { if (e.target === m || e.target.closest(".tim-tutup")) { m.hidden = true; document.body.classList.remove("tim-buka"); } return; }
     if (!e.target.closest || !e.target.closest("#timKantor")) return;
     const mo = e.target.closest("#aoMode"); if (mo) { MODE = MODE === "3d" ? "2d" : "3d"; try { localStorage.setItem("aoMode", MODE); } catch (er) {} mo.textContent = MODE === "3d" ? "2D" : "3D"; gambarTim(); return; }
+    if (e.target.closest("#aoKembali")) return keAwal();
     const z = e.target.closest("[data-z]"); if (z) { const k = z.dataset.z; const d3 = MODE === "3d" && window.AO3D && !$("ao3d").hidden;
-      if (k === "masuk") d3 ? window.AO3D.zoom(0.75) : zoom(0.75); else if (k === "keluar") d3 ? window.AO3D.zoom(1.33) : zoom(1.33); else { if (d3) window.AO3D.awal(); else { VB = VB0 ? VB0.slice() : null; aturVB(); } } return; }
+      if (k === "masuk") d3 ? window.AO3D.zoom(0.75) : zoom(0.75); else if (k === "keluar") d3 ? window.AO3D.zoom(1.33) : zoom(1.33); else { if (d3) window.AO3D.awal(); else keAwal(); } return; }
     const f = e.target.closest("[data-f]"); if (f) { filter = f.dataset.f; $("aoPanel").innerHTML = gambarPanel(); return; }
     const mj = e.target.closest(".ao-meja"); if (mj) return bukaMeja(mj.dataset.i);
     const t = e.target.closest(".ao-tugas"); if (t) return bukaTugas(t.dataset.t);
     const dp = e.target.closest("[data-dep]"); if (dp) return bukaDep(dp.dataset.dep);
   });
+  // ZOOM RODA MOUSE (2026-10-04): 2D memperbesar di titik kursor, 3D memperbesar kamera
+  document.addEventListener("wheel", e => { const p = e.target.closest && e.target.closest("#aoPeta"); if (!p || e.ctrlKey) return; e.preventDefault();
+    const f = e.deltaY > 0 ? 1.15 : 1 / 1.15, d3 = MODE === "3d" && window.AO3D && $("ao3d") && !$("ao3d").hidden;
+    if (d3) return window.AO3D.zoom(f);
+    const sv = p.querySelector("#aoSvg svg"); if (!sv || !VB) return; const m = sv.getScreenCTM(); if (!m) return zoom(f);
+    const q = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse()), w = VB[2] * f, h = VB[3] * f;
+    if (VB0 && w > VB0[2] * 1.6) return;
+    VB = [q.x - (q.x - VB[0]) * f, q.y - (q.y - VB[1]) * f, w, h]; aturVB(); }, { passive: false });
   document.addEventListener("keydown", e => {
     if (e.key === "Escape" && $("timModal") && !$("timModal").hidden) { $("timModal").hidden = true; document.body.classList.remove("tim-buka"); return; }
+    if (e.key === "Escape" && $("aoKembali") && !$("aoKembali").hidden) { keAwal(); return; }
     if ((e.key === "Enter" || e.key === " ") && e.target.closest) { const el = e.target.closest("#timKantor .ao-meja, #timKantor .ao-tugas"); if (!el) return; e.preventDefault(); el.classList.contains("ao-meja") ? bukaMeja(el.dataset.i) : bukaTugas(el.dataset.t); }
   });
   window.muatTim = muatTim;
