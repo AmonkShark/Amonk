@@ -775,8 +775,8 @@ td.kosong::before{display:none}
 .tim-kartu dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:12px 0;font-size:13px}
 .tim-kartu dt{color:#a9acc3}.tim-kartu dd{margin:0;word-break:break-word}
 .tim-kartu p{font-size:13px;line-height:1.5;color:#dcdeea;margin:8px 0}
-.tim-tutup{float:right;position:sticky;top:0;z-index:2;margin-left:8px;background:#3d4160;border:1px solid #8a8fb5;color:#fff;border-radius:999px;padding:7px 16px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.35)}
-.tim-tutup.bawah{float:none;position:static;display:block;width:100%;margin:16px 0 0;padding:11px;border-radius:12px}
+.tim-tutup{float:right;position:sticky;top:0;z-index:2;margin:0 0 6px 10px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;padding:0;background:#3d4160;border:1px solid #8a8fb5;color:#fff;border-radius:50%;font-size:17px;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.tim-tutup:hover{background:#4c5178}
 .ao-mode{border:1px solid #6a6e8c;background:#2e3042;color:#fff;border-radius:999px;padding:3px 12px;font-size:11px;font-weight:800;cursor:pointer;letter-spacing:.06em}
 #ao3d{position:relative;overflow:hidden;background:radial-gradient(120% 90% at 50% 20%,#3a3d55 0%,#20212b 75%)}
 .ao3d{isolation:isolate;z-index:0}   /* 2026-10-04: z-index label 3D (~1400) dikurung di kotak 3D, tidak menutupi popup */
@@ -2666,7 +2666,8 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
         <g class="ao-label"><rect x="${(lab[0] - lw / 2).toFixed(1)}" y="${(lab[1] - 9).toFixed(1)}" width="${lw.toFixed(1)}" height="12" rx="6" fill="#3a3d52" stroke="#71759a" stroke-width=".7"/>
           <text x="${lab[0].toFixed(1)}" y="${(lab[1] - .8).toFixed(1)}" font-size="7" font-weight="800" fill="#eef0fa" text-anchor="middle" letter-spacing=".04em">${esc(teks.toUpperCase())}</text></g></g>`;
       catat(lab[0] - lw / 2, lab[1] - 10); catat(lab[0] + lw / 2, kursi[1] + 6); }
-    const pad = 14; VB0 = [bb.x0 - pad, bb.y0 - pad, bb.x1 - bb.x0 + pad * 2, bb.y1 - bb.y0 + pad * 2]; if (!VB) VB = VB0.slice();
+    const pad = 14, lama = VB0; VB0 = [bb.x0 - pad, bb.y0 - pad, bb.x1 - bb.x0 + pad * 2, bb.y1 - bb.y0 + pad * 2];
+    if (!VB || lama && VB.every((v, i) => Math.abs(v - lama[i]) < .5)) VB = VB0.slice();   // tidak sedang diperbesar -> ikut batas peta baru
     return `<svg viewBox="${VB.map(v => v.toFixed(1)).join(" ")}" role="img" aria-label="Kantor agen riset AMONK"><defs><filter id="aoGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>${garis}${svg}${kartu}</svg>`;
   }
   function kumpulTugas() {
@@ -2879,7 +2880,7 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
     catch (e) { $("timKantor").innerHTML = `<div class="ao"><div class="ao-bar"><span class="ao-judul">AGENTS OFFICE</span></div><div class="ao-kosong" style="padding:20px">Status belum tersedia (${esc(e.message)}).</div></div>`; return; }
     gambarTim();
   }
-  function buka(html) { const m = $("timModal"); if (m.parentNode !== document.body) document.body.appendChild(m); document.body.classList.add("tim-buka"); m.querySelector(".tim-kartu").innerHTML = '<button class="tim-tutup" aria-label="Tutup">✕ Tutup</button>' + html + '<button class="tim-tutup bawah">Tutup</button>'; m.hidden = false; m.querySelector(".tim-tutup").focus(); }
+  function buka(html) { const m = $("timModal"); if (m.parentNode !== document.body) document.body.appendChild(m); document.body.classList.add("tim-buka"); m.querySelector(".tim-kartu").innerHTML = '<button class="tim-tutup" aria-label="Tutup" title="Tutup">✕</button>' + html; m.hidden = false; m.querySelector(".tim-tutup").focus(); }
   function bukaPaper(jenis) { const PA = T && T.paper; if (!PA || !PA.juara) return buka("<h4>📈 Agen Paper</h4><p>Belum ada data.</p>");
     const r = x => x == null ? "—" : (x > 0 ? "+" : "") + x + "R", v = PA[jenis], ok = b => b ? "✅" : "⬜";
     const daftar = L => (L || []).map(t => `<li>${esc(t.kode)} ${esc(t.koin)} · ${new Date(t.entry_utc).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })} · ${t.status === "OPEN" ? "terbuka" : r(t.R) + (t.sebab ? " (" + esc(t.sebab) + ")" : "")}</li>`).join("");
