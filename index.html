@@ -714,6 +714,43 @@ td.kosong::before{display:none}
 .tarik.tampak{transform:translateX(-50%) translateY(0)}
 .tarik i{width:14px;height:14px;border:2px solid var(--label);border-top-color:var(--hijau);border-radius:50%;display:inline-block}
 .tarik.putar i{animation:putar .8s linear infinite}@keyframes putar{to{transform:rotate(360deg)}}
+
+/* ==== TAB TIM RISET (2026-10-04, user: "avatar di terminal, seperti melihat orang kerja") ==== */
+.tim-kepala{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:4px 2px 10px}
+.tim-kepala h3{margin:0;font-size:17px}
+.tim-kepala small{color:var(--label);font-size:12px}
+.kantor{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;padding:8px;border:1px solid var(--garis);border-radius:14px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--bg2) 92%,var(--biru) 8%),var(--bg1));position:relative}
+.meja{position:relative;border-radius:12px;padding:10px 8px 8px;background:var(--bg2);border:1px solid var(--garis);min-height:176px;display:flex;flex-direction:column;align-items:center;text-align:center;transition:opacity .4s}
+.meja.menunggu{opacity:.55}
+.gelembung{position:relative;font-size:12px;line-height:1.35;background:var(--bg1);border:1px solid var(--garis);border-radius:10px;padding:6px 8px;min-height:34px;width:100%;color:var(--teks);margin-bottom:10px;word-break:break-word}
+.gelembung:after{content:"";position:absolute;left:50%;bottom:-6px;width:10px;height:10px;background:var(--bg1);border-right:1px solid var(--garis);border-bottom:1px solid var(--garis);transform:translateX(-50%) rotate(45deg)}
+.meja.bekerja .gelembung{border-color:color-mix(in srgb,var(--biru) 55%,var(--garis))}
+.avatar{font-size:38px;line-height:1;position:relative;filter:drop-shadow(0 2px 2px rgba(0,0,0,.25))}
+.meja.bekerja .avatar{animation:tim-goyang 1.1s ease-in-out infinite}
+.meja.selesai .avatar:after{content:"✓";position:absolute;right:-12px;top:-6px;font-size:14px;background:var(--hijau);color:#fff;border-radius:50%;width:20px;height:20px;line-height:20px;text-align:center}
+.meja.menunggu .avatar:after{content:"💤";position:absolute;right:-16px;top:-10px;font-size:15px}
+.layar{width:76px;height:34px;margin-top:6px;border-radius:5px;background:#0b0f17;border:2px solid #3a4152;overflow:hidden;position:relative}
+.layar i{position:absolute;left:6px;height:3px;border-radius:2px;background:#4caf8f;opacity:.85}
+.meja.bekerja .layar i{animation:tim-ketik 1.6s steps(6) infinite}
+.meja.bekerja .layar i:nth-child(2){animation-delay:.4s;background:#42a5f5}.meja.bekerja .layar i:nth-child(3){animation-delay:.8s;background:#ffb74d}
+.meja:not(.bekerja) .layar i{width:30px!important}
+.meja-nama{margin-top:8px;font-weight:700;font-size:13px}
+.meja-sub{font-size:11px;color:var(--label)}
+.titik-titik:after{content:"";animation:tim-titik 1.4s steps(4) infinite}
+.tim-alur{margin-top:12px;display:grid;gap:8px}
+.tim-g{border:1px solid var(--garis);border-radius:12px;padding:10px 12px;background:var(--bg1)}
+.tim-g b{font-size:13px}.tim-g p{margin:4px 0 0;font-size:12px;color:var(--label)}
+.tim-langkah{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.tim-langkah span{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--garis);color:var(--label)}
+.tim-langkah span.ok{border-color:var(--hijau);color:var(--hijau)}.tim-langkah span.jalan{border-color:var(--biru);color:var(--biru)}
+.vonis{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:6px}
+.vonis.LOLOS{background:var(--hijau);color:#fff}.vonis.GAGAL,.vonis.CACAT{background:var(--merah);color:#fff}.vonis.EKSPLORATIF,.vonis.BELUM{background:var(--kuning);color:#111}
+.kronos-bar{height:8px;border-radius:6px;background:var(--bglbl);overflow:hidden;margin-top:6px}.kronos-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--biru),var(--hijau))}
+@keyframes tim-goyang{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes tim-ketik{0%{width:4px}100%{width:62px}}
+@keyframes tim-titik{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+@media (prefers-reduced-motion:reduce){.meja.bekerja .avatar,.meja.bekerja .layar i,.titik-titik:after{animation:none}}
 </style>
 </head>
 <body>
@@ -744,6 +781,7 @@ td.kosong::before{display:none}
     <button role="tab" id="tbRiwayat" data-hal="Riwayat" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Riwayat</span></button>
     <button role="tab" id="tbJurnal" data-hal="Jurnal" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5z"/><path d="M8 10h8M8 14h8"/></svg><span>Jurnal</span></button>
     <button role="tab" id="tbAkun" data-hal="Akun" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M15 15h3"/></svg><span>Akun</span></button>
+    <button role="tab" id="tbTim" data-hal="Tim" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M3 20c0-3 2.5-5 5-5s5 2 5 5M11 20c0-3 2.5-5 5-5s5 2 5 5"/></svg><span>Tim</span></button>
     <button role="tab" id="tbInfo" data-hal="Info" hidden aria-selected="false" style="display:none"><span>Info</span></button>
   </nav>
 
@@ -943,6 +981,13 @@ td.kosong::before{display:none}
     <p class="ak-pesan" id="jnPesan">Membaca riwayat beli/jual Binance-mu (500 trade terakhir per koin), menyusunnya jadi trade, lalu mencocokkan dengan sinyal pola 4H. Butuh ±1–2 menit.</p>
     <div class="jr-ring" id="jnRing"></div>
     <details class="jn-lipat" id="jnLipat"><summary><span id="jnLipatJudul">Daftar per trade</span></summary><div class="jr-list" id="jnList"></div></details>
+  </div>
+
+  <div class="hal" id="halTim" hidden>
+    <div class="tim-kepala"><h3>Tim riset AMONK</h3><small id="timWaktu">memuat…</small></div>
+    <div class="kantor" id="timKantor"></div>
+    <div class="tim-alur" id="timAlur"></div>
+    <p style="font-size:11px;color:var(--label);margin:10px 2px">Status dikirim laptop tiap ±1 menit (pemantau research/dewan_pantau.cjs). Laptop mati/tidur = status berhenti diperbarui. Tim hanya meneliti; bot tidak diubah tanpa keputusan Anda.</p>
   </div>
 
   <div class="hal info" id="halInfo" hidden>
@@ -2444,15 +2489,53 @@ function pindahHal(h) {
   const beda = halAktif !== h;
   halAktif = h; simpan("hal", h);
   if (beda) { window.scrollTo(0, 0); if (document.scrollingElement) document.scrollingElement.scrollTop = 0; setTimeout(() => window.scrollTo(0, 0), 0); }   // permintaan user 2026-09-26: tab baru selalu mulai dari atas
-  for (const x of ["Terminal", "Riwayat", "Jurnal", "Akun", "Info"]) { $("hal" + x).hidden = x !== h; $("tb" + x).setAttribute("aria-selected", x === h ? "true" : "false"); }
+  for (const x of ["Terminal", "Riwayat", "Jurnal", "Akun", "Tim", "Info"]) { $("hal" + x).hidden = x !== h; $("tb" + x).setAttribute("aria-selected", x === h ? "true" : "false"); }
   if (h === "Jurnal") { if (!JR) muatJurnal(); else gambarJurnal(); }
   if (h === "Akun" && window.muatAkun) window.muatAkun();
   if (h === "Akun" && window.muatBotBilaAda) window.muatBotBilaAda();
   if (h === "Riwayat" && window.gambarRiwayat) window.gambarRiwayat();
+  if (h === "Tim" && window.muatTim) window.muatTim();
   if (h === "Terminal") { gambar(); if (window.paskanOtomatis) window.paskanOtomatis(); }
 }
 
 document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click", () => pindahHal(b.dataset.hal)));
+// ==== TAB TIM (2026-10-04): avatar agen tim riset + Kronos, dari cabang GitHub "status" (dewan_status.json) ====
+(() => {
+  const URL_TIM = "https://raw.githubusercontent.com/AmonkShark/Amonk/status/dewan_status.json";
+  const PERAN = { pencari: ["🕵️", "Pencari gagasan", "mencari data baru"], perancang: ["📐", "Perancang", "menulis pradaftar"], penguji: ["🧪", "Penguji", "menjalankan uji"], pembantah: ["🛡️", "Pembantah", "berusaha mematikan hasil"], lain: ["🤖", "Agen", ""] };
+  const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const lalu = iso => { if (!iso) return ""; const m = Math.round((Date.now() - Date.parse(iso)) / 60e3); return m < 1 ? "baru saja" : m < 60 ? m + " mnt lalu" : Math.round(m / 60) + " jam lalu"; };
+  const meja = (emo, nama, sub, status, teks) => `<div class="meja ${status}"><div class="gelembung">${status === "bekerja" ? '<span class="titik-titik">' + esc(teks) + "</span>" : esc(teks)}</div><div class="avatar">${emo}</div><div class="layar"><i style="top:6px;width:40px"></i><i style="top:14px;width:24px"></i><i style="top:22px;width:50px"></i></div><div class="meja-nama">${esc(nama)}</div><div class="meja-sub">${esc(sub)}</div></div>`;
+  let T = null, tAkhir = 0;
+  async function muatTim() {
+    if (Date.now() - tAkhir < 15000 && T) return gambarTim();
+    try { const r = await fetch(URL_TIM + "?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) throw new Error("HTTP " + r.status); T = await r.json(); tAkhir = Date.now(); }
+    catch (e) { $("timWaktu").textContent = "status belum tersedia (" + e.message + ")"; return; }
+    gambarTim();
+  }
+  function gambarTim() {
+    if (!T) return;
+    $("timWaktu").textContent = "diperbarui " + lalu(T.diperbarui) + (T.run ? " · putaran " + T.run.id.replace(/^wf_/, "") + (T.run.selesai ? " · SELESAI" : " · berjalan") : "");
+    const A = T.agen || [], h = [];
+    const urut = ["pencari", "perancang", "penguji", "pembantah"];
+    for (const p of urut) { const daftar = A.filter(a => a.peran === p);
+      if (!daftar.length) { const [e, n, sub] = PERAN[p]; h.push(meja(e, n, sub, "menunggu", "menunggu giliran")); continue; }
+      for (const a of daftar) { const [e, n] = PERAN[p]; const no = (a.label.match(/-(\d+)$/) || [])[1];
+        h.push(meja(e, n + (no ? " #" + no : ""), (a.status === "bekerja" ? "langkah ke-" + a.langkah + " · " : "") + lalu(a.aksiT), a.status, a.aksi)); } }
+    if (T.kronos) { const k = T.kronos, pct = Math.round(100 * k.jadi / k.total);
+      h.push(meja("🧠", "Kronos (laptop)", pct + "% · " + k.jadi + "/" + k.total, k.jadi >= k.total ? "selesai" : k.hidup ? "bekerja" : "menunggu", k.jadi >= k.total ? "ramalan selesai, menunggu penilaian" : k.hidup ? "meramal koin minggu demi minggu" : "berhenti — laptop tidur/mati?")); }
+    $("timKantor").innerHTML = h.join("");
+    const G = T.gagasan || [], al = [];
+    for (const g of G) { const st = lbl => { const a = A.find(x => x.label === lbl + "-" + g.no); return a ? (a.status === "selesai" ? "ok" : "jalan") : ""; };
+      const v = g.vonis ? `<span class="vonis ${esc(String(g.vonis).split(" ")[0])}">${esc(g.vonis)}</span>` : "";
+      al.push(`<div class="tim-g"><b>Gagasan ${g.no}: ${esc(g.nama)}</b>${v}<div class="tim-langkah"><span class="ok">Gagasan</span><span class="${st("perancang")}">Pradaftar</span><span class="${st("penguji")}">Uji</span><span class="${st("pembantah")}">Bantah</span></div>${g.ringkas ? "<p>" + esc(g.ringkas) + "</p>" : ""}</div>`); }
+    if (T.kronos) { const k = T.kronos, pct = Math.round(100 * k.jadi / k.total);
+      al.push(`<div class="tim-g"><b>Uji Kronos — model AI lilin dari GitHub</b><p>${k.jadi} dari ${k.total} ramalan (${pct}%) · terakhir ${lalu(k.terakhir)}. Penilaian dijalankan sesudah 100%.</p><div class="kronos-bar"><i style="width:${pct}%"></i></div></div>`); }
+    $("timAlur").innerHTML = al.join("") || '<div class="tim-g"><p>Belum ada putaran tim riset.</p></div>';
+  }
+  window.muatTim = muatTim;
+  setInterval(() => { if (halAktif === "Tim" && !document.hidden) muatTim(); }, 30000);
+})();
 async function muatJurnal() {
   try {
     const r = await fetch("data_jurnal.json?t=" + Date.now(), { cache: "no-store" });
