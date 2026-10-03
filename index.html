@@ -715,107 +715,68 @@ td.kosong::before{display:none}
 .tarik i{width:14px;height:14px;border:2px solid var(--label);border-top-color:var(--hijau);border-radius:50%;display:inline-block}
 .tarik.putar i{animation:putar .8s linear infinite}@keyframes putar{to{transform:rotate(360deg)}}
 
-/* ==== TAB TIM RISET v2 (2026-10-04, user: kantor agen AI futuristik, robot bergerak, klik = penjelasan) ==== */
-.tim-kepala{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:4px 2px 10px}
-.tim-kepala h3{margin:0;font-size:17px}
-.tim-kepala small{color:var(--label);font-size:12px}
-.ruang{--neon:#22e3ff;--neon2:#7c5cff;--lantai:#0a1220;position:relative;border-radius:16px;overflow:hidden;padding:12px 10px 14px;color:#dff7ff;
-  background:radial-gradient(120% 70% at 50% -10%,#14315a 0%,transparent 60%),linear-gradient(180deg,#0b1424 0%,#070d18 100%);border:1px solid #1d3550;box-shadow:inset 0 0 40px rgba(34,227,255,.06)}
-.ruang:before{content:"";position:absolute;inset:auto -20% -30% -20%;height:70%;background:
-  repeating-linear-gradient(90deg,rgba(34,227,255,.10) 0 1px,transparent 1px 44px),repeating-linear-gradient(0deg,rgba(34,227,255,.08) 0 1px,transparent 1px 34px);
-  transform:perspective(420px) rotateX(58deg);transform-origin:50% 100%;pointer-events:none}
-.hub{position:relative;display:flex;align-items:center;gap:12px;margin:2px 4px 12px;padding:10px 12px;border-radius:14px;cursor:pointer;
-  background:linear-gradient(135deg,rgba(34,227,255,.10),rgba(124,92,255,.10));border:1px solid rgba(34,227,255,.35);box-shadow:0 0 22px rgba(34,227,255,.15)}
-.hub svg{flex:0 0 52px;height:52px}
-.hub .cincin1{transform-origin:37px 37px;animation:tim-putar 9s linear infinite}
-.hub .cincin2{transform-origin:37px 37px;animation:tim-putar 14s linear infinite reverse}
-.hub .inti{animation:tim-denyut 2.2s ease-in-out infinite;transform-origin:37px 37px}
-.hub-teks b{display:block;font-size:12px;letter-spacing:.05em;color:#9ff3ff}
-.hub-teks span{display:block;font-size:12px;color:#bfe9f5;margin-top:2px}
-.hub-bar{height:6px;border-radius:4px;background:rgba(255,255,255,.08);margin-top:6px;overflow:hidden}.hub-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--neon),var(--neon2))}
-.stasiun{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;position:relative}
-.pos{position:relative;cursor:pointer;border-radius:12px;padding:2px 2px 8px;text-align:center;transition:transform .2s;-webkit-tap-highlight-color:transparent}
-.pos:hover,.pos:focus-visible{transform:translateY(-2px);outline:none}
-.pos:focus-visible{box-shadow:0 0 0 2px var(--neon)}
-.pos svg{width:100%;height:auto;display:block;overflow:visible}
-.pos-nama{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:-2px;font-size:12px;font-weight:700;color:#e6fbff}
-.mini{width:20px;height:20px;border-radius:50%;display:inline-grid;place-items:center;font-size:11px;background:#0f2238;border:1px solid var(--warna,#22e3ff);box-shadow:0 0 8px var(--warna,#22e3ff)}
-.pos-status{font-size:10.5px;color:#9fc6d3;margin-top:2px;min-height:14px;padding:0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pos .lampu-st{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:middle;background:#ffb74d;box-shadow:0 0 6px #ffb74d}
-.pos.bekerja .lampu-st{background:#22e3ff;box-shadow:0 0 8px #22e3ff;animation:tim-kedip 1s ease-in-out infinite}
-.pos.selesai .lampu-st{background:#3ddc97;box-shadow:0 0 8px #3ddc97}
-/* robot: selalu bergerak; kecepatan menurut status */
-.rb-kepala{transform-origin:80px 82px;animation:tim-angguk 2.6s ease-in-out infinite}
-.rb-tangan-k{transform-origin:62px 95px;animation:tim-ketikK .5s ease-in-out infinite alternate}
-.rb-tangan-n{transform-origin:98px 95px;animation:tim-ketikN .5s ease-in-out infinite alternate .25s}
-.rb-mata{transform-origin:80px 69px;animation:tim-kedipMata 4.5s infinite}
-.rb-inti{animation:tim-denyut 1.6s ease-in-out infinite;transform-origin:80px 101px}
-.holo{animation:tim-melayang 3.4s ease-in-out infinite}
-.holo-baris rect{animation:tim-baris 1.8s steps(8) infinite}
-.holo-baris rect:nth-child(2){animation-delay:.3s}.holo-baris rect:nth-child(3){animation-delay:.6s}.holo-baris rect:nth-child(4){animation-delay:.9s}
-.partikel{animation:tim-alir 2.4s linear infinite}
-.pos.menunggu .rb-tangan-k,.pos.menunggu .rb-tangan-n{animation-duration:1.6s}
-.pos.menunggu .holo-baris rect{animation-duration:4s}
-.pos.menunggu .holo{opacity:.55}
-.pos.selesai .rb-tangan-k,.pos.selesai .rb-tangan-n{animation-duration:1.2s}
-@keyframes tim-putar{to{transform:rotate(360deg)}}
-@keyframes tim-denyut{0%,100%{opacity:.75;transform:scale(1)}50%{opacity:1;transform:scale(1.15)}}
-@keyframes tim-kedip{50%{opacity:.35}}
-@keyframes tim-angguk{0%,100%{transform:rotate(0)}30%{transform:rotate(-3deg)}70%{transform:rotate(2deg)}}
-@keyframes tim-ketikK{from{transform:rotate(-7deg)}to{transform:rotate(5deg)}}
-@keyframes tim-ketikN{from{transform:rotate(7deg)}to{transform:rotate(-5deg)}}
-@keyframes tim-kedipMata{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
-@keyframes tim-melayang{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
-@keyframes tim-baris{0%{width:6px}100%{width:var(--p,60px)}}
-@keyframes tim-alir{from{stroke-dashoffset:24}to{stroke-dashoffset:0}}
-@media (prefers-reduced-motion:reduce){.ruang *{animation:none!important}}
+/* ==== TAB TIM RISET v4 — AGENTS OFFICE isometrik (2026-10-04, referensi user) ==== */
+.tim-kepala{display:none}
+.ao{--ao-bg:#2a2c3a;--ao-panel:#33364a;--ao-garis:#4a4e66;--ao-teks:#e9e9f2;--ao-redup:#a3a6bd;position:relative;border-radius:16px;overflow:hidden;background:radial-gradient(120% 90% at 40% 30%,#34374a 0%,#24252f 70%);color:var(--ao-teks);border:1px solid #3c3f55;font-family:inherit}
+.ao-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid #3c3f55;background:rgba(20,21,30,.55)}
+.ao-judul{font-family:Georgia,"Times New Roman",serif;font-weight:700;font-size:17px;letter-spacing:.02em}
+.ao-judul small{font-family:inherit;font-size:11px;color:var(--ao-redup);margin-left:6px;letter-spacing:.08em}
+.ao-sambung{display:flex;align-items:center;gap:5px;font-size:10px;letter-spacing:.12em;color:#b7f0c9;text-transform:uppercase}
+.ao-sambung i{width:7px;height:7px;border-radius:50%;background:#38d27a;box-shadow:0 0 6px #38d27a}
+.ao-chip{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;font-size:11px;font-weight:800;color:#111}
+.ao-jam{margin-left:auto;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;background:#3a3d52;border:1px solid #55597a;border-radius:999px;padding:3px 10px}
+.ao-isi{display:grid;grid-template-columns:1fr;gap:0}
+@media (min-width:900px){.ao-isi{grid-template-columns:1fr 300px}}
+.ao-peta{position:relative;min-height:220px}
+.ao-peta svg{width:100%;height:auto;display:block;touch-action:manipulation}
+.ao-zoom{position:absolute;right:10px;bottom:10px;display:grid;gap:8px}
+.ao-zoom button{width:34px;height:34px;border-radius:50%;border:1px solid #6a6e8c;background:#2e3042;color:#fff;font-size:17px;cursor:pointer}
+.ao-zoom button:focus-visible{outline:2px solid #9fe6ff}
+.ao-lantai{cursor:pointer}
+.ao-meja{cursor:pointer}
+.ao-meja:focus-visible{outline:none}.ao-meja:focus-visible .ao-label rect{stroke:#fff;stroke-width:1.5}
+.ao-garis{stroke-dasharray:2 5;animation:ao-alir 1.6s linear infinite}
+@keyframes ao-alir{to{stroke-dashoffset:-14}}
+.ao-kepala{transform-box:fill-box;transform-origin:50% 100%}
+.ao-meja.bekerja .ao-kepala{animation:ao-angguk 1.1s ease-in-out infinite}
+.ao-meja.bekerja .ao-layar-baris{animation:ao-ketik 1.4s steps(6) infinite}
+.ao-meja.menunggu{opacity:.7}
+.ao-otak{transform-box:fill-box;transform-origin:50% 50%;animation:ao-putar 30s linear infinite}
+.ao-otak-titik{animation:ao-kedip 2.4s ease-in-out infinite}
+@keyframes ao-angguk{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.4px)}}
+@keyframes ao-ketik{0%{transform:scaleX(.2)}100%{transform:scaleX(1)}}
+@keyframes ao-putar{to{transform:rotate(360deg)}}
+@keyframes ao-kedip{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.ao *{animation:none!important}}
+.ao-panel{border-left:1px solid #3c3f55;background:rgba(36,38,52,.9);padding:12px;max-height:620px;overflow:auto}
+@media (max-width:899px){.ao-panel{border-left:0;border-top:1px solid #3c3f55;max-height:none}}
+.ao-panel h4{font-family:Georgia,serif;font-size:16px;margin:2px 0 8px;display:flex;justify-content:space-between;align-items:baseline}
+.ao-panel h4 small{font-family:inherit;font-size:10px;letter-spacing:.12em;color:var(--ao-redup)}
+.ao-filter{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.ao-filter button{border:1px solid #5a5e7c;background:#2c2e40;color:#d6d8e8;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer}
+.ao-filter button[aria-pressed="true"]{background:#e9e9f2;color:#22232d}
+.ao-tugas{border:1px solid #4a4e66;border-radius:12px;padding:9px 10px;margin-bottom:8px;background:#2e3044;cursor:pointer}
+.ao-tugas:focus-visible{outline:2px solid #9fe6ff}
+.ao-tugas .atas{display:flex;gap:8px;align-items:flex-start}
+.ao-tugas .st{flex:0 0 auto;font-size:10px;font-weight:800;border-radius:999px;padding:2px 7px;border:1px solid #8a8eaa;color:#d6d8e8}
+.ao-tugas .st.done{border-color:#4ad49a;color:#4ad49a}.ao-tugas .st.lolos{background:#4ad49a;color:#0d2a1e;border-color:#4ad49a}
+.ao-tugas .st.gagal{border-color:#ff7a8a;color:#ff9aa6}.ao-tugas .st.jalan{border-color:#6cc6ff;color:#8fd6ff}
+.ao-tugas b{font-size:12.5px;line-height:1.3;font-weight:700}
+.ao-tugas .sub{font-size:10.5px;color:var(--ao-redup);margin-top:3px;letter-spacing:.04em;text-transform:uppercase}
+.ao-tugas .bar{height:3px;border-radius:2px;background:#45495f;margin-top:6px;overflow:hidden}.ao-tugas .bar i{display:block;height:100%;background:#e9e9f2}
+.ao-kosong{font-size:12px;color:var(--ao-redup);padding:6px}
 /* jendela penjelasan */
-.tim-modal{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;justify-content:center;background:rgba(3,8,16,.55);backdrop-filter:blur(3px)}
+.tim-modal{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;justify-content:center;background:rgba(8,9,14,.55);backdrop-filter:blur(3px)}
 .tim-modal[hidden]{display:none}
-.tim-kartu{width:min(520px,100%);max-height:80vh;overflow:auto;margin:0 0 env(safe-area-inset-bottom,0);border-radius:18px 18px 0 0;padding:16px 16px 20px;
-  background:linear-gradient(180deg,#0e1a2c,#0a1220);color:#dff7ff;border:1px solid #1f4566;box-shadow:0 -10px 40px rgba(34,227,255,.18)}
+.tim-kartu{width:min(520px,100%);max-height:80vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px 20px;background:#2c2e40;color:#ececf4;border:1px solid #55597a;box-shadow:0 -10px 40px rgba(0,0,0,.4)}
 @media (min-width:700px){.tim-modal{align-items:center}.tim-kartu{border-radius:18px}}
-.tim-kartu h4{margin:0 0 2px;font-size:16px;display:flex;align-items:center;gap:8px}
-.tim-kartu .sub{font-size:12px;color:#8fb7c6}
+.tim-kartu h4{margin:0 0 2px;font-size:16px;display:flex;align-items:center;gap:8px;font-family:Georgia,serif}
+.tim-kartu .sub{font-size:12px;color:#a9acc3}
 .tim-kartu dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:12px 0;font-size:13px}
-.tim-kartu dt{color:#8fb7c6}.tim-kartu dd{margin:0;word-break:break-word}
-.tim-kartu p{font-size:13px;line-height:1.5;color:#cfeaf3;margin:8px 0}
-.tim-tutup{float:right;background:transparent;border:1px solid #2a5a7a;color:#9ff3ff;border-radius:999px;padding:4px 12px;font-size:12px;cursor:pointer}
-.tim-alur{margin-top:12px;display:grid;gap:8px}
-.tim-g{border:1px solid var(--garis);border-radius:12px;padding:10px 12px;background:var(--bg1)}
-.tim-g b{font-size:13px}.tim-g p{margin:4px 0 0;font-size:12px;color:var(--label)}
-.tim-langkah{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-.tim-langkah span{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--garis);color:var(--label)}
-.tim-langkah span.ok{border-color:var(--hijau);color:var(--hijau)}.tim-langkah span.jalan{border-color:var(--biru);color:var(--biru)}
-.vonis{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:6px}
-.vonis.LOLOS{background:var(--hijau);color:#fff}.vonis.GAGAL,.vonis.CACAT{background:var(--merah);color:#fff}.vonis.EKSPLORATIF,.vonis.BELUM{background:var(--kuning);color:#111}
-.kronos-bar{height:8px;border-radius:6px;background:var(--bglbl);overflow:hidden;margin-top:6px}.kronos-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--biru),var(--hijau))}
-.rapat{width:100%;height:auto;display:block;margin-top:2px;overflow:visible}
-.rapat .kursi{cursor:pointer}
-.rapat .kursi:focus-visible{outline:none}.rapat .kursi:focus-visible .rk-kepala ellipse{stroke:#fff;stroke-width:2}
-.rk-kepala{transform-box:fill-box;transform-origin:50% 100%;animation:tim-angguk 3.2s ease-in-out infinite}
-.rk-tk{transform-box:fill-box;transform-origin:50% 0;animation:tim-ketikK 1.4s ease-in-out infinite alternate}
-.rk-tn{transform-box:fill-box;transform-origin:50% 0;animation:tim-ketikN 1.4s ease-in-out infinite alternate .7s}
-.kursi.bekerja .rk-tk{animation:tim-bicara .45s ease-in-out infinite alternate}
-.kursi.bekerja .rk-tn{animation-duration:.6s}
-.kursi.bekerja .rk-kepala{animation-duration:1.4s}
-.rk-mata{transform-box:fill-box;transform-origin:50% 50%;animation:tim-kedipMata 4.5s infinite}
-.rk-inti{transform-box:fill-box;transform-origin:50% 50%;animation:tim-denyut 1.8s ease-in-out infinite}
-.rk-balon{animation:tim-melayang 2.4s ease-in-out infinite}
-.meja-holo .cincin1{transform-box:fill-box;transform-origin:50% 50%;animation:tim-putar 10s linear infinite}
-.meja-holo .cincin2{transform-box:fill-box;transform-origin:50% 50%;animation:tim-putar 16s linear infinite reverse}
-.meja-holo .sinar{animation:tim-kedip 2.6s ease-in-out infinite}
-@keyframes tim-bicara{from{transform:rotate(-28deg)}to{transform:rotate(-8deg)}}
-.notulen{margin-top:10px;display:grid;gap:6px}
-.notulen button{all:unset;cursor:pointer;display:flex;gap:8px;align-items:flex-start;padding:7px 9px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(34,227,255,.18);font-size:12px;color:#d6f3fb;line-height:1.35}
-.notulen button:focus-visible{outline:2px solid #22e3ff}
-.notulen b{color:#fff;white-space:nowrap}
-.notulen .lampu-st{flex:0 0 7px;margin-top:5px}
-.notulen .bekerja .lampu-st{background:#22e3ff;box-shadow:0 0 8px #22e3ff;animation:tim-kedip 1s ease-in-out infinite}
-.notulen .selesai .lampu-st{background:#3ddc97;box-shadow:0 0 8px #3ddc97}
-.notulen .menunggu .lampu-st{background:#ffb74d;box-shadow:0 0 6px #ffb74d}
-.notulen-judul{font-size:11px;letter-spacing:.12em;color:#7fd8ec;margin:12px 2px 2px}
-/* ==== /TAB TIM RISET v2 ==== */
+.tim-kartu dt{color:#a9acc3}.tim-kartu dd{margin:0;word-break:break-word}
+.tim-kartu p{font-size:13px;line-height:1.5;color:#dcdeea;margin:8px 0}
+.tim-tutup{float:right;background:transparent;border:1px solid #6a6e8c;color:#fff;border-radius:999px;padding:4px 12px;font-size:12px;cursor:pointer}
+/* ==== /TAB TIM RISET v4 ==== */
 </style>
 </head>
 <body>
@@ -1053,7 +1014,7 @@ td.kosong::before{display:none}
     <div class="kantor" id="timKantor"></div>
     <div class="tim-alur" id="timAlur"></div>
     <div class="tim-modal" id="timModal" hidden role="dialog" aria-modal="true" aria-label="Penjelasan agen"><div class="tim-kartu"></div></div>
-    <p style="font-size:11px;color:var(--label);margin:10px 2px">Ketuk robot atau neural hub untuk penjelasan. Status dikirim laptop tiap ±1 menit (pemantau research/dewan_pantau.cjs). Laptop mati/tidur = status berhenti diperbarui. Tim hanya meneliti; bot tidak diubah tanpa keputusan Anda.</p>
+    
   </div>
 
   <div class="hal info" id="halInfo" hidden>
@@ -2565,159 +2526,185 @@ function pindahHal(h) {
 }
 
 document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click", () => pindahHal(b.dataset.hal)));
-// ==== TAB TIM v2 (2026-10-04): ruang kerja agen AI futuristik — robot bergerak, klik = penjelasan; data dari cabang GitHub "status" ====
+// ==== TAB TIM v4 (2026-10-04): AGENTS OFFICE isometrik — departemen = lantai berwarna berisi meja & agen, The Brain di tengah,
+// kartu statistik melayang, panel Task Status, zoom. Data: cabang GitHub "status" (research/dewan_pantau.cjs). ====
 (() => {
   const URL_TIM = "https://raw.githubusercontent.com/AmonkShark/Amonk/status/dewan_status.json";
   const PERAN = {
-    pencari: { ikon: "🔎", nama: "Pencari gagasan", warna: "#22e3ff", tugas: "Mencari gagasan dari DATA yang belum pernah diuji di AMONK (bukan mengulang 730 aturan yang sudah mati), lalu benar-benar membuka sumber datanya untuk membuktikan data itu gratis dan cukup panjang." },
-    perancang: { ikon: "📐", nama: "Perancang", warna: "#7c5cff", tugas: "Mengunduh data dan menulis PRADAFTAR sebelum melihat hasil: klaim, cara masuk tanpa bocoran masa depan, pembanding acak, ambang lolos berupa angka. Sesudah ditulis, ambang tidak boleh diubah." },
-    penguji: { ikon: "🧪", nama: "Penguji", warna: "#3ddc97", tugas: "Menjalankan uji persis sesuai pradaftar, per kelompok data dan per periode, lalu mencetak angka mentah dan vonis menurut ambang." },
-    pembantah: { ikon: "🛡️", nama: "Pembantah", warna: "#ff6b8b", tugas: "Tim merah: berusaha MEMATIKAN hasil — membaca kode baris demi baris, menghitung ulang angka kunci, mencari bocoran data, pembanding salah, efek bulan pasar naik, dan tumpang tindih dengan temuan lama. Vonisnya yang dipakai." },
-    kronos: { ikon: "🧠", nama: "Kronos (laptop)", warna: "#ffb74d", tugas: "Model AI lilin dari GitHub (shiyu-coder/Kronos) yang meramal 7 hari ke depan untuk tiap koin, tiap minggu Okt 2025 – Sep 2026. Berjalan di CPU laptop; dinilai sesudah 100%." },
+    pencari: { ikon: "🔎", nama: "Pencari gagasan", tugas: "Mencari gagasan dari data atau sudut yang belum pernah diuji di AMONK (tidak mengulang 730+ aturan yang sudah mati), bergantian timeframe 1H→4H→1D→1W, dan benar-benar membuka sumber datanya untuk membuktikan data itu gratis dan cukup panjang." },
+    perancang: { ikon: "📐", nama: "Perancang", tugas: "Mengunduh data dan menulis PRADAFTAR sebelum melihat hasil: klaim, cara masuk tanpa bocoran masa depan, pembanding acak, ambang lolos berupa angka. Sesudah ditulis, ambang tidak boleh diubah." },
+    penguji: { ikon: "🧪", nama: "Penguji", tugas: "Menjalankan uji persis sesuai pradaftar, per kelompok data dan per periode, lalu mencetak angka mentah dan vonis menurut ambang." },
+    pembantah: { ikon: "🛡️", nama: "Pembantah", tugas: "Tim merah: berusaha MEMATIKAN hasil — membaca kode baris demi baris, menghitung ulang angka kunci, mencari bocoran data, pembanding salah, efek bulan pasar naik, dan tumpang tindih dengan temuan lama. Vonisnya yang dipakai." },
+    kronos: { ikon: "🧠", nama: "Kronos (laptop)", tugas: "Model AI lilin dari GitHub (shiyu-coder/Kronos) yang meramal 7 hari ke depan untuk tiap koin, tiap minggu Okt 2025 – Sep 2026, di CPU laptop (4 proses). Dinilai sesudah 100%; Anda dikabari apa pun hasilnya." },
   };
+  const DEP = [   // posisi sudut lantai di koordinat dunia isometrik (x, y), ukuran 150 x 110
+    { id: "pencari", judul: "GAGASAN", x: -290, y: -290, warna: "#3e9e85" },
+    { id: "perancang", judul: "PRADAFTAR", x: 60, y: -330, warna: "#7d6bd6" },
+    { id: "penguji", judul: "UJI", x: 150, y: -60, warna: "#4f86c9" },
+    { id: "pembantah", judul: "BANTAH", x: -120, y: 140, warna: "#b85a6a" },
+    { id: "kronos", judul: "KRONOS", x: -340, y: 40, warna: "#b39a45" },
+  ];
+  const LW = 150, LD = 110, TEBAL = 14;
   const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const lalu = iso => { if (!iso) return "—"; const m = Math.round((Date.now() - Date.parse(iso)) / 60e3); return m < 1 ? "baru saja" : m < 60 ? m + " mnt lalu" : m < 1440 ? Math.round(m / 60) + " jam lalu" : Math.round(m / 1440) + " hari lalu"; };
   const jam = iso => iso ? new Date(iso).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—";
-  // satu stasiun kerja: hologram + robot + meja (SVG 160x150), warna aksen per peran
-  const robot = (w, st, uid) => {
-    const holo = st === "selesai" ? "#3ddc97" : st === "menunggu" ? "#ffb74d" : w;
-    return `<svg viewBox="0 0 160 150" aria-hidden="true">
-  <defs><radialGradient id="pend${uid}" cx="50%" cy="100%" r="70%"><stop offset="0" stop-color="${w}" stop-opacity=".35"/><stop offset="1" stop-color="${w}" stop-opacity="0"/></radialGradient>
-  <linearGradient id="badan${uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f7fb"/><stop offset="1" stop-color="#b9c6d6"/></linearGradient></defs>
-  <ellipse cx="80" cy="138" rx="70" ry="10" fill="url(#pend${uid})"/>
-  <g class="holo"><path d="M22 8 L138 8 L132 52 L28 52 Z" fill="${holo}" fill-opacity=".10" stroke="${holo}" stroke-opacity=".8"/>
-    <g class="holo-baris" fill="${holo}" fill-opacity=".85"><rect x="32" y="16" height="3" rx="1.5" style="--p:70px"/><rect x="32" y="24" height="3" rx="1.5" style="--p:48px"/><rect x="32" y="32" height="3" rx="1.5" style="--p:84px"/><rect x="32" y="40" height="3" rx="1.5" style="--p:36px"/></g>
-    <path d="M106 44 l7-9 6 5 8-13" fill="none" stroke="${holo}" stroke-width="1.6" stroke-opacity=".9"/>
-    <line x1="80" y1="52" x2="80" y2="58" stroke="${holo}" stroke-opacity=".5"/></g>
-  <rect x="58" y="86" width="44" height="34" rx="10" fill="#1a2738"/>
-  <g class="rb-kepala"><rect x="77" y="82" width="6" height="6" fill="#8fa0b4"/>
-    <ellipse cx="80" cy="70" rx="15" ry="16" fill="url(#badan${uid})" stroke="#9fb0c4" stroke-width=".8"/>
-    <circle cx="65" cy="70" r="3.2" fill="#c9d4e2" stroke="${w}" stroke-width="1"/><circle cx="95" cy="70" r="3.2" fill="#c9d4e2" stroke="${w}" stroke-width="1"/>
-    <rect x="68" y="64" width="24" height="10" rx="5" fill="#0b1626"/>
-    <g class="rb-mata"><circle cx="75" cy="69" r="2.1" fill="${w}"/><circle cx="85" cy="69" r="2.1" fill="${w}"/></g></g>
-  <path d="M62 92 Q80 86 98 92 L96 116 Q80 120 64 116 Z" fill="url(#badan${uid})" stroke="#9fb0c4" stroke-width=".8"/>
-  <circle class="rb-inti" cx="80" cy="101" r="4.2" fill="${st === "selesai" ? "#3ddc97" : w}"/>
-  <g class="rb-tangan-k"><path d="M63 94 Q56 104 66 115" fill="none" stroke="#c7d2e0" stroke-width="5" stroke-linecap="round"/><circle cx="66" cy="115" r="3" fill="#e9eef5"/></g>
-  <g class="rb-tangan-n"><path d="M97 94 Q104 104 94 115" fill="none" stroke="#c7d2e0" stroke-width="5" stroke-linecap="round"/><circle cx="94" cy="115" r="3" fill="#e9eef5"/></g>
-  <rect x="62" y="114" width="36" height="4" rx="1.5" fill="#2b3a4f" stroke="${w}" stroke-opacity=".5" stroke-width=".6"/>
-  <rect x="12" y="118" width="136" height="9" rx="3" fill="#162234" stroke="${w}" stroke-opacity=".9"/>
-  <rect x="22" y="127" width="116" height="10" fill="#0f1928"/>
-  <path class="partikel" d="M18 137 C 40 145, 120 145, 142 137" fill="none" stroke="${w}" stroke-width="1.4" stroke-dasharray="4 8" stroke-opacity=".8"/>
-  ${st === "selesai" ? `<g><circle cx="128" cy="76" r="9" fill="#3ddc97"/><path d="M123.5 76 l3 3 6-6" fill="none" stroke="#06221a" stroke-width="2.2" stroke-linecap="round"/></g>` : ""}
-</svg>`;
-  };
-  // ruang rapat: robot duduk di busur belakang meja oval (menghadap penonton), hologram di tengah meja
   const potong = (t, n) => { t = String(t || ""); return t.length > n ? t.slice(0, n - 1) + "…" : t; };
-  function rapatSvg(L, pctK, ringkas) {
-    const W = 260, H = 215, cx = 130, cy = 150, rx = 122, ry = 46, n = Math.max(L.length, 1);
-    const kursi = L.map((s, i) => { const a = Math.PI * (1.02 + 0.96 * (n === 1 ? 0.5 : i / (n - 1))), x = cx + rx * Math.cos(a), y = cy + ry * Math.sin(a) - 8;
-      const skala = 1.05 + 0.3 * ((y - (cy - ry)) / (2 * ry)); return { s, i, x, y, k: skala }; }).sort((p, q) => p.y - q.y);
-    const robotKecil = (o) => { const P = PERAN[o.s.peran], w = P.warna, st = o.s.status;
-      return `<g class="kursi ${st}" data-i="${o.i}" tabindex="0" role="button" aria-label="${esc(o.s.judul)}: ${esc(o.s.aksi)}" transform="translate(${o.x.toFixed(1)},${o.y.toFixed(1)}) scale(${o.k.toFixed(2)})">
-        <rect x="-15" y="-30" width="30" height="34" rx="8" fill="#16243a" stroke="${w}" stroke-opacity=".35"/>
-        <path d="M-12 -14 Q0 -19 12 -14 L11 6 Q0 9 -11 6 Z" fill="#dfe6ef" stroke="#9fb0c4" stroke-width=".6"/>
-        <circle class="rk-inti" cx="0" cy="-5" r="2.8" fill="${st === "selesai" ? "#3ddc97" : w}"/>
-        <g class="rk-tk"><path d="M-11 -13 Q-17 -4 -9 4" fill="none" stroke="#c7d2e0" stroke-width="3.4" stroke-linecap="round"/></g>
-        <g class="rk-tn"><path d="M11 -13 Q17 -4 9 4" fill="none" stroke="#c7d2e0" stroke-width="3.4" stroke-linecap="round"/></g>
-        <g class="rk-kepala"><ellipse cx="0" cy="-27" rx="10" ry="11" fill="#eef3f8" stroke="#9fb0c4" stroke-width=".7"/>
-          <circle cx="-10" cy="-27" r="2.2" fill="#c9d4e2" stroke="${w}" stroke-width=".8"/><circle cx="10" cy="-27" r="2.2" fill="#c9d4e2" stroke="${w}" stroke-width=".8"/>
-          <rect x="-8" y="-31" width="16" height="7" rx="3.5" fill="#0b1626"/>
-          <g class="rk-mata"><circle cx="-3.4" cy="-27.5" r="1.5" fill="${w}"/><circle cx="3.4" cy="-27.5" r="1.5" fill="${w}"/></g>
-          <line x1="0" y1="-38" x2="0" y2="-42" stroke="#9fb0c4" stroke-width="1"/><circle cx="0" cy="-43" r="1.6" fill="${w}"/></g>
-        ${st === "selesai" ? '<g transform="translate(12,-38)"><circle r="5" fill="#3ddc97"/><path d="M-2.5 0 l1.8 1.8 3.4-3.4" fill="none" stroke="#06221a" stroke-width="1.6" stroke-linecap="round"/></g>' : ""}
-        <text x="0" y="15" text-anchor="middle" font-size="9">${P.ikon}</text><text x="0" y="23" text-anchor="middle" font-size="5.6" fill="#cfefff" font-weight="700">${esc((o.s.judul.match(/#d+/) || [""])[0])}</text></g>`; };
-    const balon = L.map((s, i) => ({ s, i })).filter(o => o.s.status === "bekerja").map((o, j) => { const k = kursi.find(x => x.i === o.i); const t = potong(o.s.aksi, 26), lb = Math.max(56, t.length * 3.9 + 12);
-      const bx = Math.min(W - lb - 4, Math.max(4, k.x - lb / 2)), by = k.y - 62 * k.k - 6 - (j % 2) * 16;
-      return `<g class="rk-balon"><rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="${lb.toFixed(1)}" height="13" rx="6.5" fill="#0d2238" stroke="${PERAN[o.s.peran].warna}" stroke-opacity=".9"/>
-        <path d="M${(k.x - 3).toFixed(1)} ${(by + 13).toFixed(1)} l3 4 l3 -4 z" fill="#0d2238" stroke="${PERAN[o.s.peran].warna}" stroke-opacity=".9"/>
-        <text x="${(bx + lb / 2).toFixed(1)}" y="${(by + 9).toFixed(1)}" text-anchor="middle" font-size="7" fill="#e6fbff">${esc(t)}</text></g>`; }).join("");
-    return `<svg class="rapat" viewBox="0 0 ${W} ${H}" role="img" aria-label="Ruang rapat agen AI">
-      <defs><radialGradient id="mejaG" cx="50%" cy="40%" r="70%"><stop offset="0" stop-color="#17345a"/><stop offset="1" stop-color="#0b1626"/></radialGradient>
-        <radialGradient id="sinarG" cx="50%" cy="100%" r="80%"><stop offset="0" stop-color="#22e3ff" stop-opacity=".45"/><stop offset="1" stop-color="#22e3ff" stop-opacity="0"/></radialGradient></defs>
-      ${kursi.map(robotKecil).join("")}
-      <ellipse cx="${cx}" cy="${cy + 6}" rx="${rx - 6}" ry="${ry - 10}" fill="url(#mejaG)" stroke="#22e3ff" stroke-width="1.6" stroke-opacity=".85"/>
-      <ellipse cx="${cx}" cy="${cy + 6}" rx="${rx - 20}" ry="${ry - 22}" fill="none" stroke="#7c5cff" stroke-opacity=".35" stroke-dasharray="3 6"/>
-      <path d="M${cx - rx + 6} ${cy + 6} Q ${cx - rx + 10} ${cy + 46} ${cx} ${cy + 48} Q ${cx + rx - 10} ${cy + 46} ${cx + rx - 6} ${cy + 6}" fill="#0a1424" stroke="#22e3ff" stroke-opacity=".5"/>
-      <g class="meja-holo"><path class="sinar" d="M${cx - 26} ${cy + 8} L${cx - 40} ${cy - 66} L${cx + 40} ${cy - 66} L${cx + 26} ${cy + 8} Z" fill="url(#sinarG)"/>
-        <g transform="translate(${cx},${cy - 34})"><g class="cincin1"><circle r="24" fill="none" stroke="#22e3ff" stroke-width="1.6" stroke-dasharray="11 8"/></g>
-          <g class="cincin2"><circle r="17" fill="none" stroke="#7c5cff" stroke-width="1.6" stroke-dasharray="5 5"/></g>
-          <circle r="12" fill="#0d2238" stroke="#22e3ff" stroke-opacity=".6"/>
-          <text y="1.5" text-anchor="middle" font-size="8.5" font-weight="700" fill="#9ff3ff">${pctK}%</text><text y="9" text-anchor="middle" font-size="4.6" fill="#9fd8e6">KRONOS</text></g>
-        <text x="${cx}" y="${cy + 2}" text-anchor="middle" font-size="7" fill="#9fd8e6">${esc(ringkas)}</text></g>
-      ${balon}</svg>`;
+  const P = (x, y, z = 0) => [(x - y) * 0.866, (x + y) * 0.5 - z];
+  const pts = a => a.map(p => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+  const gelap = (hex, f) => { const n = parseInt(hex.slice(1), 16); const c = [n >> 16, (n >> 8) & 255, n & 255].map(v => Math.round(v * f)); return "rgb(" + c.join(",") + ")"; };
+  const RAMBUT = ["#3b2a20", "#6b3d1e", "#1f1f24", "#8a4b2a", "#2d2016", "#4a3020"];
+  let T = null, tAkhir = 0, MEJA = [], TUGAS = [], filter = "semua", VB = null, VB0 = null;
+
+  function kumpulMeja() {
+    const A = (T && T.agen) || [], G = (T && T.gagasan) || [], K = T && T.kronos, M = {};
+    for (const d of DEP) M[d.id] = [];
+    for (const a of A) { const no = +((a.label.match(/-(\d+)$/) || [])[1] || 0); if (!M[a.peran]) continue;
+      M[a.peran].push({ peran: a.peran, status: a.status, judul: PERAN[a.peran].nama + (no ? " #" + no : ""), label: a.peran === "pencari" ? "Pencari" : (DEP.find(d => d.id === a.peran).judul[0] + DEP.find(d => d.id === a.peran).judul.slice(1).toLowerCase()) + (no ? " #" + no : ""), aksi: a.aksi, langkah: a.langkah, mulai: a.mulai, aksiT: a.aksiT, gagasan: no ? G.find(g => g.no === no) : null }); }
+    if (K) { const pct = Math.round(100 * K.jadi / K.total), st = K.jadi >= K.total ? "selesai" : K.hidup ? "bekerja" : "menunggu";
+      for (let s = 0; s < 4; s++) M.kronos.push({ peran: "kronos", status: st, judul: "Kronos proses " + (s + 1), label: "Shard " + (s + 1), aksi: st === "selesai" ? "ramalan selesai — siap dinilai" : st === "bekerja" ? `meramal… ${pct}% (${K.jadi}/${K.total})` : "berhenti — laptop tidur/mati?", aksiT: K.terakhir }); }
+    for (const d of DEP) while (M[d.id].length < 2) M[d.id].push({ peran: d.id, status: "menunggu", judul: PERAN[d.id].nama, label: "kosong", aksi: "menunggu giliran" });
+    return M;
   }
-  let T = null, tAkhir = 0, POS = [];
-  async function muatTim() {
-    if (Date.now() - tAkhir < 15000 && T) return gambarTim();
-    try { const r = await fetch(URL_TIM + "?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) throw new Error("HTTP " + r.status); T = await r.json(); tAkhir = Date.now(); }
-    catch (e) { $("timWaktu").textContent = "status belum tersedia (" + e.message + ")"; return; }
-    gambarTim();
+  function gambarPeta() {
+    const M = kumpulMeja(), A = (T && T.agen) || [], G = (T && T.gagasan) || [], K = T && T.kronos, R = (T && T.riwayat) || { diuji: 0, lolos: 0, gagal: 0 };
+    MEJA = []; let svg = "", garis = "", kartu = "", meja = [];
+    const bb = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 }, catat = (x, y) => { bb.x0 = Math.min(bb.x0, x); bb.y0 = Math.min(bb.y0, y); bb.x1 = Math.max(bb.x1, x); bb.y1 = Math.max(bb.y1, y); };
+    // The Brain (tengah)
+    const bx = -50, by = -50, bw = 100, bd = 100, pusat = P(bx + bw / 2, by + bd / 2);
+    // jalan / garis titik-titik dari tiap lantai ke otak
+    for (const d of DEP) { const c = P(d.x + LW / 2, d.y + LD / 2), mx = (c[0] + pusat[0]) / 2, my = (c[1] + pusat[1]) / 2 - 60;
+      const aktif = (M[d.id] || []).some(m => m.status === "bekerja");
+      garis += `<path class="ao-garis" d="M${c[0].toFixed(1)} ${(c[1] - 20).toFixed(1)} Q ${mx.toFixed(1)} ${my.toFixed(1)} ${pusat[0].toFixed(1)} ${(pusat[1] - 26).toFixed(1)}" fill="none" stroke="${aktif ? d.warna : "#7d8099"}" stroke-width="${aktif ? 1.8 : 1.1}" stroke-opacity="${aktif ? .95 : .55}"/>`;
+      garis += `<polygon points="${pts([P(d.x + LW / 2 - 9, d.y + LD / 2), P(bx + bw / 2 - 9, by + bd / 2), P(bx + bw / 2 + 9, by + bd / 2), P(d.x + LW / 2 + 9, d.y + LD / 2)])}" fill="#3a3c4c" opacity=".85"/>`; }
+    svg += `<g>${DEP.map(d => `<polygon points="${pts([P(d.x + LW / 2 - 9, d.y + LD / 2), P(bx + bw / 2 - 9, by + bd / 2), P(bx + bw / 2 + 9, by + bd / 2), P(d.x + LW / 2 + 9, d.y + LD / 2)])}" fill="#3b3d4e"/>`).join("")}</g>`;
+    const lantai = (x, y, w, dd, warna, kelas, data) => { const t = [P(x, y), P(x + w, y), P(x + w, y + dd), P(x, y + dd)];
+      [P(x, y), P(x + w, y), P(x + w, y + dd, -TEBAL), P(x, y + dd, -TEBAL)].concat(t).forEach(p => catat(p[0], p[1]));
+      return `<g class="${kelas}" ${data}><polygon points="${pts([P(x, y + dd), P(x + w, y + dd), P(x + w, y + dd, -TEBAL), P(x, y + dd, -TEBAL)])}" fill="${gelap(warna, .55)}"/>
+        <polygon points="${pts([P(x + w, y), P(x + w, y + dd), P(x + w, y + dd, -TEBAL), P(x + w, y, -TEBAL)])}" fill="${gelap(warna, .42)}"/>
+        <polygon points="${pts(t)}" fill="${warna}"/></g>`; };
+    svg += lantai(bx, by, bw, bd, "#3f4152", "ao-lantai", 'data-dep="brain"');
+    // jaringan otak
+    const nod = []; for (let i = 0; i < 14; i++) { const a = i * 2.39996, r = 8 + (i % 5) * 6; nod.push([pusat[0] + Math.cos(a) * r * 1.4, pusat[1] - 26 + Math.sin(a) * r * .8]); }
+    let jar = ""; for (let i = 0; i < nod.length; i++) for (let j = i + 1; j < nod.length; j++) if (Math.hypot(nod[i][0] - nod[j][0], nod[i][1] - nod[j][1]) < 22) jar += `<line x1="${nod[i][0].toFixed(1)}" y1="${nod[i][1].toFixed(1)}" x2="${nod[j][0].toFixed(1)}" y2="${nod[j][1].toFixed(1)}" stroke="#cfd3ea" stroke-opacity=".55" stroke-width=".6"/>`;
+    jar += nod.map((n, i) => `<circle class="ao-otak-titik" style="animation-delay:${(i * .17).toFixed(2)}s" cx="${n[0].toFixed(1)}" cy="${n[1].toFixed(1)}" r="1.6" fill="#f2f3fb"/>`).join("");
+    svg += `<g class="ao-otak">${jar}</g>`;
+    const memo = (T && T.memori) || 0;
+    kartu += `<g class="ao-lantai" data-dep="brain"><rect x="${(pusat[0] - 66).toFixed(1)}" y="${(pusat[1] - 78).toFixed(1)}" width="132" height="20" rx="10" fill="#33364a" stroke="#6a6e8c"/>
+      <circle cx="${(pusat[0] - 54).toFixed(1)}" cy="${(pusat[1] - 68).toFixed(1)}" r="3" fill="#e9e9f2"/><text x="${(pusat[0] - 46).toFixed(1)}" y="${(pusat[1] - 64.5).toFixed(1)}" font-size="9" fill="#e9e9f2" font-weight="700" letter-spacing=".08em">THE BRAIN · ${memo} CATATAN</text></g>`;
+    // tiap departemen
+    for (const d of DEP) {
+      const L = M[d.id], aktif = L.some(m => m.status === "bekerja");
+      svg += lantai(d.x, d.y, LW, LD, d.warna, "ao-lantai", `data-dep="${d.id}"`);
+      L.slice(0, 6).forEach((m, k) => { const col = k % 3, row = Math.floor(k / 3), mx = d.x + 18 + col * 44, my = d.y + 16 + row * 50; meja.push({ m, d, mx, my, i: MEJA.length }); MEJA.push(m); });
+      const c = P(d.x + LW / 2, d.y), n = L.filter(m => m.label !== "kosong").length, jl = L.filter(m => m.status === "bekerja").length, sl = L.filter(m => m.status === "selesai" && m.label !== "kosong").length;
+      const berikut = d.id === "kronos" || d.id === "pencari" ? 0 : Math.max(0, G.length - jl - sl);
+      let m1 = ["", ""], m2 = ["", ""];
+      if (d.id === "pencari") { m1 = ["GAGASAN PUTARAN INI", G.length]; m2 = ["USULAN USER ANTRE", T && T.usulan ? T.usulan.total - T.usulan.selesai : 0]; }
+      if (d.id === "perancang") { m1 = ["PRADAFTAR DITULIS", sl]; m2 = ["TOTAL DIUJI TIM", R.diuji]; }
+      if (d.id === "penguji") { m1 = ["UJI SELESAI", sl]; m2 = ["TF ROTASI", "1H→1W"]; }
+      if (d.id === "pembantah") { m1 = ["LOLOS (SEMUA)", R.lolos + (R.eksploratif ? " +" + R.eksploratif + " eks" : "")]; m2 = ["GAGAL (SEMUA)", R.gagal]; }
+      if (d.id === "kronos") { m1 = ["RAMALAN", K ? K.jadi + "/" + K.total : "—"]; m2 = ["SELESAI", K ? Math.round(100 * K.jadi / K.total) + "%" : "—"]; }
+      const kx = c[0] - 62, ky = c[1] - 128; catat(kx, ky); catat(kx + 124, ky + 82);
+      kartu += `<g class="ao-lantai" data-dep="${d.id}"><rect x="${kx.toFixed(1)}" y="${ky.toFixed(1)}" width="124" height="82" rx="9" fill="#34374b" fill-opacity=".96" stroke="${aktif ? "#9ff3e0" : "#5b5f7c"}" stroke-width="${aktif ? 1.6 : 1}"${aktif ? ' filter="url(#aoGlow)"' : ""}/>
+        <circle cx="${(kx + 10).toFixed(1)}" cy="${(ky + 11).toFixed(1)}" r="3" fill="${aktif ? "#9ff3e0" : d.warna}"/><text x="${(kx + 17).toFixed(1)}" y="${(ky + 14).toFixed(1)}" font-size="8.5" font-weight="800" fill="#e9e9f2" letter-spacing=".1em">${d.judul}</text>
+        <text x="${(kx + 10).toFixed(1)}" y="${(ky + 38).toFixed(1)}" font-size="22" font-family="Georgia,serif" fill="#f4f4fa">${n}</text><text x="${(kx + 28).toFixed(1)}" y="${(ky + 36).toFixed(1)}" font-size="8" font-weight="800" fill="#e9e9f2" letter-spacing=".1em">AGEN</text>
+        <line x1="${(kx + 8).toFixed(1)}" y1="${(ky + 43).toFixed(1)}" x2="${(kx + 116).toFixed(1)}" y2="${(ky + 43).toFixed(1)}" stroke="#55597a"/>
+        <text x="${(kx + 10).toFixed(1)}" y="${(ky + 53).toFixed(1)}" font-size="6.4" fill="#c6c8da" letter-spacing=".06em">${m1[0]}</text><text x="${(kx + 114).toFixed(1)}" y="${(ky + 53).toFixed(1)}" font-size="8.5" font-family="Georgia,serif" text-anchor="end" fill="#f4f4fa">${esc(m1[1])}</text>
+        <text x="${(kx + 10).toFixed(1)}" y="${(ky + 63).toFixed(1)}" font-size="6.4" fill="#c6c8da" letter-spacing=".06em">${m2[0]}</text><text x="${(kx + 114).toFixed(1)}" y="${(ky + 63).toFixed(1)}" font-size="8.5" font-family="Georgia,serif" text-anchor="end" fill="#f4f4fa">${esc(m2[1])}</text>
+        <text x="${(kx + 10).toFixed(1)}" y="${(ky + 76).toFixed(1)}" font-size="6.6" font-weight="800" fill="#e9e9f2" letter-spacing=".05em">JALAN ${jl}   BERIKUT ${berikut}   SELESAI ${sl}</text></g>`;
+    }
+    // meja (urut belakang -> depan)
+    meja.sort((a, b) => (a.mx + a.my) - (b.mx + b.my));
+    for (const o of meja) { const { m, mx, my } = o, st = m.status, w = 30, dd = 16, h = 11, rambut = RAMBUT[o.i % RAMBUT.length];
+      const layar = st === "bekerja" ? "#f4f6fb" : st === "selesai" ? "#1d2a24" : "#2a2c38";
+      const mon = [P(mx + 5, my + 2, h), P(mx + 25, my + 2, h), P(mx + 25, my + 2, h + 17), P(mx + 5, my + 2, h + 17)];
+      const lab = P(mx + 15, my + 2, h + 25), badan = P(mx + 15, my + 27, 9), kpl = P(mx + 15, my + 27, 19), kursi = P(mx + 15, my + 30, 0);
+      const teks = potong(m.label, 13), lw = teks.length * 4.6 + 12;
+      svg += `<g class="ao-meja ${st}" data-i="${o.i}" tabindex="0" role="button" aria-label="${esc(m.judul)}: ${esc(m.aksi)}">
+        <ellipse cx="${kursi[0].toFixed(1)}" cy="${(kursi[1] + 2).toFixed(1)}" rx="9" ry="4.5" fill="#000" fill-opacity=".22"/>
+        <polygon points="${pts([P(mx, my + dd, h), P(mx + w, my + dd, h), P(mx + w, my + dd, 0), P(mx, my + dd, 0)])}" fill="#1f2029"/>
+        <polygon points="${pts([P(mx + w, my, h), P(mx + w, my + dd, h), P(mx + w, my + dd, 0), P(mx + w, my, 0)])}" fill="#2b2c36"/>
+        <polygon points="${pts([P(mx, my, h), P(mx + w, my, h), P(mx + w, my + dd, h), P(mx, my + dd, h)])}" fill="#e7d3ac"/>
+        <polygon points="${pts(mon)}" fill="${layar}" stroke="#16171d" stroke-width="1"/>
+        ${st === "bekerja" ? [0, 1, 2].map(r => { const a = P(mx + 7, my + 2, h + 14 - r * 4), b = P(mx + 7 + 14 - r * 3, my + 2, h + 14 - r * 4); return `<line class="ao-layar-baris" style="transform-box:fill-box;transform-origin:0 50%;animation-delay:${r * .3}s" x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}" stroke="${["#4f86c9", "#3e9e85", "#b85a6a"][r]}" stroke-width="1.6"/>`; }).join("") : ""}
+        ${st === "selesai" ? `<path d="M${(P(mx + 11, my + 2, h + 9)[0]).toFixed(1)} ${(P(mx + 11, my + 2, h + 9)[1]).toFixed(1)} l2.5 2.5 l5 -5" fill="none" stroke="#4ad49a" stroke-width="1.6"/>` : ""}
+        <rect x="${(kursi[0] - 6).toFixed(1)}" y="${(kursi[1] - 14).toFixed(1)}" width="12" height="12" rx="3" fill="#7f8592"/>
+        <ellipse cx="${badan[0].toFixed(1)}" cy="${badan[1].toFixed(1)}" rx="5.2" ry="6.2" fill="${st === "menunggu" ? "#a9aec2" : "#e7a9b2"}"/>
+        <g class="ao-kepala"><circle cx="${kpl[0].toFixed(1)}" cy="${kpl[1].toFixed(1)}" r="5" fill="${rambut}"/></g>
+        <g class="ao-label"><rect x="${(lab[0] - lw / 2).toFixed(1)}" y="${(lab[1] - 9).toFixed(1)}" width="${lw.toFixed(1)}" height="12" rx="6" fill="#3a3d52" stroke="#71759a" stroke-width=".7"/>
+          <text x="${lab[0].toFixed(1)}" y="${(lab[1] - .8).toFixed(1)}" font-size="7" font-weight="800" fill="#eef0fa" text-anchor="middle" letter-spacing=".04em">${esc(teks.toUpperCase())}</text></g></g>`;
+      catat(lab[0] - lw / 2, lab[1] - 10); catat(lab[0] + lw / 2, kursi[1] + 6); }
+    const pad = 14; VB0 = [bb.x0 - pad, bb.y0 - pad, bb.x1 - bb.x0 + pad * 2, bb.y1 - bb.y0 + pad * 2]; if (!VB) VB = VB0.slice();
+    return `<svg viewBox="${VB.map(v => v.toFixed(1)).join(" ")}" role="img" aria-label="Kantor agen riset AMONK"><defs><filter id="aoGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>${garis}${svg}${kartu}</svg>`;
+  }
+  function kumpulTugas() {
+    const A = (T && T.agen) || [], G = (T && T.gagasan) || [], L = [];
+    for (const g of G) { const tahap = ["perancang", "penguji", "pembantah"].map(p => A.find(a => a.label === p + "-" + g.no)), sel = tahap.filter(a => a && a.status === "selesai").length;
+      const jalan = tahap.some(a => a && a.status === "bekerja"); const v = g.vonis || null;
+      L.push({ jenis: v ? (v === "LOLOS" || v === "EKSPLORATIF" ? "lolos" : "selesai") : "jalan", st: v ? v : jalan ? Math.round(100 * (sel + .5) / 3) + "%" : Math.round(100 * sel / 3) + "%", nama: g.nama, sub: "PUTARAN INI · GAGASAN #" + g.no + (v ? " · " + v : ""), pct: v ? 100 : Math.round(100 * sel / 3), ket: g.ringkas || "", baru: true }); }
+    for (const r of ((T && T.riwayat && T.riwayat.baris) || [])) { if (G.some(g => r.nama && g.nama && r.nama.slice(0, 40) === g.nama.slice(0, 40))) continue;
+      L.push({ jenis: r.vonis === "LOLOS" || r.vonis === "EKSPLORATIF" ? "lolos" : "selesai", st: r.vonis, nama: r.nama, sub: [r.tgl, r.tf, r.slot].filter(Boolean).join(" · "), pct: 100, ket: r.ket }); }
+    return L;
+  }
+  function gambarPanel() {
+    TUGAS = kumpulTugas(); const n = k => TUGAS.filter(t => k === "semua" || t.jenis === k || (k === "selesai" && t.jenis === "lolos")).length;
+    const tampil = TUGAS.filter(t => filter === "semua" || t.jenis === filter || (filter === "selesai" && t.jenis === "lolos"));
+    const kls = t => t.jenis === "jalan" ? "jalan" : t.jenis === "lolos" ? "lolos" : /GAGAL|CACAT/.test(t.st) ? "gagal" : "done";
+    return `<h4>Task Status <small>SELURUH TIM</small></h4>
+      <div class="ao-filter">${[["semua", "SEMUA"], ["jalan", "BERJALAN"], ["selesai", "SELESAI"], ["lolos", "LOLOS"]].map(([k, l]) => `<button data-f="${k}" aria-pressed="${filter === k}">${l} ${n(k)}</button>`).join("")}</div>
+      ${tampil.map((t, i) => `<div class="ao-tugas" data-t="${TUGAS.indexOf(t)}" tabindex="0" role="button"><div class="atas"><span class="st ${kls(t)}">${esc(t.st)}</span><b>${esc(potong(t.nama, 110))}</b></div>
+        <div class="sub">${esc(t.sub)}</div><div class="bar"><i style="width:${t.pct}%"></i></div></div>`).join("") || '<div class="ao-kosong">Belum ada tugas di filter ini.</div>'}`;
   }
   function gambarTim() {
     if (!T) return;
-    const A = T.agen || [], G = T.gagasan || [], K = T.kronos;
-    $("timWaktu").textContent = "diperbarui " + lalu(T.diperbarui);
-    POS = [];
-    for (const p of ["pencari", "perancang", "penguji", "pembantah"]) {
-      const daftar = A.filter(a => a.peran === p);
-      if (!daftar.length) POS.push({ peran: p, status: "menunggu", judul: PERAN[p].nama, aksi: "menunggu giliran" });
-      for (const a of daftar) { const no = +((a.label.match(/-(\d+)$/) || [])[1] || 0);
-        POS.push({ peran: p, status: a.status, judul: PERAN[p].nama + (no ? " #" + no : ""), aksi: a.aksi, langkah: a.langkah, mulai: a.mulai, aksiT: a.aksiT, gagasan: no ? G.find(g => g.no === no) : null, label: a.label }); }
-    }
-    if (K) { const pct = Math.round(100 * K.jadi / K.total);
-      POS.push({ peran: "kronos", status: K.jadi >= K.total ? "selesai" : K.hidup ? "bekerja" : "menunggu", judul: PERAN.kronos.nama, aksi: K.jadi >= K.total ? "ramalan selesai — siap dinilai" : K.hidup ? `meramal… ${pct}% (${K.jadi}/${K.total})` : "berhenti — laptop tidur/mati?", aksiT: K.terakhir, pct }); }
-    const nSel = A.filter(a => a.status === "selesai").length, nKer = A.filter(a => a.status === "bekerja").length;
-    const run = T.run ? (T.run.selesai ? "PUTARAN SELESAI" : "PUTARAN BERJALAN") : "BELUM ADA PUTARAN";
-    const pctK = K ? Math.round(100 * K.jadi / K.total) : 0;
-    $("timKantor").innerHTML = `<div class="ruang">
-      <div class="hub" data-i="hub" tabindex="0" role="button" aria-label="Neural hub: ringkasan putaran">
-        <svg viewBox="0 0 74 74" aria-hidden="true"><circle cx="37" cy="37" r="34" fill="none" stroke="#22e3ff" stroke-opacity=".25"/>
-          <g class="cincin1"><circle cx="37" cy="37" r="28" fill="none" stroke="#22e3ff" stroke-width="2" stroke-dasharray="14 10"/></g>
-          <g class="cincin2"><circle cx="37" cy="37" r="20" fill="none" stroke="#7c5cff" stroke-width="2" stroke-dasharray="6 6"/></g>
-          <circle class="inti" cx="37" cy="37" r="9" fill="#22e3ff" fill-opacity=".85"/><circle cx="37" cy="37" r="4" fill="#e6fdff"/></svg>
-        <div class="hub-teks"><b>NEURAL HUB · ${run}</b><span>${nKer} agen bekerja · ${nSel} selesai · ${G.length} gagasan${G.filter(g => g.vonis).length ? " · " + G.filter(g => g.vonis).map(g => "#" + g.no + " " + g.vonis).join(", ") : ""}</span>
-          <span>Kronos ${pctK}% ${K ? "(" + K.jadi + "/" + K.total + ")" : ""}</span><div class="hub-bar"><i style="width:${pctK}%"></i></div></div></div>
-      ${rapatSvg(POS, pctK, nKer + " bicara · " + nSel + " selesai")}
-      <div class="notulen-judul">NOTULEN RAPAT</div>
-      <div class="notulen">${POS.map((s, i) => `<button class="${s.status}" data-i="${i}"><span class="lampu-st"></span><span><b>${PERAN[s.peran].ikon} ${esc(s.judul)}</b> — ${esc(s.aksi)}</span></button>`).join("")}</div></div>`;
-    const al = [];
-    for (const g of G) { const st = lbl => { const a = A.find(x => x.label === lbl + "-" + g.no); return a ? (a.status === "selesai" ? "ok" : "jalan") : ""; };
-      const v = g.vonis ? `<span class="vonis ${esc(String(g.vonis).split(" ")[0])}">${esc(g.vonis)}</span>` : "";
-      al.push(`<div class="tim-g"><b>Gagasan ${g.no}: ${esc(g.nama)}</b>${v}<div class="tim-langkah"><span class="ok">Gagasan</span><span class="${st("perancang")}">Pradaftar</span><span class="${st("penguji")}">Uji</span><span class="${st("pembantah")}">Bantah</span></div>${g.ringkas ? "<p>" + esc(g.ringkas) + "</p>" : ""}</div>`); }
-    $("timAlur").innerHTML = al.join("") || '<div class="tim-g"><p>Belum ada putaran tim riset.</p></div>';
+    const K = T.kronos;
+    $("timKantor").innerHTML = `<div class="ao"><div class="ao-bar"><span class="ao-judul">AGENTS OFFICE <small>V4 · AMONK RISET</small></span>
+        <span class="ao-sambung"><i></i>Terhubung ke</span>
+        <span class="ao-chip" style="background:#f3ba2f" title="Binance">B</span><span class="ao-chip" style="background:#e6e6ee" title="GitHub">G</span><span class="ao-chip" style="background:#8fa8ff" title="DefiLlama">D</span><span class="ao-chip" style="background:#5fd3c3" title="Coin Metrics">C</span><span class="ao-chip" style="background:#f2a65a" title="Kronos (HuggingFace)">K</span>
+        <span class="ao-sambung" style="color:#cfd2e6"><i style="background:${T.run && !T.run.selesai ? "#38d27a" : "#f0b54a"};box-shadow:0 0 6px ${T.run && !T.run.selesai ? "#38d27a" : "#f0b54a"}"></i>${T.run && !T.run.selesai ? "putaran berjalan" : "menunggu putaran"} · laptop</span>
+        <span class="ao-jam" id="aoJam">${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span></div>
+      <div class="ao-isi"><div class="ao-peta" id="aoPeta">${gambarPeta()}<div class="ao-zoom"><button data-z="masuk" aria-label="Perbesar">+</button><button data-z="keluar" aria-label="Perkecil">−</button><button data-z="awal" aria-label="Tampilan awal">⌂</button></div></div>
+        <div class="ao-panel" id="aoPanel">${gambarPanel()}</div></div>
+      <div style="font-size:10.5px;color:#9a9db4;padding:6px 14px 10px">Diperbarui ${lalu(T.diperbarui)} · ketuk meja/agen untuk penjelasan, lantai untuk memperbesar · ${K ? "Kronos " + K.jadi + "/" + K.total : ""}</div></div>`;
+    $("timAlur").innerHTML = "";
   }
-  function buka(i) {
-    const m = $("timModal");
-    if (i === "hub") {
-      const A = (T && T.agen) || [], K = T && T.kronos;
-      m.querySelector(".tim-kartu").innerHTML = `<button class="tim-tutup">Tutup</button><h4>🌐 Neural hub</h4><div class="sub">Ringkasan putaran tim riset</div>
-        <dl><dt>Putaran</dt><dd>${esc(T && T.run ? T.run.id.replace(/^wf_/, "") : "—")} · ${T && T.run && T.run.selesai ? "selesai" : "berjalan"}</dd><dt>Mulai</dt><dd>${jam(T && T.run && T.run.sejak)}</dd>
-        <dt>Agen</dt><dd>${A.filter(a => a.status === "bekerja").length} bekerja · ${A.filter(a => a.status === "selesai").length} selesai</dd><dt>Kronos</dt><dd>${K ? K.jadi + " / " + K.total + " ramalan" : "—"}</dd></dl>
-        <p>Alur tiap gagasan: <b>Pencari → Perancang → Penguji → Pembantah</b>. Hanya gagasan yang selamat dari pembantah yang dilaporkan sebagai temuan. Bot tidak diubah tanpa keputusan Anda.</p>`;
-    } else {
-      const s = POS[+i]; if (!s) return; const P = PERAN[s.peran];
-      m.querySelector(".tim-kartu").innerHTML = `<button class="tim-tutup">Tutup</button><h4><span class="mini" style="--warna:${P.warna}">${P.ikon}</span>${esc(s.judul)}</h4>
-        <div class="sub">${s.status === "bekerja" ? "🔵 sedang bekerja" : s.status === "selesai" ? "🟢 selesai" : "🟠 menunggu"}</div>
-        <dl><dt>${s.status === "selesai" ? "Hasil" : "Sedang"}</dt><dd>${esc(s.aksi)}</dd>${s.langkah ? `<dt>Langkah</dt><dd>${s.langkah} aksi</dd>` : ""}
-        ${s.mulai ? `<dt>Mulai</dt><dd>${jam(s.mulai)}</dd>` : ""}${s.aksiT ? `<dt>Aksi terakhir</dt><dd>${lalu(s.aksiT)}</dd>` : ""}
-        ${s.gagasan ? `<dt>Gagasan</dt><dd>#${s.gagasan.no} ${esc(s.gagasan.nama)}</dd>` : ""}${s.gagasan && s.gagasan.vonis ? `<dt>Vonis akhir</dt><dd>${esc(s.gagasan.vonis)}</dd>` : ""}</dl>
-        ${s.gagasan && s.gagasan.ringkas && s.peran === "pembantah" ? `<p><b>Ringkasan pembantah:</b> ${esc(s.gagasan.ringkas)}</p>` : ""}
-        <p><b>Tugas peran ini:</b> ${esc(P.tugas)}</p>`;
-    }
-    m.hidden = false; m.querySelector(".tim-tutup").focus();
+  function aturVB() { const s = $("aoPeta") && $("aoPeta").querySelector("svg"); if (s && VB) s.setAttribute("viewBox", VB.map(v => v.toFixed(1)).join(" ")); }
+  function zoom(f, cx, cy) { if (!VB) return; const w = VB[2] * f, h = VB[3] * f; cx = cx == null ? VB[0] + VB[2] / 2 : cx; cy = cy == null ? VB[1] + VB[3] / 2 : cy; VB = [cx - w / 2, cy - h / 2, w, h]; aturVB(); }
+  async function muatTim() {
+    if (Date.now() - tAkhir < 15000 && T) return gambarTim();
+    try { const r = await fetch(URL_TIM + "?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) throw new Error("HTTP " + r.status); T = await r.json(); tAkhir = Date.now(); }
+    catch (e) { $("timKantor").innerHTML = `<div class="ao"><div class="ao-bar"><span class="ao-judul">AGENTS OFFICE</span></div><div class="ao-kosong" style="padding:20px">Status belum tersedia (${esc(e.message)}).</div></div>`; return; }
+    gambarTim();
   }
+  function buka(html) { const m = $("timModal"); m.querySelector(".tim-kartu").innerHTML = '<button class="tim-tutup">Tutup</button>' + html; m.hidden = false; m.querySelector(".tim-tutup").focus(); }
+  function bukaMeja(i) { const s = MEJA[+i]; if (!s) return; const Pp = PERAN[s.peran];
+    buka(`<h4>${Pp.ikon} ${esc(s.judul)}</h4><div class="sub">${s.status === "bekerja" ? "🔵 sedang bekerja" : s.status === "selesai" ? "🟢 selesai" : "🟠 menunggu"}</div>
+      <dl><dt>${s.status === "selesai" ? "Hasil" : "Sedang"}</dt><dd>${esc(s.aksi)}</dd>${s.langkah ? `<dt>Langkah</dt><dd>${s.langkah} aksi</dd>` : ""}${s.mulai ? `<dt>Mulai</dt><dd>${jam(s.mulai)}</dd>` : ""}${s.aksiT ? `<dt>Aksi terakhir</dt><dd>${lalu(s.aksiT)}</dd>` : ""}
+      ${s.gagasan ? `<dt>Gagasan</dt><dd>#${s.gagasan.no} ${esc(s.gagasan.nama)}</dd>` : ""}${s.gagasan && s.gagasan.vonis ? `<dt>Vonis akhir</dt><dd>${esc(s.gagasan.vonis)}</dd>` : ""}</dl>
+      ${s.gagasan && s.gagasan.ringkas && s.peran === "pembantah" ? `<p><b>Ringkasan pembantah:</b> ${esc(s.gagasan.ringkas)}</p>` : ""}<p><b>Tugas peran ini:</b> ${esc(Pp.tugas)}</p>`); }
+  function bukaTugas(i) { const t = TUGAS[+i]; if (!t) return;
+    buka(`<h4>${esc(t.st)}</h4><div class="sub">${esc(t.sub)}</div><p><b>${esc(t.nama)}</b></p>${t.ket ? `<p>${esc(t.ket)}</p>` : ""}<p style="color:#a9acc3">Hanya gagasan yang selamat dari pembantah yang dilaporkan sebagai temuan; yang lolos dipantau maju dulu dan tidak masuk bot tanpa keputusan Anda.</p>`); }
+  function bukaDep(id) { if (id === "brain") { const R = (T && T.riwayat) || {};
+      return buka(`<h4>🧠 The Brain</h4><div class="sub">Memori proyek AMONK</div><dl><dt>Catatan memori</dt><dd>${(T && T.memori) || 0} berkas</dd><dt>Gagasan diuji tim</dt><dd>${R.diuji || 0} (lolos ${R.lolos || 0}, gagal ${R.gagal || 0})</dd><dt>Putaran</dt><dd>${esc(T && T.run ? T.run.id : "—")} · ${T && T.run && T.run.selesai ? "selesai" : "berjalan"}</dd></dl><p>Semua temuan (termasuk yang gagal) disimpan di memori supaya tidak diuji ulang. Lebih dari 730 aturan sudah mati sebelum tim ini dibentuk.</p>`); }
+    const d = DEP.find(x => x.id === id); if (!d) return; const c = P(d.x + LW / 2, d.y + LD / 2); VB = [c[0] - 150, c[1] - 175, 300, 265]; aturVB(); }
   document.addEventListener("click", e => {
-    const p = e.target.closest("#timKantor .kursi, #timKantor .notulen button, #timKantor .hub"); if (p) return buka(p.dataset.i);
-    const m = $("timModal"); if (m && !m.hidden && (e.target === m || e.target.closest(".tim-tutup"))) m.hidden = true;
+    const m = $("timModal"); if (m && !m.hidden) { if (e.target === m || e.target.closest(".tim-tutup")) m.hidden = true; return; }
+    if (!e.target.closest || !e.target.closest("#timKantor")) return;
+    const z = e.target.closest("[data-z]"); if (z) { const k = z.dataset.z; if (k === "masuk") zoom(0.75); else if (k === "keluar") zoom(1.33); else { VB = VB0 ? VB0.slice() : null; aturVB(); } return; }
+    const f = e.target.closest("[data-f]"); if (f) { filter = f.dataset.f; $("aoPanel").innerHTML = gambarPanel(); return; }
+    const mj = e.target.closest(".ao-meja"); if (mj) return bukaMeja(mj.dataset.i);
+    const t = e.target.closest(".ao-tugas"); if (t) return bukaTugas(t.dataset.t);
+    const dp = e.target.closest("[data-dep]"); if (dp) return bukaDep(dp.dataset.dep);
   });
   document.addEventListener("keydown", e => {
-    if ((e.key === "Enter" || e.key === " ") && e.target.closest && e.target.closest("#timKantor .kursi, #timKantor .hub")) { e.preventDefault(); buka(e.target.closest("[data-i]").dataset.i); }
-    if (e.key === "Escape" && $("timModal") && !$("timModal").hidden) $("timModal").hidden = true;
+    if (e.key === "Escape" && $("timModal") && !$("timModal").hidden) { $("timModal").hidden = true; return; }
+    if ((e.key === "Enter" || e.key === " ") && e.target.closest) { const el = e.target.closest("#timKantor .ao-meja, #timKantor .ao-tugas"); if (!el) return; e.preventDefault(); el.classList.contains("ao-meja") ? bukaMeja(el.dataset.i) : bukaTugas(el.dataset.t); }
   });
   window.muatTim = muatTim;
   setInterval(() => { if (halAktif === "Tim" && !document.hidden) muatTim(); }, 30000);
+  setInterval(() => { const j = $("aoJam"); if (j && halAktif === "Tim" && !document.hidden) j.textContent = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" }); }, 1000);
 })();
-// ==== /TAB TIM v2 ====
+// ==== /TAB TIM v4 ====
 async function muatJurnal() {
   try {
     const r = await fetch("data_jurnal.json?t=" + Date.now(), { cache: "no-store" });
