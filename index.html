@@ -2691,8 +2691,8 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
   // daftar orang (agen) datar — dipakai peta 2D dan kantor 3D; mengisi MEJA supaya bukaMeja(i) cocok
   function siapkanMeja() { const M = kumpulMeja(), L = []; MEJA = []; for (const d of DEP) for (const m of M[d.id].slice(0, 6)) { L.push({ dep: d, m, i: MEJA.length }); MEJA.push(m); } return L; }
   let MODE = "3d"; try { MODE = localStorage.getItem("aoMode") || "3d"; } catch (e) {}
-  // putaran tim berikutnya: jadwal tiap 2 jam di JAM GANJIL waktu laptop (2026-10-04: jam genap dipakai rutin sinyal 4H) + gerbang kuota
-  function jadwalBerikut() { const d = new Date(); d.setMinutes(0, 0, 0); d.setHours(d.getHours() + (d.getHours() % 2 ? 2 : 1)); return d; }
+  // putaran tim berikutnya: tiap 2 jam di jam GENAP waktu laptop (AEDT Okt–Apr; rutin sinyal 4H di jam ganjil) + gerbang kuota
+  function jadwalBerikut() { const d = new Date(); d.setMinutes(0, 0, 0); d.setHours(d.getHours() + (d.getHours() % 2 ? 1 : 2)); return d; }
   function etaTeks(iso) { if (!iso) return "—"; const m = Math.round((Date.parse(iso) - Date.now()) / 60e3); if (m <= 0) return "segera"; return (m >= 60 ? Math.floor(m / 60) + " j " : "") + (m % 60) + " mnt (" + new Date(iso).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + ")"; }
   function meteran() { const Q = T && T.kuota, K = T && T.kronos, H = T && T.kesehatan, nb = jadwalBerikut();
     const W = Q ? +Q.W : null, B = Q ? +Q.batas : null, pW = W == null ? 0 : Math.min(100, W), pB = B == null ? 0 : Math.min(100, B);
