@@ -2557,6 +2557,7 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
     perancang: { ikon: "📐", nama: "Perancang", tugas: "Mengunduh data dan menulis PRADAFTAR sebelum melihat hasil: klaim, cara masuk tanpa bocoran masa depan, pembanding acak, ambang lolos berupa angka. Sesudah ditulis, ambang tidak boleh diubah." },
     penguji: { ikon: "🧪", nama: "Penguji", tugas: "Menjalankan uji persis sesuai pradaftar, per kelompok data dan per periode, lalu mencetak angka mentah dan vonis menurut ambang." },
     pembantah: { ikon: "🛡️", nama: "Pembantah", tugas: "Tim merah: berusaha MEMATIKAN hasil — membaca kode baris demi baris, menghitung ulang angka kunci, mencari bocoran data, pembanding salah, efek bulan pasar naik, dan tumpang tindih dengan temuan lama. Vonisnya yang dipakai." },
+    paper: { ikon: "📈", nama: "Agen Paper", tugas: "Trading di KERTAS (tanpa uang, tanpa menyentuh bot) memakai semua pola 4H dari buku pola. JUARA = aturan yang sedang dipakai; tiap minggu Claude membaca trade yang kalah/menang lalu mengusulkan satu perubahan sebagai PENANTANG. Penantang baru menggantikan juara bila sesudah ≥ 8 minggu dan ≥ 30 trade lebih baik ≥ 0.10R dari juara DAN mengalahkan pilihan acak. Aturan yang terbukti bisa Anda pasang ke bot nanti." },
     kronos: { ikon: "🧠", nama: "Kronos (laptop)", tugas: "Model AI lilin dari GitHub (shiyu-coder/Kronos) yang meramal 7 hari ke depan untuk tiap koin, tiap minggu Okt 2025 – Sep 2026, di CPU laptop (4 proses). Dinilai sesudah 100%; Anda dikabari apa pun hasilnya." },
   };
   const DEP = [   // posisi sudut lantai di koordinat dunia isometrik (x, y), ukuran 150 x 110
@@ -2565,6 +2566,7 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
     { id: "penguji", judul: "UJI", x: 150, y: -60, warna: "#4f86c9" },
     { id: "pembantah", judul: "BANTAH", x: -120, y: 140, warna: "#b85a6a" },
     { id: "kronos", judul: "KRONOS", x: -340, y: 40, warna: "#b39a45" },
+    { id: "paper", judul: "PAPER", x: 150, y: 170, warna: "#2a9d8f" },
   ];
   const LW = 150, LD = 110, TEBAL = 14;
   const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -2584,6 +2586,10 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
       M[a.peran].push({ peran: a.peran, status: a.status, judul: PERAN[a.peran].nama + (no ? " #" + no : ""), label: a.peran === "pencari" ? "Pencari" : (DEP.find(d => d.id === a.peran).judul[0] + DEP.find(d => d.id === a.peran).judul.slice(1).toLowerCase()) + (no ? " #" + no : ""), aksi: a.aksi, langkah: a.langkah, mulai: a.mulai, aksiT: a.aksiT, gagasan: no ? G.find(g => g.no === no) : null }); }
     if (K) { const pct = Math.round(100 * K.jadi / K.total), st = K.jadi >= K.total ? "selesai" : K.hidup ? "bekerja" : "menunggu";
       for (let s = 0; s < 4; s++) M.kronos.push({ peran: "kronos", status: st, judul: "Kronos proses " + (s + 1), label: "Shard " + (s + 1), aksi: st === "selesai" ? "ramalan selesai — siap dinilai" : st === "bekerja" ? `meramal… ${pct}% (${K.jadi}/${K.total})` : "berhenti — laptop tidur/mati?", aksiT: K.terakhir }); }
+    const PA = T && T.paper; if (PA && PA.juara) { const j = PA.juara, p = PA.penantang, r = x => x == null ? "—" : (x > 0 ? "+" : "") + x + "R";
+      M.paper.push({ peran: "paper", status: "bekerja", judul: "Juara " + j.id, label: "Juara " + j.id, aksi: `${j.tutup} trade · avg ${r(j.avgR)} · ${j.terbuka} terbuka`, aksiT: PA.diperbarui, paper: "juara" });
+      M.paper.push(p ? { peran: "paper", status: "bekerja", judul: "Penantang " + p.id, label: "Penantang " + p.id, aksi: `${p.tutup}/30 trade · avg ${r(p.avgR)} · minggu ${p.minggu}/8`, aksiT: PA.diperbarui, paper: "penantang" }
+        : { peran: "paper", status: "menunggu", judul: "Penantang", label: "Penantang", aksi: "menunggu refleksi mingguan (Senin)", paper: "penantang" }); }
     for (const d of DEP) while (M[d.id].length < 2) M[d.id].push({ peran: d.id, status: "menunggu", judul: PERAN[d.id].nama, label: "kosong", aksi: "menunggu giliran" });
     return M;
   }
@@ -2619,12 +2625,13 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
       svg += lantai(d.x, d.y, LW, LD, d.warna, "ao-lantai", `data-dep="${d.id}"`);
       L.slice(0, 6).forEach((m, k) => { const col = k % 3, row = Math.floor(k / 3), mx = d.x + 18 + col * 44, my = d.y + 16 + row * 50; meja.push({ m, d, mx, my, i: MEJA.length }); MEJA.push(m); });
       const c = P(d.x + LW / 2, d.y), n = L.filter(m => m.label !== "kosong").length, jl = L.filter(m => m.status === "bekerja").length, sl = L.filter(m => m.status === "selesai" && m.label !== "kosong").length;
-      const berikut = d.id === "kronos" || d.id === "pencari" ? 0 : Math.max(0, G.length - jl - sl);
+      const berikut = d.id === "kronos" || d.id === "pencari" || d.id === "paper" ? 0 : Math.max(0, G.length - jl - sl);
       let m1 = ["", ""], m2 = ["", ""];
       if (d.id === "pencari") { m1 = ["GAGASAN PUTARAN INI", G.length]; m2 = ["USULAN USER ANTRE", T && T.usulan ? T.usulan.total - T.usulan.selesai : 0]; }
       if (d.id === "perancang") { m1 = ["PRADAFTAR DITULIS", sl]; m2 = ["TOTAL DIUJI TIM", R.diuji]; }
       if (d.id === "penguji") { m1 = ["UJI SELESAI", sl]; m2 = ["TF ROTASI", "1H→1W"]; }
       if (d.id === "pembantah") { m1 = ["LOLOS (SEMUA)", R.lolos + (R.eksploratif ? " +" + R.eksploratif + " eks" : "")]; m2 = ["GAGAL (SEMUA)", R.gagal]; }
+      if (d.id === "paper") { const PA = T && T.paper, j = PA && PA.juara; m1 = ["JUARA " + (j ? j.id : ""), j && j.avgR != null ? (j.avgR > 0 ? "+" : "") + j.avgR + "R" : "—"]; m2 = ["KERTAS USDT", j ? j.usdt : "—"]; }
       if (d.id === "kronos") { m1 = ["RAMALAN", K ? K.jadi + "/" + K.total + " (" + Math.round(100 * K.jadi / K.total) + "%)" : "—"]; m2 = ["PERKIRAAN SELESAI", K && K.eta ? new Date(K.eta).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—"]; }
       const kx = c[0] - 62, ky = c[1] - 128; catat(kx, ky); catat(kx + 124, ky + 82);
       kartu += `<g class="ao-lantai" data-dep="${d.id}"><rect x="${kx.toFixed(1)}" y="${ky.toFixed(1)}" width="124" height="82" rx="9" fill="#34374b" fill-opacity=".96" stroke="${aktif ? "#9ff3e0" : "#5b5f7c"}" stroke-width="${aktif ? 1.6 : 1}"${aktif ? ' filter="url(#aoGlow)"' : ""}/>
@@ -2725,9 +2732,9 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
   }
   // ==== KANTOR 3D VOXEL (2026-10-04, referensi video user): karakter kotak-kotak berjalan, duduk mengetik, berkumpul di The Brain ====
   function buatAO3D(THREE) {
-    const ZONA = { pencari: [-5.2, -4.2], perancang: [0.4, -6.4], penguji: [5.6, -3.4], pembantah: [4.8, 3.2], kronos: [-5.6, 2.6], bot: [-0.6, 5.6] };
-    const WARNA = { pencari: 0x3e9e85, perancang: 0x7d6bd6, penguji: 0x4f86c9, pembantah: 0xb85a6a, kronos: 0xb39a45, bot: 0x2f6fd6 };
-    const BAJU = { pencari: 0x2fb57e, perancang: 0x8b6cf0, penguji: 0x3d8bf0, pembantah: 0xe0566c, kronos: 0xe9b43c, bot: 0x2552c9 };
+    const ZONA = { pencari: [-5.2, -4.2], perancang: [0.4, -6.4], penguji: [5.6, -3.4], pembantah: [4.8, 3.2], kronos: [-5.6, 2.6], bot: [-0.6, 5.6], paper: [5.6, 6.3] };
+    const WARNA = { pencari: 0x3e9e85, perancang: 0x7d6bd6, penguji: 0x4f86c9, pembantah: 0xb85a6a, kronos: 0xb39a45, bot: 0x2f6fd6, paper: 0x2a9d8f };
+    const BAJU = { pencari: 0x2fb57e, perancang: 0x8b6cf0, penguji: 0x3d8bf0, pembantah: 0xe0566c, kronos: 0xe9b43c, bot: 0x2552c9, paper: 0x17c3b2 };
     const RAMBUT = [0x2b1d14, 0x5b3417, 0x111114, 0x7a3f1f, 0xd9b26a, 0x3b2a20];
     let tampak = true, tAkhirGambar = 0;
     let ren, scene, cam, wadah, lapisLabel, jam = new THREE.Clock(), sudut = Math.PI / 4, zoomF = window.innerWidth < 600 ? 1.35 : 1, ORANG = [], MEJA3 = [], otak, hidup = false, datT = null;
@@ -2805,14 +2812,14 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
       if (kunci !== sinkron.k) { // susunan berubah -> bangun ulang meja & orang
         for (const o of ORANG) scene.remove(o.g); for (const m of MEJA3) scene.remove(m.g); ORANG = []; MEJA3 = []; lapisLabel.innerHTML = "";
         for (const [k, L] of Object.entries(per)) { const [zx, zz] = ZONA[k];
-          L.slice(0, 4).forEach((o, j) => { const mx = zx - .9 + (j % 2) * 1.8, mz = zz - .6 + Math.floor(j / 2) * 1.5, mj = buatMeja(mx, mz, k === "bot" ? "grafik" : "kode"); MEJA3.push(mj);
+          L.slice(0, 4).forEach((o, j) => { const mx = zx - .9 + (j % 2) * 1.8, mz = zz - .6 + Math.floor(j / 2) * 1.5, mj = buatMeja(mx, mz, k === "bot" || k === "paper" ? "grafik" : "kode"); MEJA3.push(mj);
             const g = buatOrang(BAJU[k], RAMBUT[(ORANG.length * 3) % RAMBUT.length]); g.userData.idx = o.i; g.position.set(mx + (Math.random() - .5), 0, mz + 1.3); scene.add(g);
             const tag = document.createElement("div"); tag.className = "ao3-tag"; lapisLabel.appendChild(tag);
             ORANG.push({ g, mj, k, o, tag, tujuan: null, tunggu: Math.random() * 2, duduk: false, sudutBrain: ORANG.length * .9 }); }); }
         sinkron.k = kunci;
       } else { for (const p of ORANG) { const L = per[p.k] || []; const baru = L.find(x => x.i === p.o.i) || L[ORANG.filter(q => q.k === p.k).indexOf(p)]; if (baru) { p.o = baru; p.g.userData.idx = baru.i; } } }
       for (const p of ORANG) { const m = p.o.m, B = typeof BT_S !== "undefined" && BT_S ? BT_S : null, nm = p.k === "bot" ? "AMONK BOT" : m.label === "kosong" ? (window.AO.PERAN[p.k] || {}).nama || p.k : m.label;
-        const peran = p.k === "bot" ? "TRADER" : ({ pencari: "PENCARI", perancang: "PERANCANG", penguji: "PENGUJI", pembantah: "PEMBANTAH", kronos: "KRONOS" })[p.k];
+        const peran = p.k === "bot" ? "TRADER" : ({ pencari: "PENCARI", perancang: "PERANCANG", penguji: "PENGUJI", pembantah: "PEMBANTAH", kronos: "KRONOS", paper: "PAPER" })[p.k];
         const st = p.k === "bot" ? (B ? (B.aktif ? "Trading" : "Jeda") : "Live") : m.status === "bekerja" ? "Bekerja" : m.status === "selesai" ? "Selesai" : "Menunggu";
         const aksi = p.k === "bot" ? (B ? `Modal ${Math.round((B.modal && B.modal.kini) || 0).toLocaleString("en-US")} USDT · ${(B.posisi || []).length} posisi` : "") : m.status === "bekerja" ? m.aksi : "";
         p.tag.classList.toggle("diam", st === "Menunggu"); p.tag.innerHTML = `${aksi ? `<div class="ao3-balon">${esc(potong(aksi, 46))}</div>` : ""}<div class="ao3-nama"><i class="${st === "Bekerja" || st === "Trading" || st === "Live" ? "ok" : st === "Selesai" ? "sel" : ""}"></i>${esc(potong(nm, 16))}</div><div class="ao3-peran">${peran} · ${st}</div>`; }
@@ -2866,7 +2873,21 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
     gambarTim();
   }
   function buka(html) { const m = $("timModal"); if (m.parentNode !== document.body) document.body.appendChild(m); document.body.classList.add("tim-buka"); m.querySelector(".tim-kartu").innerHTML = '<button class="tim-tutup" aria-label="Tutup">✕ Tutup</button>' + html + '<button class="tim-tutup bawah">Tutup</button>'; m.hidden = false; m.querySelector(".tim-tutup").focus(); }
-  function bukaMeja(i) { const s = MEJA[+i]; if (!s) return; const Pp = PERAN[s.peran];
+  function bukaPaper(jenis) { const PA = T && T.paper; if (!PA || !PA.juara) return buka("<h4>📈 Agen Paper</h4><p>Belum ada data.</p>");
+    const r = x => x == null ? "—" : (x > 0 ? "+" : "") + x + "R", v = PA[jenis], ok = b => b ? "✅" : "⬜";
+    const daftar = L => (L || []).map(t => `<li>${esc(t.kode)} ${esc(t.koin)} · ${new Date(t.entry_utc).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })} · ${t.status === "OPEN" ? "terbuka" : r(t.R) + (t.sebab ? " (" + esc(t.sebab) + ")" : "")}</li>`).join("");
+    let h = `<h4>📈 ${jenis === "juara" ? "Juara" : "Penantang"} ${v ? esc(v.id) : ""}</h4><div class="sub">trading di kertas · tidak menyentuh bot</div>`;
+    if (!v) h += `<p>Belum ada penantang. Tiap Senin Claude membaca trade paper juara (yang kalah & menang beserta cirinya: RSI, MACD, volume, kondisi BTC/pasar …) lalu mengusulkan SATU perubahan aturan. Penantang itu dihitung hanya untuk sinyal sesudah ia dibuat.</p>`;
+    else { h += `<dl><dt>Aturan</dt><dd>${esc(v.aturan)}</dd><dt>Alasan</dt><dd>${esc(v.alasan)}</dd><dt>Sejak</dt><dd>${new Date(v.sejak).toLocaleDateString("id-ID")}</dd>
+        <dt>Trade</dt><dd>${v.tutup} tutup · ${v.terbuka} terbuka</dd><dt>Menang</dt><dd>${v.menang == null ? "—" : v.menang + "%"}</dd><dt>Rata-rata</dt><dd>${r(v.avgR)} per trade</dd><dt>Total</dt><dd>${r(v.totalR)} · kertas ${v.usdt} USDT (modal ${PA.modal}, 1R = ${PA.usdtPerR} USDT)</dd></dl>`;
+      if (jenis === "juara") h += `<p><b>Pembanding sejak ${new Date(v.sejak).toLocaleDateString("id-ID")}:</b> aturan bot asli ${r(PA.bot && PA.bot.avgR)} (${PA.bot ? PA.bot.tutup : 0} trade) · semua sinyal buku ${r(PA.semua.avgR)} (${PA.semua.tutup} trade)</p>`;
+        if (PA.perJenis) h += `<p><b>Per jenis sinyal:</b><br>${Object.entries(PA.perJenis).map(([k, x]) => `${k} · ${x.tutup} trade · ${r(x.avgR)}`).join("<br>")}</p>`;
+      else { const c = v.syarat || {}; h += `<p><b>Syarat menggantikan juara:</b><br>${ok(c.minggu)} ≥ 8 minggu (sekarang ${v.minggu})<br>${ok(c.n)} ≥ 30 trade tutup (sekarang ${v.tutup})<br>${ok(c.selisih)} lebih baik ≥ 0.10R dari juara di jendela sama (selisih ${r(v.selisih)}; juara ${r(v.juaraJendela.avgR)})<br>${ok(c.acak)} mengalahkan p95 pilihan acak (${v.acak ? r(v.acak.p95) : "—"})</p>`; }
+      h += `<p><b>Trade terakhir:</b></p><ul style="font-size:12.5px;line-height:1.5;padding-left:18px;color:#dcdeea">${daftar(v.terakhir) || "<li>belum ada</li>"}</ul>`; }
+    if (PA.riwayat && PA.riwayat.length) h += `<p><b>Riwayat belajar:</b></p><ul style="font-size:12px;line-height:1.45;padding-left:18px;color:#c9cbdc">${PA.riwayat.slice(0, 6).map(x => `<li>${new Date(x.t).toLocaleDateString("id-ID")} · ${esc(x.teks)}</li>`).join("")}</ul>`;
+    h += `<p style="font-size:12px;color:#a9acc2">Catatan: hasil kertas beberapa minggu belum bukti edge. Aturan baru boleh masuk bot hanya atas keputusan Anda, sesudah ≥ 30 trade dan ≥ 6 bulan.</p>`;
+    buka(h); }
+  function bukaMeja(i) { const s = MEJA[+i]; if (!s) return; if (s.paper) return bukaPaper(s.paper); const Pp = PERAN[s.peran];
     buka(`<h4>${Pp.ikon} ${esc(s.judul)}</h4><div class="sub">${s.status === "bekerja" ? "🔵 sedang bekerja" : s.status === "selesai" ? "🟢 selesai" : "🟠 menunggu"}</div>
       <dl><dt>${s.status === "selesai" ? "Hasil" : "Sedang"}</dt><dd>${esc(s.aksi)}</dd>${s.langkah ? `<dt>Langkah</dt><dd>${s.langkah} aksi</dd>` : ""}${s.mulai ? `<dt>Mulai</dt><dd>${jam(s.mulai)}</dd>` : ""}${s.aksiT ? `<dt>Aksi terakhir</dt><dd>${lalu(s.aksiT)}</dd>` : ""}
       ${s.gagasan ? `<dt>Gagasan</dt><dd>#${s.gagasan.no} ${esc(s.gagasan.nama)}</dd>` : ""}${s.gagasan && s.gagasan.vonis ? `<dt>Vonis akhir</dt><dd>${esc(s.gagasan.vonis)}</dd>` : ""}</dl>
