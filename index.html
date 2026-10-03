@@ -729,7 +729,7 @@ td.kosong::before{display:none}
 @media (min-width:900px){.ao-isi{grid-template-columns:1fr 300px}}
 .ao-peta{position:relative;min-height:220px}
 .ao-peta svg{width:100%;height:auto;display:block;touch-action:manipulation}
-.ao-zoom{position:absolute;right:10px;bottom:10px;display:grid;gap:8px}
+.ao-zoom{display:flex;justify-content:flex-end;gap:8px;padding:6px 10px;border-top:1px solid #3c3f55;background:rgba(20,21,30,.35)}   /* 2026-10-04: strip di bawah peta, tidak menutupi 2D/3D */
 .ao-zoom button{width:34px;height:34px;border-radius:50%;border:1px solid #6a6e8c;background:#2e3042;color:#fff;font-size:17px;cursor:pointer}
 .ao-zoom button:focus-visible{outline:2px solid #9fe6ff}
 .ao-lantai{cursor:pointer}
@@ -775,10 +775,13 @@ td.kosong::before{display:none}
 .tim-kartu dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:12px 0;font-size:13px}
 .tim-kartu dt{color:#a9acc3}.tim-kartu dd{margin:0;word-break:break-word}
 .tim-kartu p{font-size:13px;line-height:1.5;color:#dcdeea;margin:8px 0}
-.tim-tutup{float:right;background:transparent;border:1px solid #6a6e8c;color:#fff;border-radius:999px;padding:4px 12px;font-size:12px;cursor:pointer}
+.tim-tutup{float:right;position:sticky;top:0;z-index:2;margin-left:8px;background:#3d4160;border:1px solid #8a8fb5;color:#fff;border-radius:999px;padding:7px 16px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.tim-tutup.bawah{float:none;position:static;display:block;width:100%;margin:16px 0 0;padding:11px;border-radius:12px}
 .ao-mode{border:1px solid #6a6e8c;background:#2e3042;color:#fff;border-radius:999px;padding:3px 12px;font-size:11px;font-weight:800;cursor:pointer;letter-spacing:.06em}
 #ao3d{position:relative;overflow:hidden;background:radial-gradient(120% 90% at 50% 20%,#3a3d55 0%,#20212b 75%)}
+.ao3d{isolation:isolate;z-index:0}   /* 2026-10-04: z-index label 3D (~1400) dikurung di kotak 3D, tidak menutupi popup */
 .ao3-label{position:absolute;inset:0;pointer-events:none}
+body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:none}   /* 2026-10-04: label 3D tidak menutupi kartu penjelasan */
 .ao3-tag{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;gap:2px;white-space:nowrap;will-change:transform}
 .ao3-nama{display:flex;align-items:center;gap:5px;background:rgba(18,20,30,.86);color:#fff;font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.25)}
 .ao3-nama i{width:7px;height:7px;border-radius:50%;background:#f0b54a}.ao3-nama i.ok{background:#38d27a;box-shadow:0 0 6px #38d27a}.ao3-nama i.sel{background:#6cc6ff}
@@ -2831,8 +2834,17 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
         if (Math.floor(t * 4) !== p.fl) { p.fl = Math.floor(t * 4); lukisLayar(p.mj.L, st, t); }
         // label mengikuti kepala
         v3.set(p.g.position.x, 2.05, p.g.position.z).project(cam); const w = wadah.clientWidth, h = parseFloat(ren.domElement.style.height);
-        p.tag.style.transform = `translate(${Math.max(70, Math.min(w - 70, (v3.x + 1) / 2 * w)).toFixed(0)}px,${((1 - v3.y) / 2 * h).toFixed(0)}px) translate(-50%,-100%)`; p.tag.style.zIndex = String(Math.round((1 - v3.z) * 1000)); }
+        p.tag.style.transform = `translate(${Math.max(70, Math.min(w - 70, (v3.x + 1) / 2 * w)).toFixed(0)}px,${((1 - v3.y) / 2 * h).toFixed(0)}px) translate(-50%,-100%)`; p.tag.style.zIndex = String(Math.round((1 - v3.z) * 1000)); p._x = (v3.x + 1) / 2 * w; p._y = (1 - v3.y) / 2 * h; p._z = v3.z; p._pen = st === "bekerja" ? 0 : st === "selesai" ? 1 : 2; }
+      tolakTumpang(t);
     }
+    // 2026-10-04: label 3D yang saling menumpuk disembunyikan (yang bekerja & paling depan menang); muncul lagi saat karakter menjauh
+    let tUkurLabel = -9;
+    function tolakTumpang(t) { const ukur = t - tUkurLabel > 1; if (ukur) tUkurLabel = t;
+      const L = ORANG.filter(p => p.tag && p._x != null).sort((a, b) => a._pen - b._pen || a._z - b._z), ambil = [];
+      for (const p of L) { if (ukur || !p._w) { const v = p.tag.style.visibility; p.tag.style.visibility = ""; p._w = p.tag.offsetWidth || 80; p._h = p.tag.offsetHeight || 20; p.tag.style.visibility = v; }
+        const x0 = Math.max(70, Math.min(wadah.clientWidth - 70, p._x)) - p._w / 2, y0 = p._y - p._h, k = { x0, x1: x0 + p._w, y0, y1: p._y };
+        const tabrak = ambil.some(q => k.x0 < q.x1 - 2 && k.x1 > q.x0 + 2 && k.y0 < q.y1 - 2 && k.y1 > q.y0 + 2);
+        p.tag.style.visibility = tabrak ? "hidden" : ""; if (!tabrak) ambil.push(k); } }
     function putar() {
       if (!hidup) return; requestAnimationFrame(putar);
       if (typeof halAktif !== "undefined" && halAktif !== "Tim" || document.hidden || !tampak || !wadah || wadah.hidden || !wadah.clientWidth) { jam.getDelta(); return; }
@@ -2853,7 +2865,7 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
     catch (e) { $("timKantor").innerHTML = `<div class="ao"><div class="ao-bar"><span class="ao-judul">AGENTS OFFICE</span></div><div class="ao-kosong" style="padding:20px">Status belum tersedia (${esc(e.message)}).</div></div>`; return; }
     gambarTim();
   }
-  function buka(html) { const m = $("timModal"); m.querySelector(".tim-kartu").innerHTML = '<button class="tim-tutup">Tutup</button>' + html; m.hidden = false; m.querySelector(".tim-tutup").focus(); }
+  function buka(html) { const m = $("timModal"); if (m.parentNode !== document.body) document.body.appendChild(m); document.body.classList.add("tim-buka"); m.querySelector(".tim-kartu").innerHTML = '<button class="tim-tutup" aria-label="Tutup">✕ Tutup</button>' + html + '<button class="tim-tutup bawah">Tutup</button>'; m.hidden = false; m.querySelector(".tim-tutup").focus(); }
   function bukaMeja(i) { const s = MEJA[+i]; if (!s) return; const Pp = PERAN[s.peran];
     buka(`<h4>${Pp.ikon} ${esc(s.judul)}</h4><div class="sub">${s.status === "bekerja" ? "🔵 sedang bekerja" : s.status === "selesai" ? "🟢 selesai" : "🟠 menunggu"}</div>
       <dl><dt>${s.status === "selesai" ? "Hasil" : "Sedang"}</dt><dd>${esc(s.aksi)}</dd>${s.langkah ? `<dt>Langkah</dt><dd>${s.langkah} aksi</dd>` : ""}${s.mulai ? `<dt>Mulai</dt><dd>${jam(s.mulai)}</dd>` : ""}${s.aksiT ? `<dt>Aksi terakhir</dt><dd>${lalu(s.aksiT)}</dd>` : ""}
@@ -2868,7 +2880,7 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
       return buka(`<h4>🧠 The Brain</h4><div class="sub">Memori proyek AMONK</div><dl><dt>Catatan memori</dt><dd>${(T && T.memori) || 0} berkas</dd><dt>Gagasan diuji tim</dt><dd>${R.diuji || 0} (lolos ${R.lolos || 0}, gagal ${R.gagal || 0})</dd><dt>Putaran</dt><dd>${esc(T && T.run ? T.run.id : "—")} · ${T && T.run && T.run.selesai ? "selesai" : "berjalan"}</dd></dl><p>Semua temuan (termasuk yang gagal) disimpan di memori supaya tidak diuji ulang. Lebih dari 730 aturan sudah mati sebelum tim ini dibentuk.</p>`); }
     const d = DEP.find(x => x.id === id); if (!d) return; const c = P(d.x + LW / 2, d.y + LD / 2); VB = [c[0] - 150, c[1] - 175, 300, 265]; aturVB(); }
   document.addEventListener("click", e => {
-    const m = $("timModal"); if (m && !m.hidden) { if (e.target === m || e.target.closest(".tim-tutup")) m.hidden = true; return; }
+    const m = $("timModal"); if (m && !m.hidden) { if (e.target === m || e.target.closest(".tim-tutup")) { m.hidden = true; document.body.classList.remove("tim-buka"); } return; }
     if (!e.target.closest || !e.target.closest("#timKantor")) return;
     const mo = e.target.closest("#aoMode"); if (mo) { MODE = MODE === "3d" ? "2d" : "3d"; try { localStorage.setItem("aoMode", MODE); } catch (er) {} mo.textContent = MODE === "3d" ? "2D" : "3D"; gambarTim(); return; }
     const z = e.target.closest("[data-z]"); if (z) { const k = z.dataset.z; const d3 = MODE === "3d" && window.AO3D && !$("ao3d").hidden;
@@ -2879,7 +2891,7 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
     const dp = e.target.closest("[data-dep]"); if (dp) return bukaDep(dp.dataset.dep);
   });
   document.addEventListener("keydown", e => {
-    if (e.key === "Escape" && $("timModal") && !$("timModal").hidden) { $("timModal").hidden = true; return; }
+    if (e.key === "Escape" && $("timModal") && !$("timModal").hidden) { $("timModal").hidden = true; document.body.classList.remove("tim-buka"); return; }
     if ((e.key === "Enter" || e.key === " ") && e.target.closest) { const el = e.target.closest("#timKantor .ao-meja, #timKantor .ao-tugas"); if (!el) return; e.preventDefault(); el.classList.contains("ao-meja") ? bukaMeja(el.dataset.i) : bukaTugas(el.dataset.t); }
   });
   window.muatTim = muatTim;
