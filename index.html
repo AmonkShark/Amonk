@@ -823,6 +823,15 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
 .vs-angka i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}.vs-angka i.vs-bot{background:var(--biru)}.vs-angka i.vs-lima{background:var(--kuning)}.vs-angka i.vs-btc{background:var(--label,#8a8fa3)}
 .vs-ket{font-size:11px;color:var(--label,#8a8fa3);margin-top:8px;line-height:1.4}
 @media (max-width:600px){.vs-angka{grid-template-columns:1fr}.vs-angka div{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:6px}}
+.ao-tinjau:empty{display:none}
+.ao-tinjau{padding:8px 14px;border-bottom:1px solid #3c3f55;background:rgba(239,83,80,.06)}
+.ao-tj-kepala{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:13px;color:#ececf4;margin-bottom:4px}
+.ao-tj-kepala button{background:none;border:1px solid #5b5f7c;color:#c6c8da;border-radius:999px;padding:2px 10px;font-size:11px;cursor:pointer}
+.ao-tj-n{font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;background:#3a3c4c;color:#c6c8da}.ao-tj-n.ada{background:#ef5350;color:#fff}
+.ao-tj-i{display:grid;grid-template-columns:10px auto 1fr auto;gap:8px;align-items:center;padding:5px 2px;font-size:12.5px;color:#ececf4;cursor:pointer;border-top:1px solid rgba(255,255,255,.06)}
+.ao-tj-i i{width:8px;height:8px;border-radius:50%;background:#42a5f5}.ao-tj-i.penting i{background:#ef5350;box-shadow:0 0 6px #ef5350}
+.ao-tj-i.dibaca{opacity:.55}.ao-tj-s{font-size:10.5px;font-weight:700;color:#a3a6bd;letter-spacing:.04em}.ao-tj-i em{font-style:normal;font-size:11px;color:#a3a6bd}
+@media (max-width:600px){.ao-tj-i{grid-template-columns:10px 1fr auto}.ao-tj-s{display:none}}
 /* ==== /TAB TIM RISET v4 ==== */
 </style>
 </head>
@@ -2765,6 +2774,21 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
       <div class="ao-m"><span>PUTARAN BERIKUT</span><em>${nb.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}${Q ? " · terakhir: " + esc(String(Q.keputusan || "").slice(0, 40)) + " (" + lalu(Q.t) + ")" : ""}</em></div>
       <div class="ao-m"><span>KRONOS SELESAI</span><em>${K ? (K.jadi >= K.total ? "100% — menunggu penilaian" : etaTeks(K.eta)) : "—"}</em></div>
       ${H && H.gagalBeruntun > 0 ? `<div class="ao-m peringatan"><span>⚠ RUTIN</span><em>${H.gagalBeruntun}x gagal berturut</em></div>` : ""}`; }
+  // KOTAK PERLU DITINJAU (2026-10-05): item dari research/tinjau.json (tim riset, Lab, Agen Paper, optimasi, audit); "sudah dibaca" disimpan di perangkat
+  let tinjauBuka = false;
+  const tinjauDibaca = () => { try { return new Set(JSON.parse(localStorage.getItem("tinjauDibaca") || "[]")); } catch (e) { return window.__tinjauMem || (window.__tinjauMem = new Set()); } };
+  const tandaiDibaca = ids => { const D = tinjauDibaca(); ids.forEach(i => D.add(i)); window.__tinjauMem = D; try { localStorage.setItem("tinjauDibaca", JSON.stringify([...D].slice(-200))); } catch (e) {} };
+  const tinjauBaru = () => ((T && T.tinjau) || []).filter(x => !tinjauDibaca().has(x.id));
+  function tinjauHtml() { const L = (T && T.tinjau) || [], B = tinjauBaru(), tampil = tinjauBuka ? L.slice(0, 15) : B.slice(0, 5);
+    if (!L.length) return "";
+    return `<div class="ao-tj-kepala"><b>🔔 Perlu ditinjau</b><span class="ao-tj-n ${B.length ? "ada" : ""}">${B.length ? B.length + " baru" : "tidak ada yang baru"}</span>
+      <button type="button" data-tinjau-riwayat>${tinjauBuka ? "sembunyikan riwayat" : "riwayat (" + L.length + ")"}</button>${B.length ? '<button type="button" data-tinjau-semua>tandai semua dibaca</button>' : ""}</div>` +
+      tampil.map(x => `<div class="ao-tj-i ${x.tingkat}${tinjauDibaca().has(x.id) ? " dibaca" : ""}" data-tinjau="${esc(x.id)}" role="button" tabindex="0"><i></i><span class="ao-tj-s">${esc(x.sumber)}</span><span class="ao-tj-j">${esc(x.judul)}</span><em>${lalu(x.t)}</em></div>`).join(""); }
+  function bukaTinjau(id) { const x = ((T && T.tinjau) || []).find(y => y.id === id); if (!x) return;
+    buka(`<h4>${x.tingkat === "penting" ? "🔴" : "🔵"} ${esc(x.judul)}</h4><div class="sub">${esc(x.sumber)} · ${new Date(x.t).toLocaleString("id-ID")}</div><p>${esc(x.isi)}</p>
+      <p style="font-size:12px;color:#a9acc2">Tanyakan ke Claude untuk rincian atau keputusan. Bot tidak pernah diubah otomatis dari sini.</p>`);
+    tandaiDibaca([id]); $("aoTinjau").innerHTML = tinjauHtml(); tandai(); }
+  window.AO_tinjau = { baru: () => tinjauBaru().length };
   function barStatus() { return `<i style="background:${T.run && !T.run.selesai ? "#38d27a" : "#f0b54a"};box-shadow:0 0 6px ${T.run && !T.run.selesai ? "#38d27a" : "#f0b54a"}"></i>${T.run && !T.run.selesai ? "putaran berjalan" : "menunggu putaran"} · laptop`; }
   function gambarTim() {
     if (!T) return; cariSerahan();
@@ -2777,12 +2801,13 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
         <button class="ao-mode" id="aoMode" type="button">${MODE === "3d" ? "2D" : "3D"}</button>
         <span class="ao-jam" id="aoJam"></span></div>
       <div class="ao-meter" id="aoMeter"></div>
+      <div class="ao-tinjau" id="aoTinjau"></div>
       <div class="ao-isi"><div class="ao-peta" id="aoPeta"><div id="aoSvg"></div><div id="ao3d" hidden></div><button class="ao-kembali" id="aoKembali" type="button" hidden aria-label="Tutup, kembali ke seluruh kantor" title="Kembali ke seluruh kantor">✕</button><div class="ao-zoom"><button data-z="masuk" aria-label="Perbesar">+</button><button data-z="keluar" aria-label="Perkecil">−</button><button data-z="awal" aria-label="Tampilan awal">⌂</button></div></div>
         <div class="ao-panel" id="aoPanel"></div></div>
       <div id="aoKaki" style="font-size:10.5px;color:#9a9db4;padding:6px 14px 10px"></div></div>`;
       $("timAlur").innerHTML = "";
     }
-    $("aoStatus").innerHTML = barStatus(); $("aoMeter").innerHTML = meteran();
+    $("aoStatus").innerHTML = barStatus(); $("aoMeter").innerHTML = meteran(); $("aoTinjau").innerHTML = tinjauHtml();
     $("aoJam").textContent = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
     $("aoPanel").innerHTML = gambarPanel();
     const pakai3d = MODE === "3d" && window.AO3D;
@@ -2990,6 +3015,7 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
         if (PA.perJenis) h += `<p><b>Per jenis sinyal:</b><br>${Object.entries(PA.perJenis).map(([k, x]) => `${k} · ${x.tutup} trade · ${r(x.avgR)}`).join("<br>")}</p>`;
       else { const c = v.syarat || {}; h += `<p><b>Syarat menggantikan juara:</b><br>${ok(c.minggu)} ≥ 8 minggu (sekarang ${v.minggu})<br>${ok(c.n)} ≥ 30 trade tutup (sekarang ${v.tutup})<br>${ok(c.selisih)} lebih baik ≥ 0.10R dari juara di jendela sama (selisih ${r(v.selisih)}; juara ${r(v.juaraJendela.avgR)})<br>${ok(c.acak)} mengalahkan p95 pilihan acak (${v.acak ? r(v.acak.p95) : "—"})</p>`; }
       h += `<p><b>Trade terakhir:</b></p><ul style="font-size:12.5px;line-height:1.5;padding-left:18px;color:#dcdeea">${daftar(v.terakhir) || "<li>belum ada</li>"}</ul>`; }
+    const OP = (T && T.optimasi) || []; if (jenis === "juara" && OP.length) h += `<p><b>Optimasi bayangan (exit/SL aturan bot, diuji maju di sinyal nyata):</b></p><ul style="font-size:12px;line-height:1.5;padding-left:18px;color:#dcdeea">${OP.map(o => `<li>${esc(o.id)} ${esc(o.kode)} ${esc(JSON.stringify(o.ubah))} — <b>${esc(o.status)}</b>${o.hasil ? ` · ${o.hasil.tutup} pasangan tutup · selisih ${o.hasil.selisih == null ? "—" : (o.hasil.selisih > 0 ? "+" : "") + o.hasil.selisih + "R"} · ${o.hasil.minggu}/8 mgg` : ""}</li>`).join("")}</ul><p style="font-size:11.5px;color:#a9acc2">Lulus bila ≥ 30 pasangan, ≥ 8 minggu, lebih baik ≥ 0.10R dari aturan bot sekarang & DSR ≥ 0.95 → masuk "Perlu ditinjau". Bot tidak diubah otomatis.</p>`;
     if (PA.riwayat && PA.riwayat.length) h += `<p><b>Riwayat belajar:</b></p><ul style="font-size:12px;line-height:1.45;padding-left:18px;color:#c9cbdc">${PA.riwayat.slice(0, 6).map(x => `<li>${new Date(x.t).toLocaleDateString("id-ID")} · ${esc(x.teks)}</li>`).join("")}</ul>`;
     h += `<p style="font-size:12px;color:#a9acc2">Catatan: hasil kertas beberapa minggu belum bukti edge. Aturan baru boleh masuk bot hanya atas keputusan Anda, sesudah ≥ 30 trade dan ≥ 6 bulan.</p>`;
     buka(h); }
@@ -3021,6 +3047,9 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
     if (!e.target.closest || !e.target.closest("#timKantor")) return;
     const mo = e.target.closest("#aoMode"); if (mo) { MODE = MODE === "3d" ? "2d" : "3d"; try { localStorage.setItem("aoMode", MODE); } catch (er) {} mo.textContent = MODE === "3d" ? "2D" : "3D"; gambarTim(); return; }
     if (e.target.closest("#aoKembali")) return keAwal();
+    const tj = e.target.closest("[data-tinjau]"); if (tj) return bukaTinjau(tj.dataset.tinjau);
+    if (e.target.closest("[data-tinjau-semua]")) { tandaiDibaca(((T && T.tinjau) || []).map(x => x.id)); $("aoTinjau").innerHTML = tinjauHtml(); return tandai(); }
+    if (e.target.closest("[data-tinjau-riwayat]")) { tinjauBuka = !tinjauBuka; $("aoTinjau").innerHTML = tinjauHtml(); return; }
     const z = e.target.closest("[data-z]"); if (z) { const k = z.dataset.z; const d3 = MODE === "3d" && window.AO3D && !$("ao3d").hidden;
       if (k === "masuk") d3 ? window.AO3D.zoom(0.75) : zoom(0.75); else if (k === "keluar") d3 ? window.AO3D.zoom(1.33) : zoom(1.33); else { if (d3) window.AO3D.awal(); else keAwal(); } return; }
     const f = e.target.closest("[data-f]"); if (f) { filter = f.dataset.f; $("aoPanel").innerHTML = gambarPanel(); return; }
@@ -3055,7 +3084,7 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
   // TANDA BARU (2026-10-04): titik di tombol tab Tim bila ada hasil gagasan yang belum dilihat
   function kunciHasil(X) { return X ? ((X.riwayat && X.riwayat.diuji) || 0) + "|" + ((X.gagasan || []).filter(g => g.vonis).length) + "|" + ((X.run && X.run.id) || "") : ""; }
   function tandai() { const b = $("tbTim"); if (!b || !T) return; let lihat = ""; try { lihat = localStorage.getItem("timLihat") || ""; } catch (e) {}
-    const k = kunciHasil(T); if (halAktif === "Tim") { try { localStorage.setItem("timLihat", k); } catch (e) {} b.classList.remove("ada-baru"); } else b.classList.toggle("ada-baru", !!lihat && lihat !== k || !lihat && !!k); }
+    const k = kunciHasil(T); if (halAktif === "Tim") { try { localStorage.setItem("timLihat", k); } catch (e) {} b.classList.remove("ada-baru"); } else b.classList.toggle("ada-baru", !!lihat && lihat !== k || !lihat && !!k || tinjauBaru().length > 0); }
   const muatAsli = muatTim; window.muatTim = async () => { await muatAsli(); tandai(); };
   setInterval(async () => { if (halAktif === "Tim" || document.hidden) return; try { const r = await fetch(URL_TIM + "?t=" + Date.now(), { cache: "no-store" }); if (r.ok) { T = await r.json(); tAkhir = Date.now(); tandai(); } } catch (e) {} }, 300000);
   setTimeout(async () => { try { const r = await fetch(URL_TIM + "?t=" + Date.now(), { cache: "no-store" }); if (r.ok) { T = await r.json(); tAkhir = Date.now(); tandai(); } } catch (e) {} }, 4000);
