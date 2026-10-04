@@ -2997,8 +2997,8 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
     const st = a => ({ aktif: "🟢 aktif di kertas", gugur_uji_cepat: "⛔ gugur di uji cepat", gugur_maju: "⛔ gugur di kertas", lulus: "✅ LULUS", aktif_menunggu_slot: "🟡 lolos, menunggu slot", uji_cepat: "⏳ diuji" })[a.status] || a.status;
     let h = `<h4>🧬 Lab Aturan</h4><div class="sub">setup 4H/1H · entry presisi 15m · kertas, tidak menyentuh bot</div><p>${esc(PERAN.lab.tugas)}</p>`;
     if (!LB.length) h += "<p>Belum ada aturan.</p>";
-    for (const a of LB.slice().reverse()) { h += `<p><b>${esc(a.id)} · ${esc(a.nama)}</b><br><span style="color:#a9acc2;font-size:12px">${esc(a.sumber)} · setup ${esc(a.tf)} · ${st(a)}</span></p>`;
-      if (a.uji) h += `<ul style="font-size:12px;line-height:1.5;padding-left:18px;color:#dcdeea">${a.uji.hasil.map(x => `<li>${esc(x.irisan)}: A biasa ${r(x.A)} · B presisi ${r(x.B)} · acak p95 ${r(x.C95)} · n ${x.nB} ${x.lolos ? "✅" : "✗"}</li>`).join("")}</ul>`;
+    for (const a of LB.slice().reverse()) { h += `<p><b>${esc(a.id)} · ${esc(a.nama)}</b><br><span style="color:#a9acc2;font-size:12px">${esc(a.sumber)} · ${a.jenis === "setup" ? "mode setup" : "entry 15m"} ${esc(a.tf)} · ${st(a)}</span></p>`;
+      if (a.uji) h += `<ul style="font-size:12px;line-height:1.5;padding-left:18px;color:#dcdeea">${a.uji.hasil.map(x => x.mode === "setup" ? `<li>${esc(x.irisan)}: setup ${r(x.A)} · ambang setup acak ${r(x.D)} · n ${x.nA} ${x.lolos ? "✅" : "✗"}</li>` : `<li>${esc(x.irisan)}: A biasa ${r(x.A)} · B presisi ${r(x.B)} · acak p95 ${r(x.C95)} · n ${x.nB} ${x.lolos ? "✅" : "✗"}</li>`).join("")}</ul>`;
       if (a.maju) h += `<p style="font-size:12.5px">Kertas sejak ${a.aktifSejak ? new Date(a.aktifSejak).toLocaleDateString("id-ID") : "—"}: B presisi ${a.maju.B.n} trade ${r(a.maju.B.avgR)} · A biasa ${a.maju.A.n} trade ${r(a.maju.A.avgR)} · ${a.maju.terbuka} terbuka</p>`; }
     h += `<p style="font-size:12px;color:#a9acc2">Lulus hanya bila sesudah ≥ 30 trade & ≥ 8 minggu entry presisi lebih baik dari entry biasa dan positif. Satu aturan baru dirancang tiap Senin.</p>`;
     buka(h); }
