@@ -521,6 +521,21 @@ async function scanHarian() {
   if (SCAN_JADWAL && process.env.SCAN !== "true" && terkirimSatu && !DRY) fs.writeFileSync(F_SCAN, JSON.stringify({ tgl: L0.tgl, t: Date.now(), tz: SCAN_TZ }));
 }
 
+// 2026-10-04: bagian TIM RISET · AGEN PAPER · KESEHATAN SISTEM di rekap mingguan (data: cabang status, ditulis pemantau laptop)
+async function teksTimSehat() {
+  let T; try { const r = await fetch("https://raw.githubusercontent.com/AmonkShark/Amonk/status/dewan_status.json", { signal: AbortSignal.timeout(15000) }); if (!r.ok) throw 0; T = await r.json(); }
+  catch (e) { return "\n🧑‍🔬 <b>Tim riset & Agen Paper</b>: status laptop tidak terbaca\n"; }
+  const R = T.riwayat || {}, P = T.paper || {}, S = T.sistem || {}, rr = x => x == null ? "—" : (x > 0 ? "+" : "") + x + "R";
+  const jam = iso => iso ? (Date.now() - Date.parse(iso)) / 3600e3 : 1e9;
+  let t = "\n🧑‍🔬 <b>Tim riset</b>: " + (R.diuji || 0) + " gagasan diuji · lolos " + (R.lolos || 0) + (R.eksploratif ? " (+" + R.eksploratif + " eksploratif)" : "") + " · gagal " + (R.gagal || 0) + "\n";
+  if (P.juara) { t += "📄 <b>Agen Paper</b> (kertas, bukan bot): juara " + esc(P.juara.id) + " " + P.juara.tutup + " trade · " + rr(P.juara.avgR) + "/trade · kertas " + P.juara.usdt + " USDT\n";
+    if (P.penantang) t += "   penantang " + esc(P.penantang.id) + ": " + P.penantang.tutup + "/30 trade · " + rr(P.penantang.avgR) + " · minggu " + P.penantang.minggu + "/8\n"; }
+  const cek = [["laptop/pemantau", jam(S.pantau) > 0.4], ["rutin mekanis 4H", jam(S.mekanis && S.mekanis.t) > 4.4 || !!(S.mekanis && !S.mekanis.ok)], ["rutin Claude", jam(S.scanClaude && S.scanClaude.t) > 4.9],
+    ["tim riset", jam(S.dewan && S.dewan.t) > 2.5], ["daftar Monitoring Tag", jam(S.mtag && S.mtag.t) > 36]].filter(x => x[1]).map(x => x[0]);
+  t += cek.length ? "⚠️ <b>Perlu dicek</b>: " + cek.join(", ") + " (lihat Akun → Kesehatan sistem)\n" : "🟢 Kesehatan sistem: semua normal\n";
+  return t;
+}
+
 async function rekap() {
   let maju = {}; try { maju = JSON.parse(fs.readFileSync(F_MAJU, "utf8")); } catch (e) {}
   const semua = Object.values(maju), skr = Date.now(), awal = skr - 7 * 864e5;
@@ -550,7 +565,7 @@ async function rekap() {
     `   (TP1+TP2 ${hs.tp2} · TP1+BE ${hs.be} · SL ${hs.sl})\n` +
     `   progres bukti: ${tutupSemua.length}/30 trade · ${bulan.toFixed(1)}/6 bulan — ${tutupSemua.length >= 30 && bulan >= 6 ? "cukup data" : "<i>belum cukup data untuk disimpulkan</i>"}\n` +
     (baris ? `\n🏷 Per pola (maju):\n${baris}\n` : "") +
-    teksJeda(tutupMinggu, h);
+    teksJeda(tutupMinggu, h) + await teksTimSehat();
   const ok = await kirim(teks);
   console.log(`REKAP: ${ok ? "terkirim" : "GAGAL"} (${semua.length} trade maju tercatat)`);
 }
