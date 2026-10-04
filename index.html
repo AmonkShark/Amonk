@@ -809,6 +809,16 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
 .sehat-b.buka::after{content:attr(title);grid-column:2/4;font-size:12px;color:var(--label,#8a8fa3)}
 .sehat-kaki{font-size:11px;color:var(--label,#8a8fa3);margin-top:6px}
 @media (max-width:600px){.sehat-b{grid-template-columns:12px 1fr;}.sehat-b em{grid-column:2;text-align:left}}
+.vs-kartu{background:var(--bg1);border:1px solid var(--garis);border-radius:12px;padding:10px 12px;margin:0 0 12px}
+.vs-kartu:empty{display:none}
+.vs-judul{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;font-size:14px;margin-bottom:6px}.vs-judul small{font-size:11.5px;color:var(--label,#8a8fa3)}
+.vs-svg{width:100%;height:110px;display:block}.vs-svg polyline{fill:none;stroke-width:2;vector-effect:non-scaling-stroke}
+.vs-svg .vs-bot{stroke:var(--biru)}.vs-svg .vs-lima{stroke:var(--kuning)}.vs-svg .vs-btc{stroke:var(--label,#8a8fa3);stroke-dasharray:4 3}
+.vs-angka{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;font-size:12px}
+.vs-angka div{display:flex;flex-direction:column;gap:2px}.vs-angka b{font-size:16px}.vs-angka span{font-size:11px;color:var(--label,#8a8fa3)}
+.vs-angka i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}.vs-angka i.vs-bot{background:var(--biru)}.vs-angka i.vs-lima{background:var(--kuning)}.vs-angka i.vs-btc{background:var(--label,#8a8fa3)}
+.vs-ket{font-size:11px;color:var(--label,#8a8fa3);margin-top:8px;line-height:1.4}
+@media (max-width:600px){.vs-angka{grid-template-columns:1fr}.vs-angka div{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:6px}}
 /* ==== /TAB TIM RISET v4 ==== */
 </style>
 </head>
@@ -951,6 +961,7 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
 
   <div class="hal" id="halJurnal" hidden>
     <div class="seg tf-seg" role="group" aria-label="Timeframe jurnal" id="jnTF" style="margin-bottom:8px"><button data-tf="4H">4H · dipakai bot</button><button data-tf="1D">1D · info</button></div>
+    <section class="vs-kartu" id="vsBot" aria-label="Bot dibanding pegang BTC"></section>
     <div class="jr-ring" id="jrRing"><div class="kosong memuat">Memuat jurnal…</div></div>
     <div class="jr-ring banding-ring" id="bandingJn" hidden></div>
     <div class="rk-jn" id="jnRingkas" hidden></div>
@@ -2551,7 +2562,7 @@ function pindahHal(h) {
   halAktif = h; simpan("hal", h);
   if (beda) { window.scrollTo(0, 0); if (document.scrollingElement) document.scrollingElement.scrollTop = 0; setTimeout(() => window.scrollTo(0, 0), 0); }   // permintaan user 2026-09-26: tab baru selalu mulai dari atas
   for (const x of ["Terminal", "Riwayat", "Jurnal", "Akun", "Tim", "Info"]) { $("hal" + x).hidden = x !== h; $("tb" + x).setAttribute("aria-selected", x === h ? "true" : "false"); }
-  if (h === "Jurnal") { if (!JR) muatJurnal(); else gambarJurnal(); }
+  if (h === "Jurnal") { if (!JR) muatJurnal(); else gambarJurnal(); if (window.muatVsBot) window.muatVsBot(); }
   if (h === "Akun" && window.muatAkun) window.muatAkun();
   if (h === "Akun" && window.muatBotBilaAda) window.muatBotBilaAda();
   if (h === "Riwayat" && window.gambarRiwayat) window.gambarRiwayat();
@@ -3703,6 +3714,41 @@ $("btUrl").value = btCfg().url; $("btSandi").value = baca("btSandi", "") || "";
 $("btUrl").addEventListener("change", () => { simpan("btUrl", $("btUrl").value.trim()); });
 $("btSandi").addEventListener("change", () => { simpan("btSandi", $("btSandi").value); });
 let BT_S = null;                               // status bot terakhir (dipakai lagi saat jurnal nyata dimuat)
+// ==== BOT vs PEGANG 50:50 BTC/USDT (2026-10-04): pembanding jujur untuk evaluasi 31-12-2026 (memori: bot-kalah-dari-pegang-btc-rebalans) ====
+(() => {
+  let C = null, tAmbil = 0;
+  const f2 = v => (v >= 0 ? "+" : "") + v.toFixed(2), pct = v => (v >= 0 ? "+" : "") + v.toFixed(2) + "%";
+  async function lilin(mulai) {
+    const span = Date.now() - mulai, iv = span < 20 * 864e5 ? "1h" : span < 120 * 864e5 ? "4h" : "1d";
+    for (const h of REST) { try { const r = await fetch(h + "/api/v3/klines?symbol=BTCUSDT&interval=" + iv + "&startTime=" + mulai + "&limit=1000"); if (r.ok) return (await r.json()).map(k => [+k[0], +k[4]]); } catch (e) {} }
+    return null;
+  }
+  async function muat() {
+    const el = document.getElementById("vsBot"); if (!el) return;
+    const B = typeof BT_S !== "undefined" ? BT_S : null, M = B && B.modal;
+    if (!M || !M.sejak || !M.awal) { el.innerHTML = '<div class="vs-judul"><b>Bot vs pegang BTC</b></div><div class="vs-ket">Status bot belum terbaca — buka tab Akun / sambungkan bot.</div>'; return; }
+    if (!C || C.sejak !== M.sejak || Date.now() - tAmbil > 10 * 60e3) { const K = await lilin(M.sejak); if (K && K.length) { C = { sejak: M.sejak, K }; tAmbil = Date.now(); } }
+    gambar(el, B, M);
+  }
+  function gambar(el, B, M) {
+    if (!C) { el.innerHTML = '<div class="vs-judul"><b>Bot vs pegang BTC</b></div><div class="vs-ket">Harga BTC gagal diambil dari Binance.</div>'; return; }
+    const K = C.K, p0 = K[0][1], awal = M.awal, tutup = (B.riwayat || []).filter(r => r.keluarT >= M.sejak).sort((a, b) => a.keluarT - b.keluarT);
+    const bot = K.map(([t]) => awal + tutup.filter(r => r.keluarT <= t + 36e5).reduce((a, r) => a + (+r.hasil || 0), 0));
+    bot[bot.length - 1] = awal + (+M.laba || 0);
+    const lima = K.map(([, p]) => awal * (0.5 + 0.5 * p / p0)), btc = K.map(([, p]) => awal * p / p0);
+    const semua = [...bot, ...lima, ...btc], lo = Math.min(...semua), hi = Math.max(...semua), W = 320, H = 110, pad = 4;
+    const xy = (a) => a.map((v, i) => (pad + i * (W - 2 * pad) / Math.max(1, a.length - 1)).toFixed(1) + "," + (H - pad - (hi === lo ? .5 : (v - lo) / (hi - lo)) * (H - 2 * pad)).toFixed(1)).join(" ");
+    const akhir = a => a[a.length - 1], r = a => (akhir(a) / awal - 1) * 100, hari = (Date.now() - M.sejak) / 864e5;
+    el.innerHTML = '<div class="vs-judul"><b>Bot vs pegang BTC</b><small>sejak ' + new Date(M.sejak).toLocaleDateString("id-ID", { day: "2-digit", month: "short" }) + ' · ' + hari.toFixed(0) + ' hari · modal awal ' + Math.round(awal).toLocaleString("en-US") + ' USDT</small></div>' +
+      '<svg class="vs-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="Kurva bot, 50:50 BTC/USDT, dan BTC"><polyline class="vs-btc" points="' + xy(btc) + '"/><polyline class="vs-lima" points="' + xy(lima) + '"/><polyline class="vs-bot" points="' + xy(bot) + '"/></svg>' +
+      '<div class="vs-angka"><div><i class="vs-bot"></i>Bot (laba tutup)<b class="' + (r(bot) >= 0 ? "naik" : "turun") + '">' + pct(r(bot)) + '</b><span>' + f2(akhir(bot) - awal) + ' USDT · ' + tutup.length + ' trade</span></div>' +
+      '<div><i class="vs-lima"></i>Pegang 50:50 BTC/USDT<b class="' + (r(lima) >= 0 ? "naik" : "turun") + '">' + pct(r(lima)) + '</b><span>' + f2(akhir(lima) - awal) + ' USDT</span></div>' +
+      '<div><i class="vs-btc"></i>Pegang BTC<b class="' + (r(btc) >= 0 ? "naik" : "turun") + '">' + pct(r(btc)) + '</b><span>' + f2(akhir(btc) - awal) + ' USDT</span></div></div>' +
+      '<div class="vs-ket">Pembanding untuk evaluasi 31-12-2026. Pegang dihitung tanpa biaya & tanpa rebalans; bot = laba yang sudah TUTUP (posisi terbuka belum dihitung). Hasil beberapa minggu belum bermakna. Deskriptif, bukan saran investasi.</div>';
+  }
+  window.muatVsBot = muat;
+  setInterval(() => { const h = document.getElementById("halJurnal"); if (h && !h.hidden && !document.hidden) muat(); }, 5 * 60e3);
+})();
 // ==== KESEHATAN SISTEM (2026-10-04): kapan tiap bagian AMONK terakhir jalan; hijau = sesuai jadwal, merah = terlambat ====
 (() => {
   const URL_ST = "https://raw.githubusercontent.com/AmonkShark/Amonk/status/dewan_status.json";
@@ -3761,7 +3807,7 @@ function kurvaModalBot(MO, R) {
     `<polygon points="${x(0)},${y(MO.awal)} ${pts} ${x(c.length - 1)},${y(MO.awal)}" fill="${w}" opacity=".12"/><polyline points="${pts}" fill="none" stroke="${w}" stroke-width="1.8"/></svg></div>`;
 }
 function gambarBot(s) {
-  BT_S = s; gambarPita(s);
+  BT_S = s; gambarPita(s); if (window.muatVsBot && $("halJurnal") && !$("halJurnal").hidden) window.muatVsBot();
   const asli = s.jaringan === "asli";                                  // bot memakai AKUN ASLI (uang sungguhan)
   $("btJaringan").innerHTML = asli ? "" : "TESTNET · saldo latihan";   // label merah akun asli dibuang (permintaan user 09-22)
   $("btModal").placeholder = asli ? `0 = pagu ${s.modalAsliMaks || "?"} USDT dari Cloudflare` : "0 = seluruh saldo testnet";
@@ -4147,7 +4193,7 @@ function gambarPita(s) {
 }
 async function muatPita() {
   if (!btCfg().url) return;
-  try { const s = await btPanggil("/status"); BT_S = s; gambarPita(s); } catch (e) { gambarPita(null); }
+  try { const s = await btPanggil("/status"); BT_S = s; gambarPita(s); if (window.muatVsBot && $("halJurnal") && !$("halJurnal").hidden) window.muatVsBot(); } catch (e) { gambarPita(null); }
 }
 // lampu harga ikut titik status koneksi harga di kepala halaman
 setInterval(() => { const d = $("dot"), el = $("pitaHarga"); if (!d || !el) return;
