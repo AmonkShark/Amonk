@@ -2609,12 +2609,36 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
   const gelap = (hex, f) => { const n = parseInt(hex.slice(1), 16); const c = [n >> 16, (n >> 8) & 255, n & 255].map(v => Math.round(v * f)); return "rgb(" + c.join(",") + ")"; };
   const RAMBUT = ["#3b2a20", "#6b3d1e", "#1f1f24", "#8a4b2a", "#2d2016", "#4a3020"];
   let T = null, tAkhir = 0, MEJA = [], TUGAS = [], filter = "semua", VB = null, VB0 = null;
+  // 2026-10-04 SERAH BERKAS: agen yang baru selesai membawa berkasnya ke agen tahap berikut sesuai urutan
+  // (pencari → perancang-N → penguji-N → pembantah-N → The Brain). Hanya yang selesai < 6 mnt lalu / terlihat bekerja sebelumnya.
+  const SUDAH_SERAH = new Set(), PERNAH_KERJA = new Set(); let SERAH = [];
+  try { JSON.parse(sessionStorage.getItem("aoSerah") || "[]").forEach(k => SUDAH_SERAH.add(k)); } catch (e) {}
+  const BERKAS = { pencari: "daftar gagasan", perancang: "PRADAFTAR", penguji: "hasil uji", pembantah: "vonis" };
+  function berikutnya(label, A) { let m;
+    if (label === "pencari-gagasan") { const L = A.filter(a => /^perancang-\d+$/.test(a.label)).map(a => a.label); return L.length ? L : ["@perancang"]; }
+    if ((m = label.match(/^perancang-(\d+)$/))) return ["penguji-" + m[1]];
+    if ((m = label.match(/^penguji-(\d+)$/))) return ["pembantah-" + m[1]];
+    if ((m = label.match(/^pembantah-(\d+)$/))) return A.some(a => a.label === "pembantah2-" + m[1]) ? ["pembantah2-" + m[1]] : ["@brain"];
+    return /^pembantah2-/.test(label) ? ["@brain"] : []; }
+  function namaKode(k) { if (k === "@brain") return "The Brain"; if (k[0] === "@") return PERAN[k.slice(1)].nama;
+    const no = (k.match(/-(\d+)$/) || [])[1], p = /^pembantah2/.test(k) ? "pembantah" : k.split("-")[0]; return (PERAN[p] ? PERAN[p].nama : k) + (no ? " #" + no : ""); }
+  function cariSerahan() {
+    const A = (T && T.agen) || [], run = (T && T.run && T.run.id) || "", kini = Date.now();
+    for (const a of A) { const k = run + "|" + a.label;
+      if (a.status === "bekerja") { PERNAH_KERJA.add(k); continue; }
+      if (a.status !== "selesai" || SUDAH_SERAH.has(k)) continue;
+      SUDAH_SERAH.add(k);
+      if (!(PERNAH_KERJA.has(k) || a.aksiT && kini - Date.parse(a.aksiT) < 6 * 60e3)) continue;
+      const ke = berikutnya(a.label, A); if (ke.length) SERAH.push({ k, dari: a.label, peran: a.peran, ke, teks: BERKAS[a.peran] || "berkas", t0: kini }); }
+    try { sessionStorage.setItem("aoSerah", JSON.stringify([...SUDAH_SERAH].slice(-300))); } catch (e) {}
+    SERAH = SERAH.filter(s => kini - s.t0 < 120e3);
+  }
 
   function kumpulMeja() {
     const A = (T && T.agen) || [], G = (T && T.gagasan) || [], K = T && T.kronos, M = {};
     for (const d of DEP) M[d.id] = [];
     for (const a of A) { const no = +((a.label.match(/-(\d+)$/) || [])[1] || 0); if (!M[a.peran]) continue;
-      M[a.peran].push({ peran: a.peran, status: a.status, judul: PERAN[a.peran].nama + (no ? " #" + no : ""), label: a.peran === "pencari" ? "Pencari" : (DEP.find(d => d.id === a.peran).judul[0] + DEP.find(d => d.id === a.peran).judul.slice(1).toLowerCase()) + (no ? " #" + no : ""), aksi: a.aksi, langkah: a.langkah, mulai: a.mulai, aksiT: a.aksiT, gagasan: no ? G.find(g => g.no === no) : null }); }
+      M[a.peran].push({ peran: a.peran, status: a.status, judul: PERAN[a.peran].nama + (no ? " #" + no : ""), label: a.peran === "pencari" ? "Pencari" : (DEP.find(d => d.id === a.peran).judul[0] + DEP.find(d => d.id === a.peran).judul.slice(1).toLowerCase()) + (no ? " #" + no : ""), aksi: a.aksi, langkah: a.langkah, mulai: a.mulai, aksiT: a.aksiT, kode: a.label, gagasan: no ? G.find(g => g.no === no) : null }); }
     if (K) { const pct = Math.round(100 * K.jadi / K.total), st = K.jadi >= K.total ? "selesai" : K.hidup ? "bekerja" : "menunggu";
       for (let s = 0; s < 4; s++) M.kronos.push({ peran: "kronos", status: st, judul: "Kronos proses " + (s + 1), label: "Shard " + (s + 1), aksi: st === "selesai" ? "ramalan selesai — siap dinilai" : st === "bekerja" ? `meramal… ${pct}% (${K.jadi}/${K.total})` : "berhenti — laptop tidur/mati?", aksiT: K.terakhir }); }
     const PA = T && T.paper; if (PA && PA.juara) { const j = PA.juara, p = PA.penantang, r = x => x == null ? "—" : (x > 0 ? "+" : "") + x + "R";
@@ -2629,7 +2653,7 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
   }
   function gambarPeta() {
     const M = kumpulMeja(), A = (T && T.agen) || [], G = (T && T.gagasan) || [], K = T && T.kronos, R = (T && T.riwayat) || { diuji: 0, lolos: 0, gagal: 0 };
-    MEJA = []; let svg = "", garis = "", kartu = "", meja = [];
+    MEJA = []; let svg = "", garis = "", kartu = "", meja = [], atas = ""; const POS = {};
     const bb = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 }, catat = (x, y) => { bb.x0 = Math.min(bb.x0, x); bb.y0 = Math.min(bb.y0, y); bb.x1 = Math.max(bb.x1, x); bb.y1 = Math.max(bb.y1, y); };
     // The Brain (tengah)
     const bx = -50, by = -50, bw = 100, bd = 100, pusat = P(bx + bw / 2, by + bd / 2);
@@ -2697,10 +2721,19 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
         <g class="ao-kepala"><circle cx="${kpl[0].toFixed(1)}" cy="${kpl[1].toFixed(1)}" r="5" fill="${rambut}"/></g>
         <g class="ao-label"><rect x="${(lab[0] - lw / 2).toFixed(1)}" y="${(lab[1] - 9).toFixed(1)}" width="${lw.toFixed(1)}" height="12" rx="6" fill="#3a3d52" stroke="#71759a" stroke-width=".7"/>
           <text x="${lab[0].toFixed(1)}" y="${(lab[1] - .8).toFixed(1)}" font-size="7" font-weight="800" fill="#eef0fa" text-anchor="middle" letter-spacing=".04em">${esc(teks.toUpperCase())}</text></g></g>`;
-      catat(lab[0] - lw / 2, lab[1] - 10); catat(lab[0] + lw / 2, kursi[1] + 6); }
+      catat(lab[0] - lw / 2, lab[1] - 10); catat(lab[0] + lw / 2, kursi[1] + 6); if (m.kode) POS[m.kode] = kpl; }
+    // serah berkas: kertas terbang dari meja agen yang baru selesai ke meja agen tahap berikut (diulang selama ~90 dtk)
+    for (const s of SERAH) { const a = POS[s.dari], umur = (Date.now() - s.t0) / 1000; if (!a || umur > 90) continue;
+      s.ke.forEach((kd, j) => { const d = kd[0] === "@" && kd !== "@brain" ? DEP.find(x => x.id === kd.slice(1)) : null;
+        const b = kd === "@brain" ? [pusat[0], pusat[1] - 26] : d ? P(d.x + LW / 2, d.y + LD / 2) : POS[kd]; if (!b) return;
+        const jl = `M${a[0].toFixed(1)} ${(a[1] - 8).toFixed(1)} Q ${((a[0] + b[0]) / 2).toFixed(1)} ${(Math.min(a[1], b[1]) - 55).toFixed(1)} ${b[0].toFixed(1)} ${(b[1] - 8).toFixed(1)}`;
+        atas += `<path d="${jl}" fill="none" stroke="#f4e9c8" stroke-width="1" stroke-dasharray="3 3" stroke-opacity=".7"/>
+          <g class="ao-serah"><rect x="-4.5" y="-6" width="9" height="12" rx="1" fill="#fbfaf4" stroke="#8b7f5c" stroke-width=".7"/><line x1="-2.5" y1="-2.5" x2="2.5" y2="-2.5" stroke="#7d6bd6" stroke-width=".8"/><line x1="-2.5" y1="0" x2="2.5" y2="0" stroke="#8b8fa3" stroke-width=".7"/><line x1="-2.5" y1="2.5" x2="1.5" y2="2.5" stroke="#8b8fa3" stroke-width=".7"/>
+            <text y="-9" font-size="6.5" font-weight="800" fill="#fff6d8" text-anchor="middle" stroke="#2a2c38" stroke-width="2" paint-order="stroke">${esc(s.teks.toUpperCase())}</text>
+            <animateMotion dur="2.6s" begin="${(j * .45).toFixed(2)}s" repeatCount="indefinite" path="${jl}"/></g>`; }); }
     const pad = 14, lama = VB0; VB0 = [bb.x0 - pad, bb.y0 - pad, bb.x1 - bb.x0 + pad * 2, bb.y1 - bb.y0 + pad * 2];
     if (!VB || lama && VB.every((v, i) => Math.abs(v - lama[i]) < .5)) VB = VB0.slice();   // tidak sedang diperbesar -> ikut batas peta baru
-    return `<svg viewBox="${VB.map(v => v.toFixed(1)).join(" ")}" role="img" aria-label="Kantor agen riset AMONK"><defs><filter id="aoGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>${garis}${svg}${kartu}</svg>`;
+    return `<svg viewBox="${VB.map(v => v.toFixed(1)).join(" ")}" role="img" aria-label="Kantor agen riset AMONK"><defs><filter id="aoGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>${garis}${svg}${kartu}${atas}</svg>`;
   }
   function kumpulTugas() {
     const A = (T && T.agen) || [], G = (T && T.gagasan) || [], L = [];
@@ -2734,7 +2767,7 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
       ${H && H.gagalBeruntun > 0 ? `<div class="ao-m peringatan"><span>⚠ RUTIN</span><em>${H.gagalBeruntun}x gagal berturut</em></div>` : ""}`; }
   function barStatus() { return `<i style="background:${T.run && !T.run.selesai ? "#38d27a" : "#f0b54a"};box-shadow:0 0 6px ${T.run && !T.run.selesai ? "#38d27a" : "#f0b54a"}"></i>${T.run && !T.run.selesai ? "putaran berjalan" : "menunggu putaran"} · laptop`; }
   function gambarTim() {
-    if (!T) return;
+    if (!T) return; cariSerahan();
     const K = T.kronos;
     if (!$("aoRoot")) {
       $("timKantor").innerHTML = `<div class="ao" id="aoRoot"><div class="ao-bar"><span class="ao-judul">AGENTS OFFICE <small>V5 · AMONK RISET</small></span>
@@ -2754,7 +2787,7 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
     $("aoPanel").innerHTML = gambarPanel();
     const pakai3d = MODE === "3d" && window.AO3D;
     $("aoKaki").textContent = `Diperbarui ${lalu(T.diperbarui)} · ${pakai3d ? "geser untuk memutar kantor, ketuk karakter untuk penjelasan" : "ketuk meja/agen untuk penjelasan, lantai untuk memperbesar"}${K ? " · Kronos " + K.jadi + "/" + K.total : ""}`;
-    if (pakai3d) { $("aoSvg").hidden = true; $("ao3d").hidden = false; window.AO3D.perbarui($("ao3d"), siapkanMeja(), T); }
+    if (pakai3d) { $("aoSvg").hidden = true; $("ao3d").hidden = false; window.AO3D.perbarui($("ao3d"), siapkanMeja(), T, SERAH); }
     else { $("ao3d").hidden = true; $("aoSvg").hidden = false; $("aoSvg").innerHTML = gambarPeta(); if (MODE === "3d") muat3d(); }
     tandaFokus();
   }
@@ -2841,30 +2874,63 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
       if (!o) return; if (o.userData.idx === "bot") return window.AO.bukaBot(); window.AO.bukaMeja(o.userData.idx);
     }
     // sinkron daftar agen -> karakter & meja
-    function sinkron(daftar, T) {
+    function sinkron(daftar, T, serah) {
       datT = T;
       const per = {}; for (const o of daftar) (per[o.dep.id] = per[o.dep.id] || []).push(o);
       per.bot = [{ dep: { id: "bot" }, m: { judul: "AMONK BOT", label: "AMONK BOT", status: "bekerja", aksi: "trading pola 4H (akun asli)" }, i: "bot" }];
       const kunci = Object.entries(per).map(([k, L]) => k + L.length).join("|");
-      if (kunci !== sinkron.k) { // susunan berubah -> bangun ulang meja & orang
+      if (kunci !== sinkron.k) { // susunan berubah -> bangun ulang meja & orang (posisi & tugas antar berkas dipertahankan per kode agen)
+        const simpan = {}; for (const o of ORANG) if (o.o.m.kode) simpan[o.o.m.kode] = { pos: o.g.position.clone(), rot: o.g.rotation.y, antar: o.antar, antre: o.antre };
         for (const o of ORANG) scene.remove(o.g); for (const m of MEJA3) scene.remove(m.g); ORANG = []; MEJA3 = []; lapisLabel.innerHTML = "";
         for (const [k, L] of Object.entries(per)) { const [zx, zz] = ZONA[k];
           L.slice(0, 4).forEach((o, j) => { const mx = zx - .9 + (j % 2) * 1.8, mz = zz - .6 + Math.floor(j / 2) * 1.5, mj = buatMeja(mx, mz, k === "bot" || k === "paper" ? "grafik" : "kode"); MEJA3.push(mj);
             const g = buatOrang(BAJU[k], RAMBUT[(ORANG.length * 3) % RAMBUT.length]); g.userData.idx = o.i; g.position.set(mx + (Math.random() - .5), 0, mz + 1.3); scene.add(g);
             const tag = document.createElement("div"); tag.className = "ao3-tag"; lapisLabel.appendChild(tag);
-            ORANG.push({ g, mj, k, o, tag, tujuan: null, tunggu: Math.random() * 2, duduk: false, sudutBrain: ORANG.length * .9 }); }); }
+            const P0 = o.m.kode && simpan[o.m.kode]; if (P0) { g.position.copy(P0.pos); g.rotation.y = P0.rot; }
+            ORANG.push({ g, mj, k, o, tag, tujuan: null, tunggu: Math.random() * 2, duduk: false, sudutBrain: ORANG.length * .9, antar: P0 ? P0.antar : null, antre: P0 ? P0.antre : null }); }); }
         sinkron.k = kunci;
       } else { for (const p of ORANG) { const L = per[p.k] || []; const baru = L.find(x => x.i === p.o.i) || L[ORANG.filter(q => q.k === p.k).indexOf(p)]; if (baru) { p.o = baru; p.g.userData.idx = baru.i; } } }
-      for (const p of ORANG) { const m = p.o.m, B = typeof BT_S !== "undefined" && BT_S ? BT_S : null, nm = p.k === "bot" ? "AMONK BOT" : m.label === "kosong" ? (window.AO.PERAN[p.k] || {}).nama || p.k : m.label;
-        const peran = p.k === "bot" ? "TRADER" : ({ pencari: "PENCARI", perancang: "PERANCANG", penguji: "PENGUJI", pembantah: "PEMBANTAH", kronos: "KRONOS", paper: "PAPER", lab: "LAB" })[p.k];
-        const st = p.k === "bot" ? (B ? (B.aktif ? "Trading" : "Jeda") : "Live") : m.status === "bekerja" ? "Bekerja" : m.status === "selesai" ? "Selesai" : "Menunggu";
-        const aksi = p.k === "bot" ? (B ? `Modal ${Math.round((B.modal && B.modal.kini) || 0).toLocaleString("en-US")} USDT · ${(B.posisi || []).length} posisi` : "") : m.status === "bekerja" ? m.aksi : "";
-        p.tag.classList.toggle("diam", st === "Menunggu"); p.tag.innerHTML = `${aksi ? `<div class="ao3-balon">${esc(potong(aksi, 46))}</div>` : ""}<div class="ao3-nama"><i class="${st === "Bekerja" || st === "Trading" || st === "Live" ? "ok" : st === "Selesai" ? "sel" : ""}"></i>${esc(potong(nm, 16))}</div><div class="ao3-peran">${peran} · ${st}</div>`; }
+      // serahan baru -> antrean tugas antar berkas pada karakter pengirim
+      for (const s of serah || []) { if (s.ambil3d) continue; const p = ORANG.find(q => q.o.m.kode === s.dari); if (!p) continue; s.ambil3d = true;
+        p.antre = (p.antre || []).concat(s.ke.map(kd => ({ kd, teks: s.teks, peran: s.peran }))); }
+      for (const p of ORANG) isiTag(p);
     }
+    function isiTag(p) { const m = p.o.m, B = typeof BT_S !== "undefined" && BT_S ? BT_S : null, nm = p.k === "bot" ? "AMONK BOT" : m.label === "kosong" ? (window.AO.PERAN[p.k] || {}).nama || p.k : m.label;
+        const peran = p.k === "bot" ? "TRADER" : ({ pencari: "PENCARI", perancang: "PERANCANG", penguji: "PENGUJI", pembantah: "PEMBANTAH", kronos: "KRONOS", paper: "PAPER", lab: "LAB" })[p.k];
+        const st = p.antar ? "Mengantar" : p.k === "bot" ? (B ? (B.aktif ? "Trading" : "Jeda") : "Live") : m.status === "bekerja" ? "Bekerja" : m.status === "selesai" ? "Selesai" : "Menunggu";
+        const aksi = p.antar ? `📄 ${p.antar.tahap === "serah" ? "menyerahkan" : "membawa"} ${p.antar.teks} → ${window.AO.namaKode(p.antar.kd)}` : p.k === "bot" ? (B ? `Modal ${Math.round((B.modal && B.modal.kini) || 0).toLocaleString("en-US")} USDT · ${(B.posisi || []).length} posisi` : "") : m.status === "bekerja" ? m.aksi : "";
+        p.tag.classList.toggle("diam", st === "Menunggu"); p.tag.innerHTML = `${aksi ? `<div class="ao3-balon">${esc(potong(aksi, 52))}</div>` : ""}<div class="ao3-nama"><i class="${st === "Bekerja" || st === "Trading" || st === "Live" || st === "Mengantar" ? "ok" : st === "Selesai" ? "sel" : ""}"></i>${esc(potong(nm, 16))}</div><div class="ao3-peran">${peran} · ${st}</div>`; }
+    // berkas yang dibawa: map kertas putih dengan pita warna peran pengirim; hidup di scene (bukan anak karakter) supaya selamat saat karakter dibangun ulang
+    function buatBerkas(peran) { const g = new THREE.Group(); kotak(.34, .05, .26, 0xfbfaf4, 0, 0, 0, g); kotak(.34, .052, .06, BAJU[peran] || 0x888888, 0, .002, -.08, g);
+      for (let i = 0; i < 3; i++) kotak(.2, .053, .015, 0x9a9db0, -.03, .003, -.01 + i * .045, g); scene.add(g); return g; }
+    function tujuanAntar(p) { const a = p.antar, q = a.kd[0] === "@" ? null : ORANG.find(o => o.o.m.kode === a.kd);
+      if (q) return { v: new THREE.Vector3(q.mj.g.position.x + .85, 0, q.mj.g.position.z + .35), q };
+      if (a.kd === "@brain") { const s = Math.atan2(p.g.position.z, p.g.position.x); return { v: new THREE.Vector3(Math.cos(s) * 1.7, 0, Math.sin(s) * 1.7), q: null }; }
+      const [zx, zz] = ZONA[a.kd.slice(1)] || [0, 0]; return { v: new THREE.Vector3(zx, 0, zz + 1.2), q: null }; }
     const v3 = new THREE.Vector3();
     function gerak(dt, t) {
       for (const p of ORANG) { const u = p.g.userData, st = p.k === "bot" ? "bekerja" : p.o.m.status;
         let tujuan;
+        // ANTAR BERKAS: berjalan membawa berkas -> berhenti di samping meja penerima -> menyodorkan & berkas melayang ke meja penerima
+        if (!p.antar && p.antre && p.antre.length) { p.antar = Object.assign(p.antre.shift(), { tahap: "jalan", w: 0 }); isiTag(p); }
+        if (p.antar) { const a = p.antar; if (!a.obj) a.obj = buatBerkas(a.peran);
+          const T0 = tujuanAntar(p), dk = new THREE.Vector3().subVectors(T0.v, p.g.position); dk.y = 0;
+          if (a.tahap === "jalan") { a.w += dt; if (dk.length() < .08 || a.w > 25) { a.tahap = "serah"; a.w = 0; isiTag(p); } }
+          if (a.tahap === "jalan") { const d = dk, jarak = d.length(), lang = Math.min(jarak, dt * 1.6); d.normalize(); p.duduk = false; p.g.position.addScaledVector(d, lang); p.g.rotation.y = Math.atan2(d.x, d.z);
+            const ay = Math.sin(t * 10) * .6; u.kk.rotation.x = ay; u.kn.rotation.x = -ay; u.lk.rotation.x = u.ln.rotation.x = -1.05; p.g.position.y = Math.abs(Math.sin(t * 10)) * .04;
+            const f = new THREE.Vector3(Math.sin(p.g.rotation.y), 0, Math.cos(p.g.rotation.y)); a.obj.position.set(p.g.position.x + f.x * .42, .62 + p.g.position.y, p.g.position.z + f.z * .42); a.obj.rotation.y = p.g.rotation.y; }
+          else { a.w += dt; p.g.position.y = 0; u.kk.rotation.x = u.kn.rotation.x = 0;
+            const meja = T0.q ? T0.q.mj.g.position : new THREE.Vector3(0, 0, 0), tgt = T0.q ? new THREE.Vector3(meja.x + .3, .84, meja.z + .05) : new THREE.Vector3(0, 1.0, 0);
+            p.g.rotation.y = Math.atan2((T0.q ? T0.q.g.position.x : 0) - p.g.position.x, (T0.q ? T0.q.g.position.z : 0) - p.g.position.z);
+            const k = Math.min(1, a.w / 1.1); u.lk.rotation.x = u.ln.rotation.x = -1.05 - .5 * Math.sin(Math.min(1, a.w / .5) * Math.PI / 2);
+            const f = new THREE.Vector3(Math.sin(p.g.rotation.y), 0, Math.cos(p.g.rotation.y)), awal = new THREE.Vector3(p.g.position.x + f.x * .5, .78, p.g.position.z + f.z * .5);
+            a.obj.position.lerpVectors(awal, tgt, k); a.obj.position.y += Math.sin(k * Math.PI) * .35; a.obj.rotation.y += dt * (k < 1 ? 4 : 0);
+            if (T0.q && k >= 1) T0.q.g.userData.kp.rotation.x = -.25;   // penerima mengangguk menerima
+            if (a.w > 2.2) { scene.remove(a.obj); if (T0.q) T0.q.g.userData.kp.rotation.x = 0; p.antar = null; isiTag(p); } }
+          if (p.antar) { p.mj.g.visible = true; if (Math.floor(t * 4) !== p.fl) { p.fl = Math.floor(t * 4); lukisLayar(p.mj.L, st, t); }
+            v3.set(p.g.position.x, 2.05, p.g.position.z).project(cam); const w = wadah.clientWidth, h = parseFloat(ren.domElement.style.height);
+            p.tag.style.transform = `translate(${Math.max(70, Math.min(w - 70, (v3.x + 1) / 2 * w)).toFixed(0)}px,${((1 - v3.y) / 2 * h).toFixed(0)}px) translate(-50%,-100%)`; p.tag.style.zIndex = String(Math.round((1 - v3.z) * 1000)); p._x = (v3.x + 1) / 2 * w; p._y = (1 - v3.y) / 2 * h; p._z = v3.z; p._pen = -1;
+            continue; } }
         if (st === "bekerja") tujuan = p.mj.kursi;
         else if (st === "selesai") tujuan = new THREE.Vector3(Math.cos(p.sudutBrain) * 1.9, 0, Math.sin(p.sudutBrain) * 1.9);
         else { if (!p.tujuan || p.tunggu < 0 && p.g.position.distanceTo(p.tujuan) < .1) { const [zx, zz] = ZONA[p.k]; p.tujuan = new THREE.Vector3(zx + (Math.random() - .5) * 3.4, 0, zz + (Math.random() - .5) * 2.6); p.tunggu = 1 + Math.random() * 3; } tujuan = p.tujuan; }
@@ -2896,7 +2962,7 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
       const dt = Math.min(jam.getDelta(), .05), t = jam.elapsedTime; otak.rotation.y += dt * .5; otak.rotation.x += dt * .2; aturKamera(); gerak(dt, t); ren.render(scene, cam);
     }
     return {
-      perbarui(el, daftar, T) { if (!ren) bangun(el); else if (el !== wadah) { el.appendChild(ren.domElement); el.appendChild(lapisLabel); wadah = el; ukur(); } sinkron(daftar, T); },
+      perbarui(el, daftar, T, serah) { if (!ren) bangun(el); else if (el !== wadah) { el.appendChild(ren.domElement); el.appendChild(lapisLabel); wadah = el; ukur(); } sinkron(daftar, T, serah); },
       zoom(f) { zoomF = Math.max(.6, Math.min(3, zoomF / f)); }, awal() { zoomF = window.innerWidth < 600 ? 1.35 : 1; sudut = Math.PI / 4; },
     };
   }
@@ -2992,7 +3058,7 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
   const muatAsli = muatTim; window.muatTim = async () => { await muatAsli(); tandai(); };
   setInterval(async () => { if (halAktif === "Tim" || document.hidden) return; try { const r = await fetch(URL_TIM + "?t=" + Date.now(), { cache: "no-store" }); if (r.ok) { T = await r.json(); tAkhir = Date.now(); tandai(); } } catch (e) {} }, 300000);
   setTimeout(async () => { try { const r = await fetch(URL_TIM + "?t=" + Date.now(), { cache: "no-store" }); if (r.ok) { T = await r.json(); tAkhir = Date.now(); tandai(); } } catch (e) {} }, 4000);
-  window.AO = { bukaMeja, PERAN, bukaBot() { const B = typeof BT_S !== "undefined" && BT_S ? BT_S : null, M = B && B.modal;
+  window.AO = { bukaMeja, PERAN, namaKode, bukaBot() { const B = typeof BT_S !== "undefined" && BT_S ? BT_S : null, M = B && B.modal;
     buka(`<h4>🤖 AMONK BOT · TRADER</h4><div class="sub">${B ? (B.aktif ? "🟢 trading (akun asli)" : "🟠 dijeda") : "status belum terbaca"}</div>
       ${B ? `<dl><dt>Versi</dt><dd>${esc(B.versi || "—")}</dd><dt>Modal</dt><dd>${Math.round((M && M.kini) || 0).toLocaleString("en-US")} USDT (laba ${((M && M.laba) || 0).toFixed(2)})</dd><dt>Posisi</dt><dd>${(B.posisi || []).length} terbuka · ${((B.ew && B.ew.order) || []).length} order Elliott</dd><dt>Pola</dt><dd>${esc(((B.pengaturan && B.pengaturan.polaBoleh) || []).join(", "))}</dd></dl>` : "<p>Buka tab Akun (dengan sandi bot) supaya status bot ikut tampil di sini.</p>"}
       <p>Bot memakai pola 4H TB, Elliott dan FW. Tim riset tidak pernah mengubah bot; temuan baru masuk bot hanya atas keputusan Anda.</p>`); } };
