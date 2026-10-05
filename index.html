@@ -1108,12 +1108,12 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
       <li><b>⏳ EW</b> di Terminal = limit yang masih menunggu (harga limit & jarak dari harga sekarang). Bot memasang Elliott sebanyak slot yang tersisa, urut dari yang <b>paling dekat ke harga limit</b> (pilihanmu, peringkat 2 dari 12 cara pilih yang diuji — tidak ada yang terbukti; sebelumnya "termuda"), seri diputus <b>likuiditas</b>. Limit yang menunggu memakai slot & modal sampai ~10 hari.</li>
       <li><b>Bukti:</b> dengan TP/SL buku, Elliott <b>di bawah entry acak</b> di 4 dari 4 irisan uji (rata −0,12R) — peringkat 10, di atas Bull Flag saja. Hasil per trade 2023–2026 ≈ nol. Alat pantau, bukan sinyal yang terbukti.</li>
     </ul></section>
-    <section><h3>🧪 Sinyal Lab di Terminal — L029, L030, L027 (2026-10-06)</h3><ul>
-      <li><b>L029</b> — AO (SMA5 − SMA34 dari harga tengah) menyeberang ke atas 0, Stoch %K(14,3) di atas %D dan %K &lt; 80. Tanpa syarat pola.</li>
+    <section><h3>🧪 Sinyal Lab di Terminal — L030 & L027 (2026-10-06, pilihan user)</h3><ul>
+      <li><b>Dasar L030 = L029</b> — AO (SMA5 − SMA34 dari harga tengah) menyeberang ke atas 0, Stoch %K(14,3) di atas %D dan %K &lt; 80. L029 sendirian tidak ditampilkan (pilihan user).</li>
       <li><b>L030</b> — L029 yang muncul saat ada <b>setup</b> Triple Bottom / Falling Wedge yang masih hidup (belum tembus).</li>
       <li><b>L027</b> — inside bar, lalu close menembus high-nya, dengan RSI14 &lt; 35 dan volume ≥ 1,5 × EMA20 volume.</li>
       <li><b>Trade:</b> entry close lilin 4H sinyal, SL = low 5 lilin − 0,5 ATR, 50% di 1,5R, sisa trailing 15% dari high tertinggi, batas 120 lilin, satu posisi per aturan per koin. R sudah dipotong biaya 0,2%.</li>
-      <li><b>Chip 🧪</b> di samping nama koin: sinyal yang masih jalan, atau yang tutup dalam 1 hari terakhir (pudar). Ketuk chip <b>🧪 L029 / L030 / L027</b> di atas untuk menyaring.</li>
+      <li><b>Chip 🧪</b> di samping nama koin: sinyal yang masih jalan, atau yang tutup dalam 1 hari terakhir (pudar). Ketuk chip <b>🧪 L030 / L027</b> di atas untuk menyaring.</li>
       <li><b>Bukti:</b> BELUM TERBUKTI (gagal DSR / placebo), dipantau maju di Lab. <b>Bukan sinyal bot</b> — bot tidak membelinya. Kolom pola Terminal kini hanya TB, FW, EW.</li>
     </ul></section>
     <section><h3>Aturan buku di Jurnal</h3><ul>
@@ -1717,7 +1717,8 @@ function simTrade(d, e) {
 // (sama dengan research/l030_100hari.cjs): entry close lilin sinyal, SL low 5 lilin - 0.5 ATR14, 50% di 1.5R, sisa trailing
 // 15% dari high tertinggi (tidak di bawah SL), batas 120 lilin, biaya 0.2% dalam R, satu posisi per aturan per koin.
 // L030 di app memakai setup TB/FW saja (pilihan user 10-06; Lab memakai FW/ST/AT/TB). BELUM TERBUKTI — penanda, BUKAN sinyal bot.
-const LAB_KODE = ["L029", "L030", "L027"], LAB_POLA = new Set(["TB", "FW"]);
+const LAB_KODE = ["L030", "L027"];   // 2026-10-06 (user sesudah melihat Riwayat): hanya L030 & L027 yang dipakai; L029 tetap dihitung di dalam L030
+const LAB_POLA = new Set(["TB", "FW"]);
 const LAB_NAMA = { L029: "L029 AO + Stoch", L030: "L030 AO + Stoch di setup pola", L027: "L027 Inside bar + kapitulasi" };
 function smaLab(x, n) { const o = new Array(x.length).fill(null); let s = 0, c = 0; for (let i = 0; i < x.length; i++) { if (x[i] == null) { s = 0; c = 0; continue; } s += x[i]; c++; if (c > n) s -= x[i - n]; if (c >= n) o[i] = s / n; } return o; }
 function rsiLab(c, n = 14) { const o = new Array(c.length).fill(null); let g = 0, l = 0; for (let i = 1; i < c.length; i++) { const d = c[i] - c[i - 1], u = Math.max(d, 0), v = Math.max(-d, 0); if (i <= n) { g += u / n; l += v / n; if (i === n) o[i] = l ? 100 - 100 / (1 + g / l) : 100; } else { g = (g * (n - 1) + u) / n; l = (l * (n - 1) + v) / n; o[i] = l ? 100 - 100 / (1 + g / l) : 100; } } return o; }
@@ -1986,7 +1987,7 @@ function botPegang(k) {
   if (((s.ew || {}).order || []).some(o => o.sym === k + "USDT")) return "order";
   return null;
 }
-const CHIPS = [["semua", "Semua"], ["jalan", "Jalan"], ["tp1", "TP1 ✓"], ["baru", "Baru"], ["ew", "Elliott"], ["bot", "🤖 Bot"], ["FW", "FW"], ["TB", "TB"], ["L029", "🧪 L029"], ["L030", "🧪 L030"], ["L027", "🧪 L027"]];   // 2026-10-06: ST/AT diganti sinyal Lab
+const CHIPS = [["semua", "Semua"], ["jalan", "Jalan"], ["tp1", "TP1 ✓"], ["baru", "Baru"], ["ew", "Elliott"], ["bot", "🤖 Bot"], ["FW", "FW"], ["TB", "TB"], ["L030", "🧪 L030"], ["L027", "🧪 L027"]];   // 2026-10-06: ST/AT diganti sinyal Lab
 function chipCocok(r, c) {
   const P = r.p;
   switch (c) {
@@ -3254,7 +3255,7 @@ function jnPanel(daftar) {
   const semuaAktif = JN_S.sinyal === "semua" && !JN_S.grup, aiAktif = JN_S.sinyal === "AI 4H" && !JN_S.grup;
   $("jnPolaKartu").innerHTML = kartu("__semua", TF_JN === "1D" ? "Semua pola 1D" : "Semua sinyal", dasar.filter(t => t.sinyal !== "LAB 4H"), semuaAktif) + (TF_JN === "1D" ? "" : kartu("__ai", "AI 4H", dasar.filter(t => t.sinyal === "AI 4H"), aiAktif)) +
     urut.map(([nm, arr]) => kartu(nm, nm, arr, JN_S.sinyal === polaJn() && JN_S.grup === nm)).join("") +
-    (TF_JN === "1D" ? "" : Object.values(LAB_NAMA).map(nm => kartu("lab:" + nm, "🧪 " + nm, dasar.filter(t => t.sinyal === "LAB 4H" && t.jenis === nm), JN_S.sinyal === "LAB 4H" && JN_S.grup === nm)).join(""));
+    (TF_JN === "1D" ? "" : LAB_KODE.map(k => LAB_NAMA[k]).map(nm => kartu("lab:" + nm, "🧪 " + nm, dasar.filter(t => t.sinyal === "LAB 4H" && t.jenis === nm), JN_S.sinyal === "LAB 4H" && JN_S.grup === nm)).join(""));
   const sel = $("jnPolaKartu").querySelector('[aria-pressed="true"]'); if (sel) { const c = $("jnPolaKartu"); c.scrollTo({ left: sel.offsetLeft - (c.clientWidth - sel.clientWidth) / 2, behavior: "smooth" }); }
 }
 $("jnPolaKartu").addEventListener("click", e => {
