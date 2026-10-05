@@ -26,6 +26,10 @@ const { peristiwa, elliott } = require("./pola_dc_peristiwa.cjs");
 const U = require("./universe_gabungan.json");
 const KOIN = (U.koin || U).map(s => String(s).toUpperCase());
 const SEMBUNYI = new Set(["DB", "RC", "BF", "CH", "IHS", "PEN"]);          // sama dengan bawaan chart & aplikasi
+// 2026-10-06 (user: "sinkronkan ... github, telegram dan terminal"): Telegram hanya mengirim pola yang dipakai trading (TB/FW/EW, sama dengan kolom
+// Terminal). ST & AT tetap DICATAT di maju.json (buku) tapi tidak dikirim/dihitung di rekap. + sinyal Lab L030 & L027 (notif/sinyal_lab.cjs).
+const TG_TAMPIL = new Set(["TB", "FW", "EW"]);
+const LAB = require("./sinyal_lab.cjs");
 const NOMINAL = 1000, BIAYA = 0.002;
 const JENDELA_BAR = +(process.env.JENDELA_BAR || 2);    // pola baru = valid di N lilin 4H tutup terakhir
 const TOKEN = process.env.TELEGRAM_TOKEN || "", CHAT = process.env.TELEGRAM_CHAT || "";
@@ -216,7 +220,7 @@ async function cek1D(k, status, M, sekarang) {
   let ev = []; try { ev = peristiwa(d, atrArr(d.h, d.l, d.c), { elliott: true }) || []; } catch (e) { return 0; }   // + Elliott 1D
   let baru = 0;
   for (const e of ev) {
-    if (SEMBUNYI.has(e.kode) || e.i !== n - 1) continue;
+    if (SEMBUNYI.has(e.kode) || !TG_TAMPIL.has(e.kode) || e.i !== n - 1) continue;
     const L = level(d, e); if (!L || !(L.sl > 0)) continue;
     const kunci = `1D|${k}|${e.nama}|${d.t[e.i]}`;
     if (status[kunci]) continue;
@@ -226,6 +230,16 @@ async function cek1D(k, status, M, sekarang) {
     }
   }
   return baru;
+}
+// SINYAL LAB (2026-10-06): kartu baru, TP1, tutup. Aturan = notif/sinyal_lab.cjs (salinan aplikasi). BELUM TERBUKTI, bukan sinyal bot.
+function pesanLab(k, t, jenis) {
+  const kepala = `<b>AMONK LAB · 🧪 ${esc(t.kode)}${jenis === "BARU" ? "" : " · UPDATE"}</b>\n💰 <b>${esc(k)}/USDT</b> · 4H · ${esc(t.nama)}${t.pola ? " (setup " + esc(t.pola) + ")" : ""}\n`;
+  const R = jenis === "TUTUP" ? t.R : null;
+  const isi = jenis === "BARU"
+    ? `✅ Entry: <b>${fx(t.entry)}</b> (close lilin sinyal)\n🛑 SL: <b>${fx(t.sl)}</b> (${pc(t.sl, t.entry)}) · low 5 lilin − 0,5 ATR\n🎯 TP1: <b>${fx(t.tp1)}</b> (${pc(t.tp1, t.entry)}) · 1,5R, ambil 50%\n🔁 Sisa: trailing 15% dari high tertinggi (stop tidak di bawah SL), batas 120 lilin 4H\n🕒 sinyal ${wib(t.masukT + 4 * 3600e3)}\n`
+    : jenis === "TP1" ? `🎯 <b>TP1 TERCAPAI</b> di ${fx(t.tp1)} (${pc(t.tp1, t.entry)})\n👉 Ambil 50%; sisa trailing 15% dari high tertinggi (stop kini ${fx(t.stop)})\n`
+    : `📕 <b>TUTUP</b>: ${esc(t.sebab)} di ${fx(t.keluarPx)} (${pc(t.keluarPx, t.entry)})\n📊 Hasil: <b>${R >= 0 ? "+" : ""}${R.toFixed(2)} R</b> (sesudah biaya)${t.kenaTp1 ? " · 50% sudah diambil di TP1" : ""}\n`;
+  return kepala + isi + `<i>BELUM TERBUKTI — dipantau maju di Lab. Bukan sinyal bot.</i>\n\n` + tautan(k, "4H");
 }
 function pesanExit(k, nama, kode, L, s, jenis, validT) {
   const kepala = `<b>AMONK SINYAL · UPDATE</b>\n💰 <b>${esc(k)}/USDT</b> · 4H · ${PERINGKAT(kode)} ${esc(nama)}\n`;
@@ -431,7 +445,7 @@ async function scanTF(k, tf) {
   let ev; try { ev = peristiwa(d, atrArr(d.h, d.l, d.c), { setupAkhir: true, calonAkhir: true, elliott: true }) || []; } catch (e) { return null; }
   const out = { valid: [], hampir: [], potensi: tf === "4h" ? ciriPotensi(k, d, b) : null };
   for (const e of ev) {
-    if (SEMBUNYI.has(e.kode) || n - 1 - e.i > umurMaks) continue;
+    if (SEMBUNYI.has(e.kode) || !TG_TAMPIL.has(e.kode) || n - 1 - e.i > umurMaks) continue;
     const L = level(d, e); if (!L || !(L.sl > 0)) continue;
     let kena = false; for (let q = e.i + 1; q < n; q++) if (d.l[q] <= L.sl || d.h[q] >= L.tp1) { kena = true; break; }
     const r = (px - L.entry) / (L.entry - L.sl);
@@ -439,7 +453,7 @@ async function scanTF(k, tf) {
     out.valid.push({ k, nama: e.nama, kode: e.kode, L, px, r, validT: d.t[e.i] + barMs, vol });
   }
   for (const [tahap, arr] of [["SETUP", ev.setup || []], ["CALON", ev.calon || []]]) for (const s of arr) {
-    if (SEMBUNYI.has(s.kode)) continue;
+    if (SEMBUNYI.has(s.kode) || !TG_TAMPIL.has(s.kode)) continue;
     const E = s.level, S = s.batal, T2 = (E > S ? tpAturan(s.kode, E, S, s.level + s.tinggi).tp2 : s.level + s.tinggi);
     // pola tembus menunggu harga NAIK ke garis (px < E); Elliott menunggu harga TURUN ke limit (px > E)
     if (!(S > 0) || !(E > S) || !(T2 > E) || !(s.limit ? px > E : px < E)) continue;
@@ -538,7 +552,7 @@ async function teksTimSehat() {
 
 async function rekap() {
   let maju = {}; try { maju = JSON.parse(fs.readFileSync(F_MAJU, "utf8")); } catch (e) {}
-  const semua = Object.values(maju), skr = Date.now(), awal = skr - 7 * 864e5;
+  const semua = Object.values(maju).filter(t => TG_TAMPIL.has(t.kode)), skr = Date.now(), awal = skr - 7 * 864e5;   // 2026-10-06: TB/FW/EW saja
   const f2 = v => (v >= 0 ? "+" : "") + v.toFixed(2);
   const baru = semua.filter(t => t.masukT >= awal);
   const tutupMinggu = semua.filter(t => t.st !== "jalan" && t.keluarT >= awal);
@@ -588,7 +602,7 @@ async function rekap() {
   let maju = {}; try { maju = JSON.parse(fs.readFileSync(F_MAJU, "utf8")); } catch (e) {}
   const M = TUJUAN.some(pribadi) || DRY ? await ambilModal() : null;
   const sekarang = Date.now();
-  let baru = 0, keluar = 0, dicek = 0, calonUji = null, baru1D = 0;
+  let baru = 0, keluar = 0, dicek = 0, calonUji = null, baru1D = 0, baruLab = 0;
 
   for (const k of KOIN) {
     if (!UJI && TF1D_AKTIF) baru1D += await cek1D(k, status, M, sekarang);
@@ -624,6 +638,7 @@ async function rekap() {
       if (d.t[e.i] >= MAJU_MULAI && !(maju[kunci] && maju[kunci].st !== "jalan"))
         maju[kunci] = { koin: k, nama: e.nama, kode: e.kode, masukT: d.t[e.i], entry: L.entry, sl: L.sl, tp1: L.tp1, tp2: L.tp2,
           st: s.st, kenaTp1: s.kenaTp1, keluarT: s.keluarT, usdt: s.usdt };
+      if (!TG_TAMPIL.has(e.kode)) continue;   // ST/AT: dicatat, tidak dikirim (2026-10-06)
       // 1. pola baru
       if (e.i >= n - JENDELA_BAR && !status[kunci]) {
         if (await kirim(pesanBaru(k, e, L, d, vol, false, null), pesanBaru(k, e, L, d, vol, false, ukuranTeks(L, M)))) {
@@ -641,6 +656,16 @@ async function rekap() {
       else if (s.kenaTp1 && S.tahap === "baru") { jenis = "TP1"; tahapBaru = "tp1"; }
       if (jenis && await kirim(pesanExit(k, e.nama, e.kode, L, s, jenis, validT))) { S.tahap = tahapBaru; S.u = sekarang; keluar++; }
     }
+    // 3. SINYAL LAB L030 & L027 (2026-10-06): baru (lilin sinyal di N lilin tutup terakhir), TP1, tutup — sekali per tahap
+    let LS = null; try { LS = LAB.sinyalLab(d); } catch (e) { LS = null; }
+    if (LS) for (const kode of LAB.LAB_KODE) {
+      const T = LS[kode] || []; for (const t of T.slice(-3)) {   // 3 trade terakhir: trade lama yang baru tutup tetap dapat pesan TUTUP
+      const kunci = `LAB|${k}|${kode}|${t.masukT}`, iBar = d.t.indexOf(t.masukT), S0 = status[kunci];
+      if (!S0) { if (t === T[T.length - 1] && t.st === "jalan" && iBar >= n - JENDELA_BAR && await kirim(pesanLab(k, t, "BARU"))) { status[kunci] = { t: sekarang, tahap: t.kenaTp1 ? "tp1" : "baru" }; baruLab++; } continue; }
+      if (S0.tahap === "tutup") continue;
+      const jenis = t.st !== "jalan" ? "TUTUP" : t.kenaTp1 && S0.tahap === "baru" ? "TP1" : null;
+      if (jenis && await kirim(pesanLab(k, t, jenis))) { S0.tahap = jenis === "TUTUP" ? "tutup" : "tp1"; S0.u = sekarang; keluar++; }
+    } }
   }
 
   if (UJI) {
@@ -654,5 +679,5 @@ async function rekap() {
   for (const [kk, v] of Object.entries(status)) if (sekarang - v.t > 60 * 864e5) delete status[kk];
   await cekAudit(maju); prkSimpan();
   if (!DRY) { fs.writeFileSync(F_STATUS, JSON.stringify(status)); fs.writeFileSync(F_MAJU, JSON.stringify(maju)); }
-  console.log(`selesai: ${dicek} koin dicek, ${baru} pola baru 4H, ${baru1D} pola baru 1D, ${keluar} update exit ${DRY ? "(uji kering, tidak dikirim)" : "terkirim"} · catatan maju ${Object.keys(maju).length} · ukuran posisi: ${M ? M.sumber : "tanpa modal"}`);
+  console.log(`selesai: ${dicek} koin dicek, ${baru} pola baru 4H, ${baru1D} pola baru 1D, ${baruLab} sinyal Lab baru, ${keluar} update exit ${DRY ? "(uji kering, tidak dikirim)" : "terkirim"} · catatan maju ${Object.keys(maju).length} · ukuran posisi: ${M ? M.sumber : "tanpa modal"}`);
 })();
