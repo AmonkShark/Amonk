@@ -2086,6 +2086,7 @@ function gambarHP(rs) {
       `<span>RSI 4H <b>${r.rsi == null ? "—" : r.rsi.toFixed(0)}</b></span>` +
       `<span>Likuid <b>${fUsd(r.q)}</b></span>` +
       (r.ew ? `<span style="grid-column:1/-1">⏳ Limit Elliott <b>${fHarga(r.ew.level)}</b> · SL ${fHarga(r.ew.sl)} · sisa trailing 15% · sisa ${r.ew.sisa} lilin</span>` : "") +
+      (r.lab || []).map(t => `<span style="grid-column:1/-1">🧪 <b>${t.kode}</b>${t.pola ? " (setup " + t.pola + ")" : ""} · Entry <b>${fHarga(t.entry)}</b> · SL <b>${fHarga(t.sl)}</b> · TP1 <b>${fHarga(t.tp1)}${t.kenaTp1 ? " ✓" : ""}</b> → sisa trailing 15%${t.st === "jalan" ? (t.kenaTp1 ? " · stop kini " + fHarga(t.stop) : "") + " · sisa " + t.sisaBar + " lilin" : " · " + t.sebab + " di " + fHarga(t.keluarPx)}</span>`).join("") +
       `<a href="${url}" target="_blank" rel="noopener">Buka chart 4H di TradingView →</a></div>`;
     const dK = data[r.koin] || {};
     return `<div class="kartu${P ? klsSt(P.st === "jalan", r.pnl) : ""}" data-k="${r.koin}">` +
