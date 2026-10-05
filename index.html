@@ -3247,7 +3247,7 @@ function jnPanel(daftar) {
     const tt = arr.filter(t => !t.terbuka), hh = jnHitung(tt), jalan = arr.length - tt.length;
     const seq = tt.slice().sort((a, b) => (a.kT || a.mT) - (b.kT || b.mT)).map(t => t.us || 0);
     return '<button type="button" class="rw-pola" data-p="' + id + '" aria-pressed="' + aktif + '"><div class="j"><b>' + nama + '</b><span class="' + kl(hh.tot) + '">' + (hh.n ? f2(hh.tot) : "—") + "</span></div>" + sparkMini(seq) + '<div class="bar wr" title="Win rate"><i style="width:' + (hh.n ? Math.round(hh.wr) : 0) + '%"></i></div>' +
-      '<div class="d"><span><em>' + hh.n + "</em> tutup</span><span>WR <em>" + (hh.n ? Math.round(hh.wr) : 0) + '%</em></span><span>rata <em class="' + kl(hh.rata) + '">' + f2(hh.rata) + "</em></span>" + (jalan ? "<span>jalan <em>" + jalan + "</em></span>" : "") + "</div></button>";
+      '<div class="d"><span><em>' + hh.n + "</em> tutup</span><span>WR <em>" + (hh.n ? Math.round(hh.wr) : 0) + '%</em></span><span>rata <em class="' + kl(hh.rata) + '">' + f2(hh.rata) + "</em></span>" + '<span title="Rata R per trade (hasil ÷ rugi bila kena SL)">rata R <em class="' + kl(hh.rR) + '">' + (hh.rR == null ? "—" : f2(hh.rR)) + '</em></span><span title="RR nyata = rata R menang : rata R kalah">RR <em>' + rrTeks(hh.rrN) + "</em></span>" + (jalan ? "<span>jalan <em>" + jalan + "</em></span>" : "") + "</div></button>";
   };
   const pola = dasar.filter(t => t.sinyal === polaJn()), per = {};
   for (const t of pola) (per[t.jenis || "—"] = per[t.jenis || "—"] || []).push(t);
@@ -3353,6 +3353,16 @@ function jnSaring(a) {
     (JN_S.status === "semua" || (JN_S.status === "jalan" ? t.terbuka : JN_S.status === "tutup" ? !t.terbuka
       : JN_S.status === "untung" ? !t.terbuka && t.us > 0 : !t.terbuka && t.us <= 0)));
 }
+// RR (2026-10-06, user: "agar aku tau setiap sinyal menghasilkan rr berapa"):
+//   RR nyata   = rata R trade menang : rata R trade kalah (hasil sungguhan, sudah termasuk biaya)
+//   RR rencana = rata jarak TP pertama ÷ jarak SL saat masuk (TP1 bila ada, selain itu TP)
+function rrHitung(tutup) {
+  const R = tutup.map(t => t.R).filter(v => v != null && isFinite(v)), w = R.filter(v => v > 0), l = R.filter(v => v <= 0);
+  const rW = w.length ? w.reduce((a, b) => a + b, 0) / w.length : null, rL = l.length ? l.reduce((a, b) => a + b, 0) / l.length : null;
+  const P = tutup.map(t => { const tp = t.tp1 > t.entry ? t.tp1 : t.tp; return t.entry > t.sl && tp > t.entry ? (tp - t.entry) / (t.entry - t.sl) : null; }).filter(v => v != null && isFinite(v));
+  return { rRW: rW, rRL: rL, rrN: rW != null && rL ? rW / Math.abs(rL) : rW != null ? Infinity : null, rrP: P.length ? P.reduce((a, b) => a + b, 0) / P.length : null };
+}
+const rrTeks = v => v == null ? "—" : isFinite(v) ? "1 : " + v.toFixed(2) : "1 : ∞";
 function jnHitung(tutup) {
   const n = tutup.length, u = tutup.map(t => t.us || 0), w = u.filter(x => x > 0), l = u.filter(x => x <= 0);
   const tot = u.reduce((a, b) => a + b, 0), sw = w.reduce((a, b) => a + b, 0), sl = l.reduce((a, b) => a + b, 0);
@@ -3363,7 +3373,7 @@ function jnHitung(tutup) {
     if ((t.us || 0) > 0) { sW++; sL = 0; mW = Math.max(mW, sW); } else { sL++; sW = 0; mL = Math.max(mL, sL); }
   }
   return { n, m: w.length, wr: n ? w.length / n * 100 : 0, tot, rata: n ? tot / n : null, avgW: w.length ? sw / w.length : null, avgL: l.length ? sl / l.length : null,
-    pf: sl < 0 ? sw / -sl : w.length ? Infinity : null, rR: Rs.length ? Rs.reduce((a, b) => a + b, 0) / Rs.length : null,
+    pf: sl < 0 ? sw / -sl : w.length ? Infinity : null, rR: Rs.length ? Rs.reduce((a, b) => a + b, 0) / Rs.length : null, ...rrHitung(tutup),
     best: n ? Math.max(...u) : null, worst: n ? Math.min(...u) : null, dd, mW, mL,
     jam: n ? tutup.reduce((a, t) => a + (t.jam || 0), 0) / n : null };
 }
@@ -4683,6 +4693,7 @@ function gambarRiwayatTF(ai, tf1) {
   const dapat = nm => per[nm] = per[nm] || { n: 0, m: 0, u: 0, tp2: 0, be: 0, sl: 0, jalan: 0, uJalan: 0, win: 0, loss: 0, seq: [] };
   for (const t of tutup) {
     const x = dapat(t.nama); x.n++; x.u += t.pnl; x.seq.push([t.keluarT || t.masukT || 0, t.pnl]);
+    { const rk = t.entry > t.sl && t.sl > 0 ? MODAL_POLA * (t.entry - t.sl) / t.entry : null; (x.tt = x.tt || []).push({ R: rk ? t.pnl / rk : null, entry: t.entry, sl: t.sl, tp1: t.tp1, tp: t.tp2 }); }
     x.best = x.best == null ? t.pnl : Math.max(x.best, t.pnl); x.worst = x.worst == null ? t.pnl : Math.min(x.worst, t.pnl);
     if (t.pnl > 0) { x.m++; x.win += t.pnl; } else x.loss += t.pnl;
     if (t.st === "TP2" || t.st === "TP") x.tp2++; else if (t.st === "BE") x.be++; else x.sl++;
@@ -4698,6 +4709,8 @@ function gambarRiwayatTF(ai, tf1) {
       `<div class="rw-atas">${wrCincin(wr, x.n)}<div class="kv"><div><i>Tutup</i><b>${x.n}</b></div><div><i>Rata/trade</i><b class="${kl(rata)}">${f2(rata)}</b></div><div><i>Terbaik</i><b class="naik">${f2(x.best)}</b></div><div><i>Terburuk</i><b class="turun">${f2(x.worst)}</b></div></div></div>` +
       `<div class="kv empat"><div title="Tutup di TP1+TP2 atau trailing"><i>TP2</i><b class="naik">${x.tp2}</b></div><div title="Tutup di TP1 lalu impas (BE)"><i>BE</i><b>${x.be}</b></div><div title="Kena stop-loss"><i>SL</i><b class="turun">${x.sl}</b></div><div title="Masih berjalan"><i>Jalan</i><b>${x.jalan || 0}</b></div></div>` +
       `<div class="kv"><div title="Rata-rata trade untung"><i>Untung</i><b class="naik">${f2(avgW)}</b></div><div title="Rata-rata trade rugi"><i>Rugi</i><b class="turun">${f2(avgL)}</b></div><div title="Rata untung ÷ rata rugi"><i>Rasio</i><b>${avgW != null && avgL ? (avgW / Math.abs(avgL)).toFixed(2) + "×" : "—"}</b></div></div>` +
+      (() => { const Rs = (x.tt || []).map(q => q.R).filter(v => v != null), rr = rrHitung(x.tt || []), rata = Rs.length ? Rs.reduce((a, b) => a + b, 0) / Rs.length : null;
+        return `<div class="kv"><div title="Rata R per trade (hasil ÷ rugi bila kena SL)"><i>Rata R</i><b class="${kl(rata)}">${rata == null ? "—" : f2(rata)}</b></div><div title="RR nyata = rata R menang : rata R kalah"><i>RR nyata</i><b>${rrTeks(rr.rrN)}</b></div><div title="RR rencana = jarak TP1 ÷ jarak SL saat masuk"><i>RR rencana</i><b>${rrTeks(rr.rrP)}</b></div></div>`; })() +
       (rwMode === "maju" ? majuHtml(nm, x, semua) : "") + `</button>`;
   }).join("") + (Object.values(per).some(x => x.n < 30) ? '<div class="rw-kaki">Pola dengan kurang dari 30 trade belum bisa disimpulkan.</div>' : "");
   { const sel = $("rwPola").querySelector('[aria-pressed="true"]'); if (sel) { const c = $("rwPola"); c.scrollTo({ left: sel.offsetLeft - (c.clientWidth - sel.clientWidth) / 2, behavior: "smooth" }); } }
@@ -4714,7 +4727,7 @@ function gambarRiwayatTF(ai, tf1) {
     const p = t.pnl === undefined ? pnlTrade(t) : t.pnl;
     return `<div class="jr-tr rw-baris${t.st === "jalan" ? " buka" : ""}${klsSt(t.st === "jalan", p)}" data-k="${t.koin}|${t.masukT}" tabindex="0" role="button"><div style="min-width:0"><div class="nm">${t.koin}</div><div class="sub">${t.nama} · ${jamLokal(t.masukT)}</div></div>` +
       (KOL.level ? `<div class="lv">E ${fHarga(t.entry)} · SL ${fHarga(t.sl)}<br>${t.kode === "FIB" ? "TP " + fHarga(t.tp2) : `TP1 ${fHarga(t.tp1)}${t.kenaTp1 ? " ✓" : ""} · ${TRAIL_TAMPIL.has(t.kode) ? "sisa trailing 15%" : "TP2 " + fHarga(t.tp2)}`}</div>` : "") +
-      (KOL.hasil ? `<div class="ha"><b class="${kl(p)}">${f2(p)}</b>${chipRw(t)}</div>` : "") + `</div>`;
+      (KOL.hasil ? `<div class="ha"><b class="${kl(p)}">${f2(p)}</b>${(() => { const rk = t.entry > t.sl && t.sl > 0 ? MODAL_POLA * (t.entry - t.sl) / t.entry : null; return rk && p != null ? `<span class="rp">${f2(p / rk)} R</span>` : ""; })()}${chipRw(t)}</div>` : "") + `</div>`;
   }).join("") + (rows.length > 300 ? `<div class="kosong">+${rows.length - 300} trade lebih lama tidak ditampilkan.</div>` : "") ||
     `<div class="kosong">Tidak ada trade di sini.</div>`;
 };
@@ -4783,6 +4796,8 @@ function grupPopupHtml(T, perKoin, kls) {
     `<div class="jr-angka"><div><span>Terbaik</span><b class="${kl(H.best)}">${f2(H.best)}</b></div><div><span>Terburuk</span><b class="${kl(H.worst)}">${f2(H.worst)}</b></div><div><span>Rata lama tahan</span><b>${jnLama(H.jam)}</b></div></div>` +
     (H.n ? `<div class="jn-bar" style="margin-top:8px">${Object.entries(seb).map(([k, v]) => `<i style="width:${v / H.n * 100}%;background:${warna[k] || "var(--label)"}"></i>`).join("")}</div>` +
       `<div class="jr-ket">${Object.entries(seb).map(([k, v]) => `${k} ${v}`).join(" · ")}</div>` : "") +
+    `<div class="jr-angka"><div title="Rata R trade menang : rata R trade kalah — hasil sungguhan"><span>RR nyata</span><b>${rrTeks(H.rrN)}</b><span class="rp">menang ${H.rRW == null ? "—" : f2(H.rRW) + " R"} · kalah ${H.rRL == null ? "—" : f2(H.rRL) + " R"}</span></div>` +
+    `<div title="Rata jarak TP pertama ÷ jarak SL saat masuk"><span>RR rencana</span><b>${rrTeks(H.rrP)}</b><span class="rp">TP pertama ÷ SL</span></div><div title="Win rate minimum supaya impas dengan RR nyata ini: 1 ÷ (1 + RR)"><span>WR impas</span><b>${H.rrN == null ? "—" : isFinite(H.rrN) ? Math.round(100 / (1 + H.rrN)) + "%" : "0%"}</b><span class="rp">WR sekarang ${H.n ? Math.round(H.wr) + "%" : "—"}</span></div></div>` +
     kurvaJ(tutup.map(t => ({ usdt: t.us || 0, keluar: new Date(t.kT || t.mT).toISOString(), masuk: "" }))) +
     (H.n < AMBANG_N ? `<p class="jr-ket kng">Baru ${H.n} trade tutup — di bawah ${AMBANG_N}, belum bisa disimpulkan.</p>` : "") +
     `<h4 class="bt-sub">Semua trade (${T.length}) <small class="redup">· ketuk untuk detail</small></h4>` +
