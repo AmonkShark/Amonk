@@ -440,6 +440,8 @@ td.kosong{border:0;border-radius:0}
 .aksi-i:hover{border-color:var(--biru)}
 .chip-bar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
 .chip-bar .chip-k .n{opacity:.6;font-size:11px;margin-left:2px}
+.chip.lab{color:#B08968;background:rgba(176,137,104,.12);border-color:rgba(176,137,104,.4);min-width:0;margin-left:6px;font-size:11px;padding:1px 6px;white-space:nowrap}
+.chip.lab.tutup{opacity:.65}
 .chip.bot{background:rgba(66,165,245,.15);color:var(--biru);border:1px solid rgba(66,165,245,.4);margin-left:4px}
 .jm{position:relative;height:6px;width:92px;margin-top:6px;border-radius:3px;overflow:visible;background:var(--bg2)}
 .jm .jm-r,.jm .jm-g{position:absolute;top:0;bottom:0}.jm .jm-r{left:0;background:rgba(239,83,80,.5);border-radius:3px 0 0 3px}.jm .jm-g{background:rgba(38,166,154,.5);border-radius:0 3px 3px 0}
@@ -1106,6 +1108,14 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
       <li><b>⏳ EW</b> di Terminal = limit yang masih menunggu (harga limit & jarak dari harga sekarang). Bot memasang Elliott sebanyak slot yang tersisa, urut dari yang <b>paling dekat ke harga limit</b> (pilihanmu, peringkat 2 dari 12 cara pilih yang diuji — tidak ada yang terbukti; sebelumnya "termuda"), seri diputus <b>likuiditas</b>. Limit yang menunggu memakai slot & modal sampai ~10 hari.</li>
       <li><b>Bukti:</b> dengan TP/SL buku, Elliott <b>di bawah entry acak</b> di 4 dari 4 irisan uji (rata −0,12R) — peringkat 10, di atas Bull Flag saja. Hasil per trade 2023–2026 ≈ nol. Alat pantau, bukan sinyal yang terbukti.</li>
     </ul></section>
+    <section><h3>🧪 Sinyal Lab di Terminal — L029, L030, L027 (2026-10-06)</h3><ul>
+      <li><b>L029</b> — AO (SMA5 − SMA34 dari harga tengah) menyeberang ke atas 0, Stoch %K(14,3) di atas %D dan %K &lt; 80. Tanpa syarat pola.</li>
+      <li><b>L030</b> — L029 yang muncul saat ada <b>setup</b> Triple Bottom / Falling Wedge yang masih hidup (belum tembus).</li>
+      <li><b>L027</b> — inside bar, lalu close menembus high-nya, dengan RSI14 &lt; 35 dan volume ≥ 1,5 × EMA20 volume.</li>
+      <li><b>Trade:</b> entry close lilin 4H sinyal, SL = low 5 lilin − 0,5 ATR, 50% di 1,5R, sisa trailing 15% dari high tertinggi, batas 120 lilin, satu posisi per aturan per koin. R sudah dipotong biaya 0,2%.</li>
+      <li><b>Chip 🧪</b> di samping nama koin: sinyal yang masih jalan, atau yang tutup dalam 1 hari terakhir (pudar). Ketuk chip <b>🧪 L029 / L030 / L027</b> di atas untuk menyaring.</li>
+      <li><b>Bukti:</b> BELUM TERBUKTI (gagal DSR / placebo), dipantau maju di Lab. <b>Bukan sinyal bot</b> — bot tidak membelinya. Kolom pola Terminal kini hanya TB, FW, EW.</li>
+    </ul></section>
     <section><h3>Aturan buku di Jurnal</h3><ul>
       <li><b>POLA 4H</b> — buku rutin: SL 2,5 × ATR, TP 1R, keluar penuh. Jadi angkanya <b>berbeda</b> dari PnL di Terminal (yang memakai level chart & 50/50).</li>
       <li><b>AI 4H</b> — entry/SL/TP dari analisa chart Claude tiap 4 jam; keluar di SL, TP, atau batas waktu.</li>
@@ -1353,6 +1363,10 @@ function elliott(d, A, mx) {
 // terakhir. Default {} -> perilaku & isi larik PERSIS seperti sebelumnya.
 function peristiwa(d, A, opsi = {}) {
   const n = d.c.length, pv = [], semua = [], hasil = [];
+  // opsi.aktifPerBar (2026-10-06): kode setup (status 0) yang AKTIF di akhir tiap lilin — hanya bila diminta; perilaku bawaan tidak berubah.
+  const aktif = opsi.aktifPerBar ? new Array(n).fill(null) : null;
+  // opsi.riwayatSetup (2026-10-06): riwayat tiap setup {kode, lahirB, akhirB, hasil: valid|batal|basi|tergeser|aktif} — hanya bila diminta.
+  const riwayat = opsi.riwayatSetup ? [] : null, catatAkhir = (q, i, h) => { if (riwayat) riwayat.push({ kode: q.kode, lahirB: q.lahirB, akhirB: i, hasil: h }); };
   // opsi.mx DITAMBAHKAN 2026-09-20: ambang Directional Change. Bawaan C.mx (2.5 =
   // setelan 4H). Pine memakai 3.5 di TF <= 1H, jadi uji lintas-TF WAJIB mengoper
   // mx = 3.5 untuk 1H — kalau tidak, yang dibandingkan bukan TF-nya tapi ambangnya.
@@ -1381,9 +1395,9 @@ function peristiwa(d, A, opsi = {}) {
       if (q.status !== 0) continue;
       const lv = lvlDi(q, i), bt = batDi(q, i);
       const ujung = q.adaBawah && q.miring && lv <= bawahDi(q, i);
-      if (c > lv && !ujung && validBar) semua.splice(j, 1);
-      else if (c > lv && !ujung) { jadiValid(q, i, lv, false); validBar = true; }
-      else if (c < bt || ujung || i - q.lahirB > C.umurSetup) semua.splice(j, 1);
+      if (c > lv && !ujung && validBar) { catatAkhir(q, i, "tergeser"); semua.splice(j, 1); }
+      else if (c > lv && !ujung) { catatAkhir(q, i, "valid"); jadiValid(q, i, lv, false); validBar = true; }
+      else if (c < bt || ujung || i - q.lahirB > C.umurSetup) { catatAkhir(q, i, i - q.lahirB > C.umurSetup && !(c < bt || ujung) ? "basi" : "batal"); semua.splice(j, 1); }
     }
     // 3. pola baru
     if (baru) {
@@ -1409,7 +1423,7 @@ function peristiwa(d, A, opsi = {}) {
         p.status = 0; p.lahirB = i; p.tampil = true;
         if (dasarOk && c <= lv && nSetup < C.maksSetup) semua.push(p);
         else if (dasarOk && c > lv && !validBar && c - lv <= C.maksLewat * A[i] && !(p.adaBawah && p.miring && lv <= bawahDi(p, i))) {
-          semua.push(p); jadiValid(p, i, lv, true); validBar = true;
+          catatAkhir(p, i, "valid"); semua.push(p); jadiValid(p, i, lv, true); validBar = true;
         }
       }
     }
@@ -1431,7 +1445,10 @@ function peristiwa(d, A, opsi = {}) {
       nV--;
     }
     while (semua.length > 80) semua.shift();
+    if (aktif) aktif[i] = semua.filter(q => q.status === 0).map(q => q.kode);
   }
+  if (aktif) hasil.aktif = aktif;
+  if (riwayat) { for (const q of semua) if (q.status === 0) catatAkhir(q, n - 1, "aktif"); hasil.riwayat = riwayat; }
   // BENTROK — saringan yang sama untuk SETUP dan CALON (Pine: fungsi `bentrok`).
   // Dipisah 2026-09-20 saat CALON ditambahkan; isinya SALINAN PERSIS dari kode
   // yang tadinya sebaris di langkah 3, supaya hasil rutin lama tidak berubah.
@@ -1452,7 +1469,7 @@ function peristiwa(d, A, opsi = {}) {
   function jadiValid(q, i, lv, lewat) {
     q.status = 1; q.tembusB = i; q.acuan = d.c[i]; q.lewat = lewat;
     const j = i + C.horizon;
-    hasil.push({ i, nama: q.nama, kode: q.kode, lewat, level: lv, tinggi: q.tinggi, mulaiB: q.mulaiB,
+    hasil.push({ i, nama: q.nama, kode: q.kode, lewat, level: lv, tinggi: q.tinggi, mulaiB: q.mulaiB, lahirB: q.lahirB,
       batal: batDi(q, i), // garis batal di bar valid (ditambahkan 2026-09-17 untuk uji TP/SL buku)
       awal: q.kr[0],      // titik ayunan pertama kerangka {hi,p,b} (ditambahkan 2026-09-17 untuk uji titik awal)
       titikAwal: q.titikAwal, // titik awal bermakna per pola (lihat bentuk())
@@ -1610,10 +1627,12 @@ async function muatKoin(k) {
   if (d.harga == null) d.harga = c[c.length - 1];
   d.ok = true; d.gagal = false; d.pendek = d.ema == null;   // < 200 lilin: EMA200 belum ada
   // koin basi (delisting): lilin terakhir > 12 jam lalu -> jangan dinilai
-  if (sekarang - +b[b.length - 1][6] > 12 * 3600e3) { d.ok = false; d.gagal = true; d.basi = true; d.pola = null; return; }
+  if (sekarang - +b[b.length - 1][6] > 12 * 3600e3) { d.ok = false; d.gagal = true; d.basi = true; d.pola = null; d.lab = null; return; }
   try {
     const dd = { t: b.map(x => +x[0]), o: b.map(x => +x[1]), h, l, c, v: b.map(x => +x[5]) };
-    d.riwayat = polaSemua(dd); d.pola = polaTerakhir(dd, d.riwayat);
+    // 2026-10-06 (user): kolom pola Terminal hanya TB / FW / EW. Riwayat & pengaturan bot TIDAK diubah (tetap semua jenis).
+    d.riwayat = polaSemua(dd); d.pola = polaTerakhir(dd, d.riwayat.filter(t => KODE_TERMINAL.has(t.kode)));
+    try { d.lab = sinyalLab(dd); } catch (e) { d.lab = null; }
     // LIMIT ELLIOTT MENUNGGU (2026-09-23): aturan sama dgn bot & Telegram (elliott(), 4H mx 2.5)
     d.ew = null;
     try { const S = window.PolaDC && window.PolaDC.elliott ? window.PolaDC.elliott(dd, atrArr(dd.h, dd.l, dd.c), 2.5).setup : null;
@@ -1627,6 +1646,7 @@ async function muatKoin(k) {
 // lilin yang menyentuh keduanya = SL. DB/RC/BF disembunyikan seperti bawaan chart.
 const KODE_TAMPIL = new Set(["FW", "ST", "AT", "EW", "TB"]);   // pilihan user 2026-09-24: hanya lima jenis ini di monitor
 const SEMBUNYI_POLA = new Set(["DB", "RC", "BF", "CH", "IHS", "PEN"]);
+const KODE_TERMINAL = new Set(["TB", "FW", "EW"]);   // 2026-10-06 (user): pola yang dipakai trading; ST/AT tidak tampil di kolom Terminal
 function atrArr(h, l, c, n = 14) {
   const o = new Array(c.length).fill(null);
   if (c.length <= n) return o;
@@ -1690,6 +1710,68 @@ function simTrade(d, e) {
   }
   if (Math.abs(sisa) < 1e-9) sisa = 0;
   return { nama: e.nama, kode: e.kode, masukT: d.t[e.i], umur: n - 1 - e.i, entry, sl, tp1, tp2, st, keluarT, kenaTp1, sisa, real, trail, keluarPx };
+}
+
+// ===== SINYAL LAB L029 / L030 / L027 (2026-10-06, permintaan user: "di terminal buat sinyalnya agar bisa aku lihat") =====
+// Rumus = research/lab_aturan/L029.cjs, L030.cjs, L027.cjs; exit = fwd12/lab_maju.cjs nilaiExitBot dinilai di lilin 4H
+// (sama dengan research/l030_100hari.cjs): entry close lilin sinyal, SL low 5 lilin - 0.5 ATR14, 50% di 1.5R, sisa trailing
+// 15% dari high tertinggi (tidak di bawah SL), batas 120 lilin, biaya 0.2% dalam R, satu posisi per aturan per koin.
+// L030 di app memakai setup TB/FW saja (pilihan user 10-06; Lab memakai FW/ST/AT/TB). BELUM TERBUKTI — penanda, BUKAN sinyal bot.
+const LAB_KODE = ["L029", "L030", "L027"], LAB_POLA = new Set(["TB", "FW"]);
+const LAB_NAMA = { L029: "L029 AO + Stoch", L030: "L030 AO + Stoch di setup pola", L027: "L027 Inside bar + kapitulasi" };
+function smaLab(x, n) { const o = new Array(x.length).fill(null); let s = 0, c = 0; for (let i = 0; i < x.length; i++) { if (x[i] == null) { s = 0; c = 0; continue; } s += x[i]; c++; if (c > n) s -= x[i - n]; if (c >= n) o[i] = s / n; } return o; }
+function rsiLab(c, n = 14) { const o = new Array(c.length).fill(null); let g = 0, l = 0; for (let i = 1; i < c.length; i++) { const d = c[i] - c[i - 1], u = Math.max(d, 0), v = Math.max(-d, 0); if (i <= n) { g += u / n; l += v / n; if (i === n) o[i] = l ? 100 - 100 / (1 + g / l) : 100; } else { g = (g * (n - 1) + u) / n; l = (l * (n - 1) + v) / n; o[i] = l ? 100 - 100 / (1 + g / l) : 100; } } return o; }
+function simLab(d, i, sl, kode, pola) {
+  const n = d.c.length, e = d.c[i], R1 = e - sl, kom = BIAYA_POLA * e / R1, tp1 = e + 1.5 * R1, j = i + 1;
+  let kena = false, pk = e;
+  const dasar = { kode, nama: LAB_NAMA[kode], pola, masukT: d.t[i], umur: n - 1 - i, entry: e, sl, tp1, kom };
+  const tutup = (px, m, sebab) => ({ ...dasar, st: "tutup", kenaTp1: kena, keluarT: d.t[m], keluarPx: px, m, sebab, R: (kena ? 0.75 + 0.5 * (px - e) / R1 : (px - e) / R1) - kom });
+  for (let m = j; m < Math.min(n, j + 120); m++) {
+    const st = kena ? Math.max(sl, pk * 0.85) : sl;
+    if (d.o[m] <= st) return tutup(d.o[m], m, kena ? "TP1 + trailing (celah)" : "SL (celah)");
+    if (d.l[m] <= st) return tutup(st, m, kena ? (st > e ? "TP1 + trailing" : "TP1 + kembali ke SL") : "SL");
+    if (!kena && d.h[m] >= tp1) kena = true;
+    pk = Math.max(pk, d.h[m]);
+  }
+  if (j + 119 < n) return tutup(d.c[j + 119], j + 119, "batas waktu");
+  return { ...dasar, st: "jalan", kenaTp1: kena, stop: kena ? Math.max(sl, pk * 0.85) : sl, sisaBar: j + 119 - (n - 1), m: null };
+}
+function sinyalLab(d) {
+  const n = d.c.length, A = atrArr(d.h, d.l, d.c), out = {};
+  // saringan semesta sama dengan Lab: aset yang tidak bergerak (median ATR14/close < 0.2%, mis. stablecoin) dilewati
+  { const x = []; for (let i = 20; i < n; i++) if (A[i]) x.push(A[i] / d.c[i]); x.sort((a, b) => a - b); if (!x.length || x[x.length >> 1] < 0.002) return out; }
+  const hl2 = d.h.map((h, i) => (h + d.l[i]) / 2), s5 = smaLab(hl2, 5), s34 = smaLab(hl2, 34);
+  const ao = s5.map((v, i) => v != null && s34[i] != null ? v - s34[i] : null);
+  const k0 = d.c.map((c, i) => { if (i < 13) return null; let H = -Infinity, L = Infinity; for (let q = i - 13; q <= i; q++) { H = Math.max(H, d.h[q]); L = Math.min(L, d.l[q]); } return H > L ? 100 * (c - L) / (H - L) : 50; });
+  const K = smaLab(k0, 3), D = smaLab(K, 3), RS = rsiLab(d.c, 14), VE = emaArr(d.v, 20);
+  let akt = null; try { akt = window.PolaDC.peristiwa(d, A, { mx: 2.5, aktifPerBar: true }).aktif || null; } catch (e) { akt = null; }
+  const l29 = i => ao[i] != null && ao[i - 1] != null && ao[i] > 0 && ao[i - 1] <= 0 && K[i] != null && D[i] != null && K[i] > D[i] && K[i] < 80;
+  const polaDi = i => akt ? [...new Set((akt[i] || []).filter(k => LAB_POLA.has(k)))] : [];
+  const SIG = { L029: l29, L030: i => l29(i) && polaDi(i).length > 0,
+    L027: i => d.h[i - 1] < d.h[i - 2] && d.l[i - 1] > d.l[i - 2] && d.c[i] > d.h[i - 1] && RS[i] != null && RS[i] < 35 && VE[i] && d.v[i] >= 1.5 * VE[i] };
+  for (const kode of LAB_KODE) {
+    const T = []; let bebas = 210;
+    for (let i = 210; i < n; i++) {
+      if (i < bebas || !A[i] || !SIG[kode](i)) continue;
+      let lo = Infinity; for (let q = i - 4; q <= i; q++) lo = Math.min(lo, d.l[q]);
+      const sl = lo - 0.5 * A[i]; if (!(d.c[i] > sl)) continue;
+      const t = simLab(d, i, sl, kode, kode === "L030" ? polaDi(i).map(k => KODE_POLA[k] || k).join(" + ") : "");
+      T.push(t); bebas = t.m == null ? Infinity : t.m + 1;
+    }
+    out[kode] = T;
+  }
+  return out;
+}
+const LAB_UMUR_TAMPIL = 6;   // sinyal Lab yang sudah tutup tetap tampil 6 lilin 4H (1 hari) supaya hasilnya terlihat
+const rLab = (t, harga) => t.st !== "jalan" ? t.R : harga ? (t.kenaTp1 ? 0.75 + 0.5 * (harga - t.entry) / (t.entry - t.sl) : (harga - t.entry) / (t.entry - t.sl)) - t.kom : null;
+function chipLab(r) {
+  return (r.lab || []).map(t => {
+    const R = rLab(t, r.harga), Rt = R == null ? "" : " " + (R >= 0 ? "+" : "") + R.toFixed(2) + "R";
+    const ket = t.st === "jalan" ? (t.kenaTp1 ? "jalan 50%" : "jalan") : (t.R > 0 ? "tutup ✓" : "tutup ✗");
+    const tip = `${t.nama}${t.pola ? " (setup " + t.pola + ")" : ""} · ${jamLokal(t.masukT + 4 * 3600e3)} · entry ${fHarga(t.entry)} · SL ${fHarga(t.sl)} · TP1 ${fHarga(t.tp1)} (1.5R, 50%) lalu trailing 15% · ` +
+      (t.st === "jalan" ? (t.kenaTp1 ? "stop kini " + fHarga(t.stop) : "") + ` · sisa ${t.sisaBar} lilin` : t.sebab + " di " + fHarga(t.keluarPx)) + " · BELUM TERBUKTI, bukan sinyal bot";
+    return `<span class="chip lab${t.st === "jalan" ? "" : " tutup"}" title="${tip}">🧪 ${t.kode} ${ket}${Rt}</span>`;
+  }).join("");
 }
 
 async function muatBtcHarian() {
@@ -1778,6 +1860,9 @@ function baris(k) {
     r.pnl = (P.sisa === 0 || d.harga) ? P.real + P.sisa * MODAL_POLA * ((d.harga || P.entry) / P.entry - 1) - MODAL_POLA * BIAYA_POLA : null;
   } else { r.p = null; r.polaNama = r.polaUmur = r.polaSt = r.pnl = null; }
   r.ew = d.ew || null; r.ewJarak = r.ew && d.harga ? (r.ew.level / d.harga - 1) * 100 : null;
+  // sinyal Lab terakhir per aturan: tampil selama jalan, atau sampai LAB_UMUR_TAMPIL lilin sesudah tutup
+  r.lab = LAB_KODE.map(k => { const T = (d.lab && d.lab[k]) || []; return T[T.length - 1] || null; })
+    .filter(t => t && (t.st === "jalan" || (t.keluarT != null && Date.now() - (t.keluarT + 4 * 3600e3) <= LAB_UMUR_TAMPIL * 4 * 3600e3)));
   return r;
 }
 const ZNAMA = { fib: "Pita FIB", dalam: "Dalam", bawah: "Di bawah", atas: "Di atas", nd: "—" };
@@ -1864,7 +1949,7 @@ function gambar() {
     const oKls = r.ongkos == null ? "redup" : r.ongkos > 0.10 ? "turun" : r.ongkos <= 0.05 ? "naik" : "";
     const qKls = r.q != null && r.q < LIKUID_MIN ? "turun" : "";
     const catatan = d.gagal ? "tidak ada di spot" : d.pendek ? "< 200 lilin 4H" : "";
-    return `<tr><td><a href="${url}" target="_blank" rel="noopener" title="Buka chart 4H di TradingView">${r.koin}</a>${prioHtml(r)}${chipEw(r)}<span class="sp-tb">${spark(d)}</span></td>` +
+    return `<tr><td><a href="${url}" target="_blank" rel="noopener" title="Buka chart 4H di TradingView">${r.koin}</a>${prioHtml(r)}${chipEw(r)}${chipLab(r)}<span class="sp-tb">${spark(d)}</span></td>` +
       `<td class="${kl.trim()}">${fHarga(r.harga)}</td>` +
       `<td class="${r.ch == null ? "redup" : r.ch >= 0 ? "naik" : "turun"}">${fPct(r.ch)}</td>` +
       `<td class="${rKls}">${r.rsi == null ? "—" : r.rsi.toFixed(0)}</td>` +
@@ -1893,7 +1978,7 @@ function botPegang(k) {
   if (((s.ew || {}).order || []).some(o => o.sym === k + "USDT")) return "order";
   return null;
 }
-const CHIPS = [["semua", "Semua"], ["jalan", "Jalan"], ["tp1", "TP1 ✓"], ["baru", "Baru"], ["ew", "Elliott"], ["bot", "🤖 Bot"], ["FW", "FW"], ["ST", "ST"], ["AT", "AT"], ["TB", "TB"]];
+const CHIPS = [["semua", "Semua"], ["jalan", "Jalan"], ["tp1", "TP1 ✓"], ["baru", "Baru"], ["ew", "Elliott"], ["bot", "🤖 Bot"], ["FW", "FW"], ["TB", "TB"], ["L029", "🧪 L029"], ["L030", "🧪 L030"], ["L027", "🧪 L027"]];   // 2026-10-06: ST/AT diganti sinyal Lab
 function chipCocok(r, c) {
   const P = r.p;
   switch (c) {
@@ -1902,6 +1987,7 @@ function chipCocok(r, c) {
     case "baru": return !!P && P.umur <= 3;
     case "ew": return !!r.ew || (!!P && P.kode === "EW");
     case "bot": return !!botPegang(r.koin);
+    case "L029": case "L030": case "L027": return (r.lab || []).some(t => t.kode === c);
     default: return !!P && P.kode === c;
   }
 }
@@ -1932,6 +2018,7 @@ function gambarAksi(semua) {
       if (!P.kenaTp1 && P.tp1) { const jT = (P.tp1 / h - 1) * 100; if (jT <= 1.5 && jT > -1) jk(r.koin, "🎯", "tinggal " + Math.max(0, jT).toFixed(1) + "% ke TP1 " + fHarga(P.tp1), "naik", 1); }
       if (P.umur <= 1 && !P.kenaTp1) jk(r.koin, "🆕", P.nama + " baru valid · entry " + fHarga(P.entry), "", 2);
     }
+    for (const t of r.lab || []) if (t.st === "jalan" && t.umur <= 1) jk(r.koin, "🧪", t.kode + " baru · entry " + fHarga(t.entry) + " · SL " + fHarga(t.sl) + " (belum terbukti)", "", 2);
     if (r.ew && r.ewJarak != null && Math.abs(r.ewJarak) <= 2) jk(r.koin, "⏳", "limit Elliott " + fHarga(r.ew.level) + " (" + fPct(r.ewJarak, 1) + " dari harga)", "", 3);
   }
   const el = $("trmAksi");
@@ -1994,7 +2081,7 @@ function gambarHP(rs) {
       `<a href="${url}" target="_blank" rel="noopener">Buka chart 4H di TradingView →</a></div>`;
     const dK = data[r.koin] || {};
     return `<div class="kartu${P ? klsSt(P.st === "jalan", r.pnl) : ""}" data-k="${r.koin}">` +
-      `<div class="atas"><div style="min-width:0"><div class="nm">${r.koin}${prioHtml(r)}</div><div class="sub">${P ? P.nama + peringkatHtml(P.kode) : "tidak ada pola 4H"}${chipEw(r)}</div><div class="sp-hp">${spark(dK)}</div></div>` +
+      `<div class="atas"><div style="min-width:0"><div class="nm">${r.koin}${prioHtml(r)}</div><div class="sub">${P ? P.nama + peringkatHtml(P.kode) : "tidak ada pola 4H"}${chipEw(r)}${chipLab(r)}</div><div class="sp-hp">${spark(dK)}</div></div>` +
       `<div>${P ? chipPola(P) : ""}</div>` +
       `<div class="kanan2"><div class="pnlB ${kls(r.pnl)}">${pnl}</div><div class="kecil">${fHarga(r.harga)}</div></div></div>` +
       rinci + `</div>`;
