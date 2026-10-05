@@ -212,6 +212,10 @@ function elliott(d, A, mx) {
 // terakhir. Default {} -> perilaku & isi larik PERSIS seperti sebelumnya.
 function peristiwa(d, A, opsi = {}) {
   const n = d.c.length, pv = [], semua = [], hasil = [];
+  // opsi.aktifPerBar (2026-10-06): kode setup (status 0) yang AKTIF di akhir tiap lilin — hanya bila diminta; perilaku bawaan tidak berubah.
+  const aktif = opsi.aktifPerBar ? new Array(n).fill(null) : null;
+  // opsi.riwayatSetup (2026-10-06): riwayat tiap setup {kode, lahirB, akhirB, hasil: valid|batal|basi|tergeser|aktif} — hanya bila diminta.
+  const riwayat = opsi.riwayatSetup ? [] : null, catatAkhir = (q, i, h) => { if (riwayat) riwayat.push({ kode: q.kode, lahirB: q.lahirB, akhirB: i, hasil: h }); };
   // opsi.mx DITAMBAHKAN 2026-09-20: ambang Directional Change. Bawaan C.mx (2.5 =
   // setelan 4H). Pine memakai 3.5 di TF <= 1H, jadi uji lintas-TF WAJIB mengoper
   // mx = 3.5 untuk 1H — kalau tidak, yang dibandingkan bukan TF-nya tapi ambangnya.
@@ -240,9 +244,9 @@ function peristiwa(d, A, opsi = {}) {
       if (q.status !== 0) continue;
       const lv = lvlDi(q, i), bt = batDi(q, i);
       const ujung = q.adaBawah && q.miring && lv <= bawahDi(q, i);
-      if (c > lv && !ujung && validBar) semua.splice(j, 1);
-      else if (c > lv && !ujung) { jadiValid(q, i, lv, false); validBar = true; }
-      else if (c < bt || ujung || i - q.lahirB > C.umurSetup) semua.splice(j, 1);
+      if (c > lv && !ujung && validBar) { catatAkhir(q, i, "tergeser"); semua.splice(j, 1); }
+      else if (c > lv && !ujung) { catatAkhir(q, i, "valid"); jadiValid(q, i, lv, false); validBar = true; }
+      else if (c < bt || ujung || i - q.lahirB > C.umurSetup) { catatAkhir(q, i, i - q.lahirB > C.umurSetup && !(c < bt || ujung) ? "basi" : "batal"); semua.splice(j, 1); }
     }
     // 3. pola baru
     if (baru) {
@@ -268,7 +272,7 @@ function peristiwa(d, A, opsi = {}) {
         p.status = 0; p.lahirB = i; p.tampil = true;
         if (dasarOk && c <= lv && nSetup < C.maksSetup) semua.push(p);
         else if (dasarOk && c > lv && !validBar && c - lv <= C.maksLewat * A[i] && !(p.adaBawah && p.miring && lv <= bawahDi(p, i))) {
-          semua.push(p); jadiValid(p, i, lv, true); validBar = true;
+          catatAkhir(p, i, "valid"); semua.push(p); jadiValid(p, i, lv, true); validBar = true;
         }
       }
     }
@@ -290,7 +294,10 @@ function peristiwa(d, A, opsi = {}) {
       nV--;
     }
     while (semua.length > 80) semua.shift();
+    if (aktif) aktif[i] = semua.filter(q => q.status === 0).map(q => q.kode);
   }
+  if (aktif) hasil.aktif = aktif;
+  if (riwayat) { for (const q of semua) if (q.status === 0) catatAkhir(q, n - 1, "aktif"); hasil.riwayat = riwayat; }
   // BENTROK — saringan yang sama untuk SETUP dan CALON (Pine: fungsi `bentrok`).
   // Dipisah 2026-09-20 saat CALON ditambahkan; isinya SALINAN PERSIS dari kode
   // yang tadinya sebaris di langkah 3, supaya hasil rutin lama tidak berubah.
@@ -311,7 +318,7 @@ function peristiwa(d, A, opsi = {}) {
   function jadiValid(q, i, lv, lewat) {
     q.status = 1; q.tembusB = i; q.acuan = d.c[i]; q.lewat = lewat;
     const j = i + C.horizon;
-    hasil.push({ i, nama: q.nama, kode: q.kode, lewat, level: lv, tinggi: q.tinggi, mulaiB: q.mulaiB,
+    hasil.push({ i, nama: q.nama, kode: q.kode, lewat, level: lv, tinggi: q.tinggi, mulaiB: q.mulaiB, lahirB: q.lahirB,
       batal: batDi(q, i), // garis batal di bar valid (ditambahkan 2026-09-17 untuk uji TP/SL buku)
       awal: q.kr[0],      // titik ayunan pertama kerangka {hi,p,b} (ditambahkan 2026-09-17 untuk uji titik awal)
       titikAwal: q.titikAwal, // titik awal bermakna per pola (lihat bentuk())
