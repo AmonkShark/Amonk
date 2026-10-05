@@ -445,6 +445,15 @@ td.kosong{border:0;border-radius:0}
 .info-i{position:absolute;top:-2px;right:0;z-index:1;width:18px;height:18px;border-radius:50%;border:1px solid color-mix(in srgb,var(--kuning) 60%,transparent);background:var(--kuning-bg);color:var(--kuning);font:700 11px/16px var(--f-ui);padding:0;cursor:pointer;text-align:center}
 .info-i:hover,.info-i:focus-visible{background:var(--kuning);color:var(--bg);outline:none}
 .info-baca{font-size:14px;line-height:1.6;margin-top:10px}
+.cara-cepat{background:var(--bg2);border:1px solid var(--garis);border-radius:12px;padding:12px 14px;margin:4px 0 12px}
+.cara-cepat h4{margin:0 0 8px;font:600 14px var(--f-ui)}
+.cc-baris{display:flex;gap:10px;padding:8px 0;border-top:1px solid var(--garis)}
+.cc-no{flex:none;width:22px;height:22px;border-radius:50%;background:var(--bglbl);color:var(--label);font:600 12px/22px var(--f-num);text-align:center}
+.cc-isi{display:flex;flex-direction:column;gap:1px;min-width:0}
+.cc-isi b{font:600 13px var(--f-ui)} .cc-isi span{font:600 15px var(--f-num)} .cc-isi small{color:var(--label);font-size:12px} .cc-isi em{font-style:normal;font-size:13px}
+.cc-baris.ok em,.cc-kes.ok{color:var(--hijau)} .cc-baris.kng em,.cc-kes.kng{color:var(--kuning)} .cc-baris.buruk em,.cc-kes.buruk{color:var(--merah)}
+.cc-kes{font:600 14px var(--f-ui);padding-top:8px;border-top:1px solid var(--garis)}
+.cc-catat{margin:6px 0 0;font-size:12px;color:var(--label)}
 .info-blok{padding:10px 0;border-bottom:1px solid var(--garis)}.info-blok:last-child{border-bottom:0}
 .info-blok h4{margin:0 0 4px;font:600 14px var(--f-ui);color:var(--kuning)}.info-blok p{margin:0}
 .chip.lab{color:#B08968;background:rgba(176,137,104,.12);border-color:rgba(176,137,104,.4);min-width:0;margin-left:6px;font-size:11px;padding:1px 6px;white-space:nowrap}
@@ -4831,13 +4840,30 @@ const INFO_BACA = {
 function infoTambah(html) {
   return '<div class="pop-stat"><button type="button" class="info-i" data-i="__semua" aria-label="Cara baca semua angka">!</button>' + html + "</div>";
 }
+// CARA CEPAT (2026-10-06, user: "tambahkan keterangan di ! agar mudah melihat perbandingannya"): 3 langkah, angka sinyal ini vs patokan
+let INFO_POP = null;
+function caraCepatHtml(P) {
+  if (!P) return "";
+  const f2 = v => v == null || !isFinite(v) ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), tanda = k => ({ ok: "✓", kng: "⚠", buruk: "✗" })[k];
+  const s1 = P.n >= 30 && P.bulan >= 6 ? "ok" : P.n >= 30 ? "kng" : "buruk";
+  const s2 = P.rR == null ? "buruk" : P.rR > 0.2 ? "ok" : P.rR > 0 ? "kng" : "buruk";
+  const sel = P.wr == null || P.wrImpas == null ? null : P.wr - P.wrImpas, s3 = sel == null ? "buruk" : sel >= 10 ? "ok" : sel > 0 ? "kng" : "buruk";
+  const baris = (no, judul, nilai, patokan, st, ket) => '<div class="cc-baris ' + st + '"><span class="cc-no">' + no + '</span><div class="cc-isi"><b>' + judul + '</b><span>' + nilai + '</span><small>patokan: ' + patokan + '</small><em>' + tanda(st) + " " + ket + "</em></div></div>";
+  const r1 = baris(1, "Trade tutup", P.n + " trade · " + P.bulan.toFixed(1) + " bulan", "≥ 30 trade dan ≥ 6 bulan", s1, s1 === "ok" ? "cukup untuk dipercaya" : s1 === "kng" ? "jumlah cukup, rentang waktu masih pendek" : "terlalu sedikit — abaikan angka lain dulu");
+  const r2 = baris(2, "Rata R", P.rR == null ? "—" : f2(P.rR) + " R", "> +0,2R jelas · 0 s/d +0,2R tipis · < 0 rugi", s2, s2 === "ok" ? "jelas untung" : s2 === "kng" ? "untung tipis, mudah hilang" : "rugi / belum ada data");
+  const r3 = baris(3, "WR sekarang vs WR impas", P.wr == null ? "—" : Math.round(P.wr) + "% vs " + (P.wrImpas == null ? "—" : Math.round(P.wrImpas) + "%") + (sel == null ? "" : " (selisih " + (sel >= 0 ? "+" : "") + Math.round(sel) + " poin)"), "selisih ≥ 10 poin", s3, s3 === "ok" ? "ruang aman lebar" : s3 === "kng" ? "ruang aman tipis" : "di bawah impas");
+  const semua = [s1, s2, s3], kes = s1 === "buruk" ? ["buruk", "Belum bisa dinilai — trade terlalu sedikit."] : semua.every(x => x === "ok") ? ["ok", "Ketiganya lolos: layak dipantau untuk periode ini."] : semua.includes("buruk") ? ["buruk", "Ada syarat yang gagal: jangan diandalkan."] : ["kng", "Lolos tapi tipis: pantau dulu, jangan diandalkan penuh."];
+  return '<div class="cara-cepat"><h4>Cara cepat membaca — sinyal ini</h4>' + r1 + r2 + r3 + '<div class="cc-kes ' + kes[0] + '">' + tanda(kes[0]) + " " + kes[1] + '</div><p class="cc-catat">Angka dari periode yang ditampilkan (Riwayat = simulasi; Jurnal = catatan). Hasil lalu bukan jaminan ke depan.</p></div>';
+}
 function infoSemuaHtml() {
-  return Object.entries(INFO_BACA).map(([k, v]) => '<div class="info-blok"><h4>' + k + "</h4><p>" + v + "</p></div>").join("");
+  return caraCepatHtml(INFO_POP) + Object.entries(INFO_BACA).map(([k, v]) => '<div class="info-blok"><h4>' + k + "</h4><p>" + v + "</p></div>").join("");
 }
 function grupPopupHtml(T, perKoin, kls) { return infoTambah(grupPopupHtmlDasar(T, perKoin, kls)); }
 function grupPopupHtmlDasar(T, perKoin, kls) {
   const f2 = v => v == null || !isFinite(v) ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
   const tutup = T.filter(t => !t.terbuka), jalan = T.filter(t => t.terbuka), H = jnHitung(tutup), uJ = jalan.reduce((a, t) => a + (t.us || 0), 0);
+  { const ts = tutup.map(t => t.mT).filter(Boolean), te = tutup.map(t => t.kT || t.mT).filter(Boolean);
+    INFO_POP = { n: H.n, rR: H.rR, wr: H.n ? H.wr : null, wrImpas: H.rrN == null ? null : isFinite(H.rrN) ? 100 / (1 + H.rrN) : 0, bulan: ts.length ? (Math.max(...te) - Math.min(...ts)) / (30.44 * 864e5) : 0 }; }
   const seb = {}; for (const t of tutup) seb[t.sebab || "lain"] = (seb[t.sebab || "lain"] || 0) + 1;
   const warna = { TP: "var(--hijau)", "TP1+TP2": "var(--hijau)", "TP1+Trailing": "var(--hijau)", "TP1+BE": "rgba(38,166,154,.45)", SL: "var(--merah)", WAKTU: "var(--kuning)" };
   const koinUnik = new Set(T.map(t => t.koin)).size;
