@@ -3287,7 +3287,7 @@ function gambarJurnal() {
   const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2);
   const kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
   $("jrRing").innerHTML = Object.entries(JV.sinyal).map(([nm, sg]) => {
-    const tutup = sg.trades.filter(t => !t.terbuka), buka = sg.trades.filter(t => t.terbuka);
+    const trs = sg.trades.filter(t => !(/^POLA/.test(nm) && JN_SEMBUNYI.has(t.jenis))), tutup = trs.filter(t => !t.terbuka), buka = trs.filter(t => t.terbuka);
     const tot = tutup.reduce((a, t) => a + t.usdt, 0), menang = tutup.filter(t => t.usdt > 0).length;
     const jalan = buka.reduce((a, t) => a + (uangJ(t.entry, hargaKini(t.koin), t) || 0), 0);
     return `<div class="jr-kotak"><h3>${nm} <small>${tutup.length} tutup · WR ${tutup.length ? Math.round(menang / tutup.length * 100) : 0}%</small></h3>` +
@@ -3332,9 +3332,11 @@ const JN_BUKA = new Set();
 const tUtc = s => s ? Date.parse(/Z$|[+-]\d\d:?\d\d$/.test(s) ? s : s + "Z") : null;   // jurnal menulis jam UTC tanpa "Z"
 const jnLama = j => j == null || !isFinite(j) ? "—" : j < 48 ? Math.round(j) + " jam" : (j / 24).toFixed(1) + " hari";
 const HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+const JN_SEMBUNYI = new Set(["Symmetrical Triangle", "Ascending Triangle"]);
 function jnBaris(buku) {
   const out = [], JV = buku || jV(); if (!JV) return out;
   for (const [nm, sg] of Object.entries(JV.sinyal)) for (const t of sg.trades) {
+    if (/^POLA/.test(nm) && JN_SEMBUNYI.has(t.jenis)) continue;   // 2026-10-06 (user): ST & AT tidak ditampilkan di Jurnal
     const mT = tUtc(t.masuk), kT = t.keluar ? tUtc(t.keluar) : null;
     const px = t.terbuka ? hargaKini(t.koin) : t.exit, us = t.terbuka ? uangJ(t.entry, px, t) : t.usdt;
     const riskU = t.entry > t.sl && t.sl > 0 ? JV.nominal * (t.entry - t.sl) / t.entry : null;   // rugi bila kena SL (tanpa biaya)
@@ -4657,7 +4659,7 @@ function gambarRiwayatTF(ai, tf1) {
   const semuaRw = tf1 ? Object.values(R1D.rw) : Object.values(RW);
   if (rwMode === "maju" && !MAJU_GH.t) ambilMajuGH();
   if (!semuaRw.length && !(rwMode === "maju" && MAJU_GH.rec)) return;
-  const semua = (rwMode === "maju" ? gabungMaju() : semuaRw).filter(t => KODE_TAMPIL.has(t.kode) || (!tf1 && LAB_KODE.includes(t.kode)));   // + sinyal Lab (2026-10-06)
+  const semua = (rwMode === "maju" ? gabungMaju() : semuaRw).filter(t => KODE_TERMINAL.has(t.kode) || (!tf1 && LAB_KODE.includes(t.kode)));   // 2026-10-06 (user): Riwayat hanya TB/FW/EW + Lab L030/L027 (ST & AT disembunyikan; pengaturan bot tetap)
   document.querySelectorAll("#rwPeriode button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === rwMode ? "true" : "false"));
   const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
   const tutup = semua.filter(t => t.st !== "jalan"), jalan = semua.filter(t => t.st === "jalan" && !t.luar);
