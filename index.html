@@ -955,7 +955,7 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
   </div>
 
   <div class="hal" id="halRiwayat" hidden>
-    <div class="seg tf-seg" role="group" aria-label="Timeframe riwayat" id="rwTF" style="margin-bottom:8px"><button data-tf="4H">4H · dipakai bot</button><button data-tf="1D">1D · info</button></div>
+    <div class="seg tf-seg" role="group" aria-label="Timeframe riwayat" id="rwTF" style="margin-bottom:8px"><button data-tf="1H">1H · info</button><button data-tf="4H">4H · dipakai bot</button><button data-tf="1D">1D · info</button></div>
     <div class="seg" role="group" aria-label="Sumber riwayat" id="rwSumber" style="margin-bottom:10px">
       <button data-v="POLA">POLA 4H · level chart</button><button data-v="AI">AI 4H · analisa Claude</button>
     </div>
@@ -1664,9 +1664,9 @@ function atrArr(h, l, c, n = 14) {
 }
 // RIWAYAT (2026-09-22): simulasi dijalankan untuk SEMUA pola valid di jendela 600 lilin
 // (~100 hari), bukan hanya yang terakhir. Yang terakhir = kolom Terminal; semuanya = tab Riwayat.
-function polaSemua(d) {
+function polaSemua(d, mx) {
   if (!window.PolaDC) return [];
-  const ev = window.PolaDC.peristiwa(d, atrArr(d.h, d.l, d.c), { elliott: true }) || [];   // + Elliott Wave (EW), 2026-09-23
+  const ev = window.PolaDC.peristiwa(d, atrArr(d.h, d.l, d.c), mx > 0 ? { elliott: true, mx } : { elliott: true }) || [];   // + Elliott Wave (EW), 2026-09-23
   return ev.filter(e => !SEMBUNYI_POLA.has(e.kode)).map(e => simTrade(d, e));
 }
 function polaTerakhir(d, semua) {
@@ -1744,7 +1744,7 @@ function simLab(d, i, sl, kode, pola) {
   if (j + 119 < n) return tutup(d.c[j + 119], j + 119, "batas waktu");
   return { ...dasar, st: "jalan", kenaTp1: kena, stop: kena ? Math.max(sl, pk * 0.85) : sl, sisaBar: j + 119 - (n - 1), m: null };
 }
-function sinyalLab(d) {
+function sinyalLab(d, mx) {
   const n = d.c.length, A = atrArr(d.h, d.l, d.c), out = {};
   // saringan semesta sama dengan Lab: aset yang tidak bergerak (median ATR14/close < 0.2%, mis. stablecoin) dilewati
   { const x = []; for (let i = 20; i < n; i++) if (A[i]) x.push(A[i] / d.c[i]); x.sort((a, b) => a - b); if (!x.length || x[x.length >> 1] < 0.002) return out; }
@@ -1752,7 +1752,7 @@ function sinyalLab(d) {
   const ao = s5.map((v, i) => v != null && s34[i] != null ? v - s34[i] : null);
   const k0 = d.c.map((c, i) => { if (i < 13) return null; let H = -Infinity, L = Infinity; for (let q = i - 13; q <= i; q++) { H = Math.max(H, d.h[q]); L = Math.min(L, d.l[q]); } return H > L ? 100 * (c - L) / (H - L) : 50; });
   const K = smaLab(k0, 3), D = smaLab(K, 3), RS = rsiLab(d.c, 14), VE = emaArr(d.v, 20);
-  let akt = null; try { akt = window.PolaDC.peristiwa(d, A, { mx: 2.5, aktifPerBar: true }).aktif || null; } catch (e) { akt = null; }
+  let akt = null; try { akt = window.PolaDC.peristiwa(d, A, { mx: mx > 0 ? mx : 2.5, aktifPerBar: true }).aktif || null; } catch (e) { akt = null; }
   const l29 = i => ao[i] != null && ao[i - 1] != null && ao[i] > 0 && ao[i - 1] <= 0 && K[i] != null && D[i] != null && K[i] > D[i] && K[i] < 80;
   const polaDi = i => akt ? [...new Set((akt[i] || []).filter(k => LAB_POLA.has(k)))] : [];
   const SIG = { L029: l29, L030: i => l29(i) && polaDi(i).length > 0,
@@ -2625,6 +2625,28 @@ let JR = null, jrPilih = baca("jrPilih", "POLA 4H"), halAktif = baca("hal", "Ter
 // (modul PolaDC yang sama, ambang DC 2.5 seperti notif/banding_tf.cjs). Lilin 1D diambil saat tombol 1D pertama kali dipilih
 // (500 lilin ≈ 16 bulan), disimpan di memori, diambil ulang bila > 1 jam.
 var TF_RW = baca("rwTF", "4H"), TF_JN = baca("jnTF", "4H"), R1D = { t: 0, rw: {}, memuat: false, n: 0, galat: 0 };
+// RIWAYAT 1H (2026-10-06, user: "buat juga riwayat semuanya di 1H dan 1D"): pola TB/FW/EW + Lab L030/L027 di lilin 1H,
+// aturan & keluar sama dengan 4H, ambang DC 3.5 (sama dengan Pine di TF <= 1H). INFORMASI SAJA — bot & alert tetap 4H.
+var R1H = { t: 0, rw: {}, memuat: false, n: 0, galat: 0 };
+const RTF = tf => tf === "1H" ? R1H : R1D;
+async function muat1H() {
+  if (R1H.memuat) return; R1H.memuat = true; R1H.n = 0; R1H.galat = 0;
+  const rw = {}, antri = KOIN.slice(), sekarang = Date.now();
+  await Promise.all(Array.from({ length: 6 }, async () => {
+    while (antri.length) { const k = antri.shift();
+      try { const j = await getJ(`/api/v3/klines?symbol=${k}USDT&interval=1h&limit=1000`);
+        if (Array.isArray(j) && j.length >= 300) { const b = j.filter(x => +x[6] < sekarang);
+          if (sekarang - +b[b.length - 1][6] <= 6 * 3600e3) {
+            const dd = { t: b.map(x => +x[0]), o: b.map(x => +x[1]), h: b.map(x => +x[2]), l: b.map(x => +x[3]), c: b.map(x => +x[4]), v: b.map(x => +x[5]) };
+            for (const t of polaSemua(dd, 3.5)) rw[k + "|" + t.masukT] = { koin: k, nama: t.nama, kode: t.kode, masukT: t.masukT, keluarT: t.keluarT, entry: t.entry, sl: t.sl,
+              tp1: t.tp1, tp2: t.tp2, st: t.st, kenaTp1: t.kenaTp1, sisa: t.sisa, real: t.real, keluarPx: t.keluarPx, tf: "1H" };
+            try { const L = sinyalLab(dd, 3.5); for (const kode of LAB_KODE) for (const x of L[kode] || []) { const t = labKeRw(x); rw[k + "|" + kode + "|" + t.masukT] = { koin: k, ...t, tf: "1H" }; } } catch (e) {} } }
+        else R1H.galat++; } catch (e) { R1H.galat++; }
+      R1H.n++; if (R1H.n % 10 === 0 && halAktif === "Riwayat" && TF_RW === "1H" && !R1H.t) $("rwRing").innerHTML = `<div class="kosong memuat">Mengambil lilin 1H dari Binance… ${R1H.n}/${KOIN.length}</div>`; } }));
+  R1H.rw = rw; R1H.t = Date.now(); R1H.memuat = false;
+  if (halAktif === "Riwayat" && window.gambarRiwayat) window.gambarRiwayat();
+}
+const muatTF = tf => tf === "1H" ? muat1H() : muat1D();
 const polaJn = () => TF_JN === "1D" ? "POLA 1D" : "POLA 4H";
 async function muat1D() {
   if (R1D.memuat) return; R1D.memuat = true; R1D.n = 0; R1D.galat = 0;
@@ -2639,7 +2661,8 @@ async function muat1D() {
           if (sekarang - +b[b.length - 1][6] <= 3 * 864e5) {   // koin basi (delisting) dilewati
             const dd = { t: b.map(x => +x[0]), o: b.map(x => +x[1]), h: b.map(x => +x[2]), l: b.map(x => +x[3]), c: b.map(x => +x[4]), v: b.map(x => +x[5]) };
             for (const t of polaSemua(dd)) rw[k + "|" + t.masukT] = { koin: k, nama: t.nama, kode: t.kode, masukT: t.masukT, keluarT: t.keluarT, entry: t.entry, sl: t.sl,
-              tp1: t.tp1, tp2: t.tp2, st: t.st, kenaTp1: t.kenaTp1, sisa: t.sisa, real: t.real, keluarPx: t.keluarPx, tf: "1D" }; } }
+              tp1: t.tp1, tp2: t.tp2, st: t.st, kenaTp1: t.kenaTp1, sisa: t.sisa, real: t.real, keluarPx: t.keluarPx, tf: "1D" };
+            try { const L = sinyalLab(dd); for (const kode of LAB_KODE) for (const x of L[kode] || []) { const t = labKeRw(x); rw[k + "|" + kode + "|" + t.masukT] = { koin: k, ...t, tf: "1D" }; } } catch (e) {} } }
         else R1D.galat++; } catch (e) { R1D.galat++; }
       R1D.n++; if (R1D.n % 10 === 0) tulis(); } }));
   R1D.rw = rw; R1D.t = Date.now(); R1D.memuat = false;
@@ -2665,7 +2688,7 @@ function pasangTF(id, kunci, gambar) {
   document.querySelectorAll("#" + id + " button").forEach(b => b.addEventListener("click", () => {
     if (kunci === "rwTF") { TF_RW = b.dataset.tf; rwPola = null; } else { TF_JN = b.dataset.tf; JN_S.sinyal = "semua"; JN_S.grup = null; simpan("jnS", JN_S); jnSegSinyal(); }
     simpan(kunci, b.dataset.tf); tandai();
-    if (b.dataset.tf === "1D" && (!R1D.t || Date.now() - R1D.t > 3600e3)) muat1D();
+    if (b.dataset.tf !== "4H" && (!RTF(b.dataset.tf).t || Date.now() - RTF(b.dataset.tf).t > 3600e3)) muatTF(b.dataset.tf);
     gambar(); }));
 }
 // tombol sinyal Jurnal: 4H = Semua / POLA 4H / AI 4H; 1D = Semua / POLA 1D
@@ -4659,10 +4682,10 @@ document.addEventListener("click", e => {
   popupTampil("Trade pola " + n + " (simulasi 1000 USDT)", isi, false);
 });
 window.gambarRiwayat = function () {
-  const ai = rwSumber === "AI", tf1 = !ai && TF_RW === "1D";
+  const ai = rwSumber === "AI", tf1 = !ai && TF_RW !== "4H", RS = RTF(TF_RW);
   $("rwTF").hidden = ai; { const bp = document.querySelector('#rwSumber button[data-v="POLA"]'); if (bp) bp.textContent = "POLA " + TF_RW + " · level chart"; }
-  if (tf1 && !R1D.t) { $("rwRing").innerHTML = `<div class="kosong memuat">Mengambil lilin 1D dari Binance… ${R1D.n}/${KOIN.length}</div>`; $("rwPola").innerHTML = ""; $("rwList").innerHTML = ""; $("rwPeriode").hidden = true; if (!R1D.memuat) muat1D(); return; }
-  if (tf1 && Date.now() - R1D.t > 3600e3 && !R1D.memuat) muat1D();
+  if (tf1 && !RS.t) { $("rwRing").innerHTML = `<div class="kosong memuat">Mengambil lilin ${TF_RW} dari Binance… ${RS.n}/${KOIN.length}</div>`; $("rwPola").innerHTML = ""; $("rwList").innerHTML = ""; $("rwPeriode").hidden = true; if (!RS.memuat) muatTF(TF_RW); return; }
+  if (tf1 && Date.now() - RS.t > 3600e3 && !RS.memuat) muatTF(TF_RW);
   const m0 = rwMode; if (tf1) rwMode = "semua";
   try { return gambarRiwayatTF(ai, tf1); } finally { rwMode = m0; }
 };
@@ -4673,10 +4696,10 @@ function gambarRiwayatTF(ai, tf1) {
     : `Hasil per pola <small><span class="hpsj">geser ‹ › untuk pola lain · </span>ketuk untuk melihat trade-nya</small>`;
   $("bandingRw").hidden = true; if (!ai) gambarBanding("bandingRw", true);
   if (ai) return gambarRiwayatAI();
-  const semuaRw = tf1 ? Object.values(R1D.rw) : Object.values(RW);
+  const semuaRw = tf1 ? Object.values(RTF(TF_RW).rw) : Object.values(RW);
   if (rwMode === "maju" && !MAJU_GH.t) ambilMajuGH();
   if (!semuaRw.length && !(rwMode === "maju" && MAJU_GH.rec)) return;
-  const semua = (rwMode === "maju" ? gabungMaju() : semuaRw).filter(t => KODE_TERMINAL.has(t.kode) || (!tf1 && LAB_KODE.includes(t.kode)));   // 2026-10-06 (user): Riwayat hanya TB/FW/EW + Lab L030/L027 (ST & AT disembunyikan; pengaturan bot tetap)
+  const semua = (rwMode === "maju" ? gabungMaju() : semuaRw).filter(t => KODE_TERMINAL.has(t.kode) || LAB_KODE.includes(t.kode));   // 2026-10-06 (user): Riwayat hanya TB/FW/EW + Lab L030/L027 (ST & AT disembunyikan; pengaturan bot tetap)
   document.querySelectorAll("#rwPeriode button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === rwMode ? "true" : "false"));
   const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
   const tutup = semua.filter(t => t.st !== "jalan"), jalan = semua.filter(t => t.st === "jalan" && !t.luar);
@@ -4690,7 +4713,7 @@ function gambarRiwayatTF(ai, tf1) {
     $("rwPola").innerHTML = ""; $("rwList").innerHTML = ""; return;
   }
   const kurva = kurvaJ(tutup.map(t => ({ usdt: t.pnl, keluar: new Date(t.keluarT || t.masukT).toISOString(), masuk: "" })));
-  $("rwRing").innerHTML = `<div class="jr-kotak"><h3>Riwayat trade pola ${tf1 ? "1D" : "4H"} <small>sejak ${mulai}${tf1 ? " · info saja, bot & alert tetap 4H" : ""}</small></h3>` +
+  $("rwRing").innerHTML = `<div class="jr-kotak"><h3>Riwayat trade pola ${tf1 ? TF_RW : "4H"} <small>sejak ${mulai}${tf1 ? " · info saja, bot & alert tetap 4H" : ""}</small></h3>` +
     `<div class="jr-angka"><div><span>Tutup</span><b>${tutup.length}</b></div><div><span>WR</span><b>${tutup.length ? Math.round(menang / tutup.length * 100) : 0}%</b></div>` +
     `<div><span>Profit tutup (USDT)</span><b class="${kl(tot)}">${f2(tot)}</b></div></div>` +
     `<div class="jr-angka"><div><span>Jalan</span><b>${jalan.length}</b></div><div><span>Rata/trade</span><b class="${kl(tot)}">${tutup.length ? f2(tot / tutup.length) : "—"}</b></div>` +
@@ -4721,7 +4744,7 @@ function gambarRiwayatTF(ai, tf1) {
       (rwMode === "maju" ? majuHtml(nm, x, semua) : "") + `</button>`;
   }).join("") + (Object.values(per).some(x => x.n < 30) ? '<div class="rw-kaki">Pola dengan kurang dari 30 trade belum bisa disimpulkan.</div>' : "");
   { const sel = $("rwPola").querySelector('[aria-pressed="true"]'); if (sel) { const c = $("rwPola"); c.scrollTo({ left: sel.offsetLeft - (c.clientWidth - sel.clientWidth) / 2, behavior: "smooth" }); } }
-  RW_TAMPIL = { sumber: "POLA", semua, tf: tf1 ? "1D" : "4H" };                             // dipakai pop-up
+  RW_TAMPIL = { sumber: "POLA", semua, tf: tf1 ? TF_RW : "4H" };                             // dipakai pop-up
   let rows = semua.slice();
   if (rwPola) rows = rows.filter(t => t.nama === rwPola);
   rwTabHitung({ semua: rows.length, jalan: rows.filter(t => t.st === "jalan" && !t.luar).length, tutup: rows.filter(t => t.st !== "jalan").length, untung: rows.filter(t => t.st !== "jalan" && t.pnl > 0).length, rugi: rows.filter(t => t.st !== "jalan" && t.pnl <= 0).length });
@@ -4838,7 +4861,7 @@ function grupPopupHtmlDasar(T, perKoin, kls) {
 }
 function rwPopupGrup(nilai) {
   const S = RW_TAMPIL.sumber, T = RW_TAMPIL.semua.map(t => rwNorm(t, S)).filter(t => t.grupPola === nilai && !t.luar).sort((a, b) => b.mT - a.mT);
-  popupTampil(`${nilai} <small>${S === "AI" ? "AI 4H" : RW_TAMPIL.tf === "1D" ? "POLA 1D" : LAB_KODE.some(k => nilai.startsWith(k)) ? "LAB 4H · simulasi 100 hari" : "POLA 4H"}</small>`, grupPopupHtml(T, S === "POLA", "popup-baris"), false);
+  popupTampil(`${nilai} <small>${S === "AI" ? "AI 4H" : LAB_KODE.some(k => nilai.startsWith(k)) ? "LAB " + (RW_TAMPIL.tf || "4H") + " · simulasi" : "POLA " + (RW_TAMPIL.tf || "4H")}</small>`, grupPopupHtml(T, S === "POLA", "popup-baris"), false);
 }
 function rwPopupTrade(kunci, dariGrup) {
   const S = RW_TAMPIL.sumber, t = RW_TAMPIL.semua.map(x => rwNorm(x, S)).find(x => x.k === kunci);
