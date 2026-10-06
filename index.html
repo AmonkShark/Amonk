@@ -454,6 +454,8 @@ td.kosong{border:0;border-radius:0}
 .cc-baris.ok em,.cc-kes.ok{color:var(--hijau)} .cc-baris.kng em,.cc-kes.kng{color:var(--kuning)} .cc-baris.buruk em,.cc-kes.buruk{color:var(--merah)}
 .cc-kes{font:600 14px var(--f-ui);padding-top:8px;border-top:1px solid var(--garis)}
 .cc-catat{margin:6px 0 0;font-size:12px;color:var(--label)}
+.rp.rupiah,.jr-angka .rp,#rwRing .jr-kotak .jr-angka span.rp,#jrRing .jr-kotak .jr-angka span.rp{text-transform:none;letter-spacing:0}
+.rp.rupiah{color:var(--label);font-size:12px}
 .info-blok{padding:10px 0;border-bottom:1px solid var(--garis)}.info-blok:last-child{border-bottom:0}
 .info-blok h4{margin:0 0 4px;font:600 14px var(--f-ui);color:var(--kuning)}.info-blok p{margin:0}
 .chip.lab{color:#B08968;background:rgba(176,137,104,.12);border-color:rgba(176,137,104,.4);min-width:0;margin-left:6px;font-size:11px;padding:1px 6px;white-space:nowrap}
@@ -1735,6 +1737,12 @@ function simTrade(d, e) {
 // (sama dengan research/l030_100hari.cjs): entry close lilin sinyal, SL low 5 lilin - 0.5 ATR14, 50% di 1.5R, sisa trailing
 // 15% dari high tertinggi (tidak di bawah SL), batas 120 lilin, biaya 0.2% dalam R, satu posisi per aturan per koin.
 // L030 di app memakai setup TB/FW saja (pilihan user 10-06; Lab memakai FW/ST/AT/TB). BELUM TERBUKTI — penanda, BUKAN sinyal bot.
+// RUPIAH di Riwayat/Jurnal (2026-10-06, user: "buat detail rupiahnya juga"): memakai KURS & ambilKurs() yang sudah ada (tab Akun; ikut saklar
+// tampilan "Tampilkan Rupiah"). USDT dianggap = USD. Perkiraan saja.
+const fRpR = u => { if (u == null || !isFinite(u) || !KURS.idr || TAMPIL.rp === false) return ""; const v = u * KURS.idr, a = Math.abs(v);
+  return "≈ " + (v < 0 ? "−" : "+") + "Rp " + (a >= 1e9 ? (a / 1e9).toFixed(2).replace(".", ",") + " M" : a >= 1e6 ? (a / 1e6).toFixed(1).replace(".", ",") + " jt" : Math.round(a).toLocaleString("id-ID")); };
+const rpSpan = u => { const t = fRpR(u); return t ? '<span class="rp rupiah">' + t + "</span>" : ""; };
+const kursKet = () => KURS.idr && TAMPIL.rp !== false ? '<p class="jr-ket rupiah">Rupiah ≈ kurs 1 USDT = Rp ' + Math.round(KURS.idr).toLocaleString("id-ID") + " (" + KURS.sumber + "). Perkiraan saja.</p>" : "";
 const LAB_KODE = ["L030", "L027"];   // 2026-10-06 (user sesudah melihat Riwayat): hanya L030 & L027 yang dipakai; L029 tetap dihitung di dalam L030
 const LAB_POLA = new Set(["TB", "FW"]);
 const LAB_NAMA = { L029: "L029 AO + Stoch", L030: "L030 AO + Stoch di setup pola", L027: "L027 Inside bar + kapitulasi" };
@@ -3332,8 +3340,8 @@ function gambarJurnal() {
     const tot = tutup.reduce((a, t) => a + t.usdt, 0), menang = tutup.filter(t => t.usdt > 0).length;
     const jalan = buka.reduce((a, t) => a + (uangJ(t.entry, hargaKini(t.koin), t) || 0), 0);
     return `<div class="jr-kotak"><h3>${nm} <small>${tutup.length} tutup · WR ${tutup.length ? Math.round(menang / tutup.length * 100) : 0}%</small></h3>` +
-      `<div class="jr-angka"><div><span>Profit tutup (USDT)</span><b class="${kl(tot)}">${f2(tot)}</b></div>` +
-      `<div><span>Jalan</span><b>${buka.length}</b></div><div><span>Profit jalan (USDT)</span><b class="${kl(jalan)}">${buka.length ? f2(jalan) : "—"}</b></div></div>` +
+      `<div class="jr-angka"><div><span>Profit tutup (USDT)</span><b class="${kl(tot)}">${f2(tot)}</b>${rpSpan(tot)}</div>` +
+      `<div><span>Jalan</span><b>${buka.length}</b></div><div><span>Profit jalan (USDT)</span><b class="${kl(jalan)}">${buka.length ? f2(jalan) : "—"}</b>${buka.length ? rpSpan(jalan) : ""}</div></div>` +
       kurvaJ(tutup) + `<p class="jr-ket">${sg.ket}</p></div>`;
   }).join("");
   // JURNAL RINCI (2026-09-22, user: "informasi lebih bervariasi agar aku bisa memilih dan melihat lebih detail").
@@ -3571,6 +3579,7 @@ async function ambilKurs() {
     if (j && j.rates && j.rates.IDR > 1000) { KURS = { idr: j.rates.IDR, t: Date.now(), sumber: "frankfurter" }; return KURS.idr; } } catch (e) {}
   return KURS.idr;
 }
+ambilKurs().then(() => { try { if (halAktif === "Riwayat" && window.gambarRiwayat) window.gambarRiwayat(); if (halAktif === "Jurnal" && JR) gambarJurnal(); } catch (e) {} });   // 2026-10-06: kurs untuk rupiah di Riwayat/Jurnal
 const fRp = v => v == null ? "—" : !KURS.idr ? (v >= 0 ? "+" : "") + v.toFixed(2) + " USDT"
   : (v >= 0 ? "+" : "−") + "Rp " + Math.round(Math.abs(v) * KURS.idr).toLocaleString("id-ID");
 window.muatAkun = async function (paksa) {
@@ -4613,8 +4622,8 @@ function gambarRiwayatAI() {
   const awal = semua.length ? Math.min(...semua.map(t => t.mT)) : null;
   const bln = tutup.length ? (Date.now() - Math.min(...tutup.map(t => t.mT))) / (30.44 * 864e5) : 0;
   $("rwRing").innerHTML = `<div class="jr-kotak"><h3>Riwayat trade AI 4H <small>sejak ${awal ? tglLokal(awal) : "—"} · analisa chart Claude</small></h3>` +
-    `<div class="jr-angka"><div><span>Tutup</span><b>${H.n}</b></div><div><span>WR</span><b>${H.n ? Math.round(H.wr) : 0}%</b></div><div><span>Profit tutup (USDT)</span><b class="${kl(H.tot)}">${f2(H.tot)}</b></div></div>` +
-    `<div class="jr-angka"><div><span>Jalan</span><b>${jalan.length}</b></div><div><span>Rata/trade</span><b class="${kl(H.rata)}">${f2(H.rata)}</b></div><div><span>Profit jalan (USDT)</span><b class="${kl(uJ)}">${jalan.length ? f2(uJ) : "—"}</b></div></div>` +
+    `<div class="jr-angka"><div><span>Tutup</span><b>${H.n}</b></div><div><span>WR</span><b>${H.n ? Math.round(H.wr) : 0}%</b></div><div><span>Profit tutup (USDT)</span><b class="${kl(H.tot)}">${f2(H.tot)}</b>${rpSpan(H.tot)}</div></div>` +
+    `<div class="jr-angka"><div><span>Jalan</span><b>${jalan.length}</b></div><div><span>Rata/trade</span><b class="${kl(H.rata)}">${f2(H.rata)}</b>${rpSpan(H.rata)}</div><div><span>Profit jalan (USDT)</span><b class="${kl(uJ)}">${jalan.length ? f2(uJ) : "—"}</b>${jalan.length ? rpSpan(uJ) : ""}</div></div>` +
     `<div class="jr-angka"><div><span>Rata R</span><b class="${kl(H.rR)}">${H.rR == null ? "—" : f2(H.rR) + " R"}</b></div><div><span>Profit factor</span><b>${H.pf == null ? "—" : isFinite(H.pf) ? H.pf.toFixed(2) : "∞"}</b></div><div><span>Drawdown maks</span><b class="${H.dd < 0 ? "turun" : ""}">${f2(H.dd)}</b></div></div>` +
     kurvaJ(tutup.map(t => ({ usdt: t.us || 0, keluar: t.keluar || t.masuk, masuk: t.masuk }))) +
     `<div class="rw-maju"><div class="pb"><span>trade</span><div><i style="width:${Math.min(1, H.n / AMBANG_N) * 100}%"></i></div><span>${H.n}/${AMBANG_N}</span></div>` +
@@ -4700,6 +4709,20 @@ window.gambarRiwayat = function () {
   const m0 = rwMode; if (tf1) rwMode = "semua";
   try { return gambarRiwayatTF(ai, tf1); } finally { rwMode = m0; }
 };
+// DETAIL RINGKASAN RIWAYAT (2026-10-06, user: "sertakan pf, rr, dan detail lainnya"): Rata R, RR nyata, PF, drawdown, WR impas, terbaik/terburuk
+function rwRingDetail(tutup) {
+  const f2 = v => v == null || !isFinite(v) ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
+  const T = tutup.map(t => { const rk = t.entry > t.sl && t.sl > 0 ? MODAL_POLA * (t.entry - t.sl) / t.entry : null;
+    return { us: t.pnl || 0, R: rk && t.pnl != null ? t.pnl / rk : null, mT: t.masukT, kT: t.keluarT, jam: ((t.keluarT || t.masukT) - t.masukT) / 3600e3, entry: t.entry, sl: t.sl, tp1: t.tp1, tp: t.tp2 }; });
+  const H = jnHitung(T); if (!H.n) return "";
+  const impas = H.rrN == null ? null : isFinite(H.rrN) ? 100 / (1 + H.rrN) : 0;
+  return `<div class="jr-angka"><div><span>Rata R</span><b class="${kl(H.rR)}">${H.rR == null ? "—" : f2(H.rR) + " R"}</b><span class="rp">per trade</span></div>` +
+    `<div><span>RR nyata</span><b>${rrTeks(H.rrN)}</b><span class="rp">menang ${H.rRW == null ? "—" : f2(H.rRW) + " R"} · kalah ${H.rRL == null ? "—" : f2(H.rRL) + " R"}</span></div>` +
+    `<div><span>Profit factor</span><b class="${H.pf == null ? "" : H.pf >= 1 ? "naik" : "turun"}">${H.pf == null ? "—" : isFinite(H.pf) ? H.pf.toFixed(2) : "∞"}</b><span class="rp">untung ÷ rugi</span></div></div>` +
+    `<div class="jr-angka"><div><span>Drawdown maks (USDT)</span><b class="${H.dd < 0 ? "turun" : ""}">${f2(H.dd)}</b>${rpSpan(H.dd)}</div>` +
+    `<div><span>WR impas</span><b>${impas == null ? "—" : Math.round(impas) + "%"}</b><span class="rp">WR sekarang ${Math.round(H.wr)}% ${impas == null ? "" : H.wr - impas >= 10 ? "✓ aman" : H.wr > impas ? "⚠ tipis" : "✗ di bawah"}</span></div>` +
+    `<div><span>Terbaik / terburuk</span><b><span class="naik">${f2(H.best)}</span> / <span class="turun">${f2(H.worst)}</span></b><span class="rp">menang beruntun ${H.mW} · kalah beruntun ${H.mL}</span></div></div>`;
+}
 function gambarRiwayatTF(ai, tf1) {
   if (!TAMPIL.maju && rwMode === "maju") rwMode = "semua";
   $("rwPeriode").hidden = ai || tf1 || !TAMPIL.maju; $("rwKetAI").hidden = !ai; $("rwKetPola").hidden = ai;
@@ -4726,9 +4749,9 @@ function gambarRiwayatTF(ai, tf1) {
   const kurva = kurvaJ(tutup.map(t => ({ usdt: t.pnl, keluar: new Date(t.keluarT || t.masukT).toISOString(), masuk: "" })));
   $("rwRing").innerHTML = `<div class="jr-kotak"><h3>Riwayat trade pola ${tf1 ? TF_RW : "4H"} <small>sejak ${mulai}${tf1 ? " · info saja, bot & alert tetap 4H" : ""}</small></h3>` +
     `<div class="jr-angka"><div><span>Tutup</span><b>${tutup.length}</b></div><div><span>WR</span><b>${tutup.length ? Math.round(menang / tutup.length * 100) : 0}%</b></div>` +
-    `<div><span>Profit tutup (USDT)</span><b class="${kl(tot)}">${f2(tot)}</b></div></div>` +
-    `<div class="jr-angka"><div><span>Jalan</span><b>${jalan.length}</b></div><div><span>Rata/trade</span><b class="${kl(tot)}">${tutup.length ? f2(tot / tutup.length) : "—"}</b></div>` +
-    `<div><span>Profit jalan (USDT)</span><b class="${kl(totJ)}">${f2(totJ)}</b></div></div>` + kurva + `</div>`;
+    `<div><span>Profit tutup (USDT)</span><b class="${kl(tot)}">${f2(tot)}</b>${rpSpan(tot)}</div></div>` +
+    `<div class="jr-angka"><div><span>Jalan</span><b>${jalan.length}</b></div><div><span>Rata/trade</span><b class="${kl(tot)}">${tutup.length ? f2(tot / tutup.length) : "—"}</b>${tutup.length ? rpSpan(tot / tutup.length) : ""}</div>` +
+    `<div><span>Profit jalan (USDT)</span><b class="${kl(totJ)}">${f2(totJ)}</b>${rpSpan(totJ)}</div></div>` + rwRingDetail(tutup) + kurva + kursKet() + `</div>`;
   // ---- PER POLA (2026-09-22, "riwayat per pola agar tau mana yang lebih menghasilkan")
   const per = {};
   const dapat = nm => per[nm] = per[nm] || { n: 0, m: 0, u: 0, tp2: 0, be: 0, sl: 0, jalan: 0, uJalan: 0, win: 0, loss: 0, seq: [] };
@@ -4871,8 +4894,8 @@ function grupPopupHtmlDasar(T, perKoin, kls) {
   const koinUnik = new Set(T.map(t => t.koin)).size;
   return `<div class="jr-angka"><div><span>Trade tutup</span><b>${H.n}</b><span class="rp">${jalan.length} jalan${perKoin ? ` · ${koinUnik} koin` : ""}</span></div>` +
     `<div><span>Win rate</span><b>${H.n ? Math.round(H.wr) + "%" : "—"}</b><span class="rp">${H.m} untung · ${H.n - H.m} rugi</span></div>` +
-    `<div><span>Total USDT</span><b class="${kl(H.tot)}">${H.n ? f2(H.tot) : "—"}</b><span class="rp">jalan ${jalan.length ? f2(uJ) : "—"}</span></div></div>` +
-    `<div class="jr-angka"><div><span>Rata / trade</span><b class="${kl(H.rata)}">${f2(H.rata)}</b></div><div><span>Rata R</span><b class="${kl(H.rR)}">${H.rR == null ? "—" : f2(H.rR) + " R"}</b></div>` +
+    `<div><span>Total USDT</span><b class="${kl(H.tot)}">${H.n ? f2(H.tot) : "—"}</b><span class="rp">${H.n && fRpR(H.tot) ? fRpR(H.tot) + " · " : ""}jalan ${jalan.length ? f2(uJ) : "—"}</span></div></div>` +
+    `<div class="jr-angka"><div><span>Rata / trade</span><b class="${kl(H.rata)}">${f2(H.rata)}</b>${rpSpan(H.rata)}</div><div><span>Rata R</span><b class="${kl(H.rR)}">${H.rR == null ? "—" : f2(H.rR) + " R"}</b></div>` +
     `<div><span>Profit factor</span><b>${H.pf == null ? "—" : isFinite(H.pf) ? H.pf.toFixed(2) : "∞"}</b></div></div>` +
     `<div class="jr-angka"><div><span>Terbaik</span><b class="${kl(H.best)}">${f2(H.best)}</b></div><div><span>Terburuk</span><b class="${kl(H.worst)}">${f2(H.worst)}</b></div><div><span>Rata lama tahan</span><b>${jnLama(H.jam)}</b></div></div>` +
     (H.n ? `<div class="jn-bar" style="margin-top:8px">${Object.entries(seb).map(([k, v]) => `<i style="width:${v / H.n * 100}%;background:${warna[k] || "var(--label)"}"></i>`).join("")}</div>` +
