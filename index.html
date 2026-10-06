@@ -699,6 +699,8 @@ body.privasi #rwRing .jr-angka b{filter:blur(7px)}
 .rw-no.satu{color:var(--kuning);border-color:rgba(255,183,77,.5);background:var(--kuning-bg)}
 .rw-no-ket{font:11px var(--f-ui);color:var(--label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rw-pemb{opacity:.82;border-style:dashed}
+.jn-ai-pisah{margin-left:14px}
+@media(min-width:900px){.rw-tabel>.jn-ai-pisah{margin-left:0;grid-column:1}}
 .prio.atas{color:var(--hijau);border-color:rgba(38,166,154,.45);background:var(--hijau-bg)}
 .rw-petunjuk{border:1px dashed var(--garis);border-radius:12px;padding:14px 16px;text-align:center;color:var(--label);font-size:13px}
 #halRiwayat .jr-pilih.seg{gap:6px;padding:4px;border:1px solid var(--garis);border-radius:999px;background:var(--bg2);display:inline-flex;flex-wrap:wrap}
@@ -1050,6 +1052,7 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
     <div class="jr-ring banding-ring" id="bandingJn" hidden></div>
     <div class="rk-jn" id="jnRingkas" hidden></div>
     <div class="geser-info">‹ geser untuk melihat pola / sinyal lain · ketuk kartu untuk menyaring daftar ›</div>
+    <div class="rw-judul" id="jnJudulPer"></div>
     <div class="rw-tabel" id="jnPolaKartu"></div>
     <section class="pm-sek" id="pmJn" hidden aria-label="Pantau maju kandidat">
       <div class="rw-judul">🔭 PANTAU MAJU <small>kandidat diukur maju sejak 06-10-2026 · BUKAN sinyal bot · ketuk kartu untuk detail</small></div>
@@ -3354,23 +3357,38 @@ function jnPanel(daftar) {
   }
   const semua = jnBaris(), pa = jnPolaAktif(), batas = +JN_S.periode ? Date.now() - +JN_S.periode * 864e5 : 0;
   const dasar = semua.filter(t => t.mT >= batas && (t.sinyal !== polaJn() || !t.jenis || pa.has(t.jenis)));
-  const kartu = (id, nama, arr, aktif) => {
+  const kartu = (id, nama, arr, aktif, lenc, kls) => {
     const tt = arr.filter(t => !t.terbuka), hh = jnHitung(tt), jalan = arr.length - tt.length;
     const seq = tt.slice().sort((a, b) => (a.kT || a.mT) - (b.kT || b.mT)).map(t => t.us || 0);
-    return '<button type="button" class="rw-pola" data-p="' + id + '" aria-pressed="' + aktif + '"><div class="j"><b>' + nama + '</b><span class="' + kl(hh.tot) + '">' + (hh.n ? f2(hh.tot) : "—") + "</span></div>" + sparkMini(seq) + '<div class="bar wr" title="Win rate"><i style="width:' + (hh.n ? Math.round(hh.wr) : 0) + '%"></i></div>' +
+    return '<button type="button" class="rw-pola' + (kls ? " " + kls : "") + '" data-p="' + id + '" aria-pressed="' + aktif + '">' + (lenc || "") + '<div class="j"><b>' + nama + '</b><span class="' + kl(hh.tot) + '">' + (hh.n ? f2(hh.tot) : "—") + "</span></div>" + sparkMini(seq) + '<div class="bar wr" title="Win rate"><i style="width:' + (hh.n ? Math.round(hh.wr) : 0) + '%"></i></div>' +
       '<div class="d"><span><em>' + hh.n + "</em> tutup</span><span>WR <em>" + (hh.n ? Math.round(hh.wr) : 0) + '%</em></span><span>rata <em class="' + kl(hh.rata) + '">' + f2(hh.rata) + "</em></span>" + '<span title="Rata R per trade (hasil ÷ rugi bila kena SL)">rata R <em class="' + kl(hh.rR) + '">' + (hh.rR == null ? "—" : f2(hh.rR)) + '</em></span><span title="RR nyata = rata R menang : rata R kalah">RR <em>' + rrTeks(hh.rrN) + "</em></span>" + (jalan ? "<span>jalan <em>" + jalan + "</em></span>" : "") + "</div></button>";
   };
   const pola = dasar.filter(t => t.sinyal === polaJn()), per = {};
   for (const t of pola) (per[t.jenis || "—"] = per[t.jenis || "—"] || []).push(t);
-  const urut = Object.entries(per).sort((a, b) => jnHitung(b[1].filter(t => !t.terbuka)).tot - jnHitung(a[1].filter(t => !t.terbuka)).tot);
   const semuaAktif = JN_S.sinyal === "semua" && !JN_S.grup, aiAktif = JN_S.sinyal === "AI 4H" && !JN_S.grup;
-  $("jnPolaKartu").innerHTML = kartu("__semua", TF_JN === "1D" ? "Semua pola 1D" : "Semua sinyal", dasar.filter(t => t.sinyal !== "LAB 4H"), semuaAktif) + (TF_JN === "1D" ? "" : kartu("__ai", "AI 4H", dasar.filter(t => t.sinyal === "AI 4H"), aiAktif)) +
-    urut.map(([nm, arr]) => kartu(nm, nm, arr, JN_S.sinyal === polaJn() && JN_S.grup === nm)).join("") +
-    (TF_JN === "1D" ? "" : LAB_KODE.map(k => LAB_NAMA[k]).map(nm => kartu("lab:" + nm, "🧪 " + nm, dasar.filter(t => t.sinyal === "LAB 4H" && t.jenis === nm), JN_S.sinyal === "LAB 4H" && JN_S.grup === nm)).join(""));
+  // URUTAN KARTU = PERINGKAT KEKUATAN (2026-10-07, user "samakan urutan di jurnal"): sama dengan Riwayat (RW_PERINGKAT/RW_URUT/rwStAt/rwNoHtml).
+  // Hanya urutan & label; angka tiap kartu tetap jnHitung. Kartu FW+MACD>0 hanya bila trade FW jurnal membawa angka macd; ST/AT = pembanding, bila tombol nyala.
+  const kdNama = Object.fromEntries(Object.entries(KODE_POLA).map(([k, nm]) => [nm, k]));
+  const fwSemua = per["Falling Wedge"] || [], adaMacd = fwSemua.some(t => t.macd != null);
+  const item = Object.entries(per).map(([nm, arr]) => ({ id: nm, nama: nm, arr, kd: kdNama[nm], aktif: JN_S.sinyal === polaJn() && JN_S.grup === nm }));
+  if (adaMacd) item.push({ id: "fwm:Falling Wedge", nama: TF_JN === "1D" ? "Falling Wedge + MACD>0 (MACD 1D, info)" : FWM_NAMA, arr: fwSemua.filter(t => t.macd != null && t.macd > 0), kd: "FWM", aktif: false });
+  if (TF_JN !== "1D") LAB_KODE.forEach(k => item.push({ id: "lab:" + LAB_NAMA[k], nama: "🧪 " + LAB_NAMA[k], arr: dasar.filter(t => t.sinyal === "LAB 4H" && t.jenis === LAB_NAMA[k]), kd: k, aktif: JN_S.sinyal === "LAB 4H" && JN_S.grup === LAB_NAMA[k] }));
+  if (rwStAt) { const stat = jnBaris(null, true).filter(t => t.sinyal === polaJn() && JN_SEMBUNYI.has(t.jenis) && t.mT >= batas && pa.has(t.jenis));
+    for (const nm of JN_SEMBUNYI) { const arr = stat.filter(t => t.jenis === nm); if (arr.length) item.push({ id: "stat:" + nm, nama: nm, arr, kd: kdNama[nm], aktif: false }); } }
+  const totK = x => jnHitung(x.arr.filter(t => !t.terbuka)).tot;
+  item.sort((a, b) => rwUrutKartu(a.kd) - rwUrutKartu(b.kd) || totK(b) - totK(a));
+  const lencana = x => { const P0 = RW_PERINGKAT[x.kd]; if (!P0) return "";
+    return rwNoHtml(P0, x.kd === "FW" && !adaMacd ? "semua FW · bot hanya MACD>0" : null); };
+  $("jnJudulPer").innerHTML = `<span>Kartu per sinyal <button type="button" class="rw-urut-i" id="jnUrutInfo" title="Urutan = peringkat backtest multi-tahun (sama dengan Riwayat), bukan profit periode ini; belum terbukti maju. Ketuk untuk rincian." aria-label="Cara baca urutan kartu">!</button></span><small>urut peringkat kekuatan (backtest) · AI di akhir</small>` +
+    `<button type="button" class="btn kecil rw-stat" id="jnStAtTgl" aria-pressed="${rwStAt}" title="Symmetrical & Ascending Triangle tidak dipakai bot; tampilkan hanya sebagai pembanding (pilihan sama dengan Riwayat)">${rwStAt ? "✓ " : ""}Tampilkan ST &amp; AT (pembanding)</button>`;
+  $("jnPolaKartu").innerHTML = kartu("__semua", TF_JN === "1D" ? "Semua pola 1D" : "Semua sinyal", dasar.filter(t => t.sinyal !== "LAB 4H"), semuaAktif) +
+    item.map(x => { const P0 = RW_PERINGKAT[x.kd]; return kartu(x.id, P0 && P0.label && !(x.kd === "FW" && !adaMacd) ? P0.label : x.nama, x.arr, x.aktif, lencana(x), P0 && P0.no == null ? "rw-pemb" : ""); }).join("") +
+    (TF_JN === "1D" ? "" : kartu("__ai", "AI 4H", dasar.filter(t => t.sinyal === "AI 4H"), aiAktif, '<div class="rw-no-baris"><span class="rw-no-ket">AI (tidak diperingkat)</span></div>', "jn-ai-pisah"));
   const sel = $("jnPolaKartu").querySelector('[aria-pressed="true"]'); if (sel) { const c = $("jnPolaKartu"); c.scrollTo({ left: sel.offsetLeft - (c.clientWidth - sel.clientWidth) / 2, behavior: "smooth" }); }
 }
 $("jnPolaKartu").addEventListener("click", e => {
   const b = e.target.closest(".rw-pola"); if (!b) return; const p = b.dataset.p;
+  if (/^(fwm|stat):/.test(p)) return jnPopupGrup(p, b.querySelector(".j b") ? b.querySelector(".j b").textContent : p);   // kartu tambahan (FW+MACD>0 / ST / AT): pop-up saja, saringan daftar tidak berubah
   if (p === "__semua") { JN_S.sinyal = "semua"; JN_S.grup = null; }
   else if (p === "__ai") { JN_S.sinyal = "AI 4H"; JN_S.grup = null; }
   else if (p.startsWith("lab:")) { JN_S.sinyal = "LAB 4H"; JN_S.rinci = "jenis"; JN_S.grup = p.slice(4); }
@@ -3445,10 +3463,10 @@ const tUtc = s => s ? Date.parse(/Z$|[+-]\d\d:?\d\d$/.test(s) ? s : s + "Z") : n
 const jnLama = j => j == null || !isFinite(j) ? "—" : j < 48 ? Math.round(j) + " jam" : (j / 24).toFixed(1) + " hari";
 const HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 const JN_SEMBUNYI = new Set(["Symmetrical Triangle", "Ascending Triangle"]);
-function jnBaris(buku) {
+function jnBaris(buku, ikutStAt) {
   const out = [], JV = buku || jV(); if (!JV) return out;
   for (const [nm, sg] of Object.entries(JV.sinyal)) for (const t of sg.trades) {
-    if (/^POLA/.test(nm) && JN_SEMBUNYI.has(t.jenis)) continue;   // 2026-10-06 (user): ST & AT tidak ditampilkan di Jurnal
+    if (/^POLA/.test(nm) && JN_SEMBUNYI.has(t.jenis) && !ikutStAt) continue;   // 2026-10-06 (user): ST & AT tidak ditampilkan di Jurnal (ikutStAt = hanya untuk kartu/pop-up pembanding)
     const mT = tUtc(t.masuk), kT = t.keluar ? tUtc(t.keluar) : null;
     const px = t.terbuka ? hargaKini(t.koin) : t.exit, us = t.terbuka ? uangJ(t.entry, px, t) : t.usdt;
     const riskU = t.entry > t.sl && t.sl > 0 ? JV.nominal * (t.entry - t.sl) / t.entry : null;   // rugi bila kena SL (tanpa biaya)
@@ -4950,17 +4968,24 @@ function rwKartuTambah(semua, J, sumber) {
   const stat = rwStAt ? sumber.filter(t => (t.kode === "ST" || t.kode === "AT") && dlm(t)) : [];
   return fwm.concat(stat);
 }
-function rwInfoUrutHtml() {
+// lencana nomor kartu (dipakai Riwayat & Jurnal); ket = keterangan pengganti (opsional)
+function rwNoHtml(P0, ket) {
+  return `<div class="rw-no-baris"><span class="rw-no${P0.no === 1 ? " satu" : ""}" title="Peringkat kekuatan dari backtest multi-tahun (rata R exit bot, biaya 0,2%): 2020-23 ${P0.r1} · 2023-26 ${P0.r2}. Bukan profit periode ini; belum terbukti maju.">${P0.no == null ? "pembanding" : "#" + P0.no}</span>` +
+    `<span class="rw-no-ket">${ket || P0.ket}</span></div>`;
+}
+function rwInfoUrutHtml(jn) {
   const f = k => RW_PERINGKAT[k];
   return '<p><b>Urutan kartu = peringkat kekuatan dari backtest multi-tahun</b>, bukan profit periode yang sedang dipilih. Angka = rata R per trade dengan exit bot, biaya 0,2%, dua era terpisah (2020-23 / 2023-26). Sumber: research/hasil_statistik_sinyal_bot_4h.txt.</p>' +
     '<table class="bd-tab"><thead><tr><th>#</th><th>Sinyal</th><th>2020-23</th><th>2023-26</th></tr></thead><tbody>' +
     RW_URUT.map(k => '<tr><td>' + (f(k).no == null ? "—" : f(k).no) + '</td><td>' + ({ TB: "Triple Bottom", L027: "L027 Inside bar + kapitulasi", L030: "L030 AO + Stoch", FWM: "Falling Wedge + MACD>0 (versi bot)", EW: "Elliott Wave", FW: "Falling Wedge semua (pembanding)", ST: "Symmetrical Triangle", AT: "Ascending Triangle" })[k] + '</td><td>' + f(k).r1 + '</td><td>' + f(k).r2 + '</td></tr>').join("") + '</tbody></table>' +
     '<div class="bd-catatan" style="margin-top:10px"><b>Belum terbukti maju.</b> Ini ringkasan backtest (tiap sinyal dihitung sendiri, tanpa batas slot), bukan janji. Saringan MACD>0 pada FW = memilih keadaan pasar naik (efek rezim), bukan mutu pola. L027/L030 = sinyal Lab, bukan sinyal bot. ST & AT tidak dipakai bot; tampilkan lewat tombol hanya sebagai pembanding.<br><br>' +
-    '<b>FW + MACD>0:</b> trade FW yang sama, hanya yang garis MACD(12,26) dari close lilin VALID (lilin sinyal yang sudah tutup) di atas nol — sama dengan saringan bot. Di 1H/1D memakai MACD dari TF itu sendiri (info saja; bot memakai 4H). Trade lama yang tersimpan tanpa angka MACD tidak ikut kartu ini.</div>';
+    '<b>FW + MACD>0:</b> trade FW yang sama, hanya yang garis MACD(12,26) dari close lilin VALID (lilin sinyal yang sudah tutup) di atas nol — sama dengan saringan bot. Di 1H/1D memakai MACD dari TF itu sendiri (info saja; bot memakai 4H). Trade lama yang tersimpan tanpa angka MACD tidak ikut kartu ini.</div>' +
+    (jn ? '<div class="bd-catatan" style="margin-top:10px"><b>Di Jurnal:</b> urutan sama dengan Riwayat, angka tiap kartu tidak berubah. Buku jurnal (data_jurnal.json) belum menyimpan angka MACD, jadi kartu FW + MACD>0 tidak dibuat; kartu Falling Wedge = semua FW (pembanding), sedangkan bot hanya mengambil FW dengan MACD 4H > 0. ST & AT ikut tombol pembanding yang sama dengan Riwayat. AI 4H = penilaian chart, bukan pola, jadi tidak diperingkat dan ditaruh di akhir.</div>' : "");
 }
 document.addEventListener("click", e => {
-  if (e.target.closest("#rwStAtTgl")) { rwStAt = !rwStAt; simpan("rwStAt", rwStAt); window.gambarRiwayat(); return; }
+  if (e.target.closest("#rwStAtTgl, #jnStAtTgl")) { rwStAt = !rwStAt; simpan("rwStAt", rwStAt); if (halAktif === "Jurnal") gambarJurnal(); else window.gambarRiwayat(); return; }
   if (e.target.closest("#rwUrutInfo")) popupTampil("Urutan kartu: peringkat kekuatan", rwInfoUrutHtml(), false);
+  if (e.target.closest("#jnUrutInfo")) popupTampil("Urutan kartu Jurnal: peringkat kekuatan", rwInfoUrutHtml(true), false);
 });
 function gambarRiwayatTF(ai, tf1) {
   if (!TAMPIL.maju && rwMode === "maju") rwMode = "semua";
@@ -5022,8 +5047,7 @@ function gambarRiwayatTF(ai, tf1) {
     const w = v => x.n ? (v / x.n * 100).toFixed(1) + "%" : "0";
     const P0 = RW_PERINGKAT[x.kd];
     return `<button type="button" class="rw-pola${P0 && P0.no == null ? " rw-pemb" : ""}" data-p="${nm}" aria-pressed="${rwPola === nm}">` +
-      (P0 ? `<div class="rw-no-baris"><span class="rw-no${P0.no === 1 ? " satu" : ""}" title="Peringkat kekuatan dari backtest multi-tahun (rata R exit bot, biaya 0,2%): 2020-23 ${P0.r1} · 2023-26 ${P0.r2}. Bukan profit periode ini; belum terbukti maju.">${P0.no == null ? "pembanding" : "#" + P0.no}</span>` +
-        `<span class="rw-no-ket">${P0.ket}</span></div>` : "") +
+      (P0 ? rwNoHtml(P0) : "") +
       `<div class="j"><b>${P0 && P0.label ? P0.label : nm}</b><span class="${kl(x.u)}">${x.n ? f2(x.u) : "—"}</span></div>` + sparkMini(x.seq.sort((a, b) => a[0] - b[0]).map(s => s[1])) +
       `<div class="bar" title="TP1+TP2 (atau trailing) / TP1+BE / SL"><i style="width:${w(x.tp2)};background:var(--hijau)"></i><i style="width:${w(x.be)};background:rgba(38,166,154,.45)"></i><i style="width:${w(x.sl)};background:var(--merah)"></i></div>` +
       `<div class="rw-atas">${wrCincin(wr, x.n)}<div class="kv"><div><i>Tutup</i><b>${x.n}</b></div><div><i>Rata/trade</i><b class="${kl(rata)}">${f2(rata)}</b></div><div><i>Terbaik</i><b class="naik">${f2(x.best)}</b></div><div><i>Terburuk</i><b class="turun">${f2(x.worst)}</b></div></div></div>` +
@@ -5090,9 +5114,10 @@ function popupKembali() { const p = POPUP_TUMPUK.pop(); if (!p) return popupTutu
 // POP-UP JURNAL (2026-10-06, user: "di jurnal ... ketika aku tekan muncul detailnya seperti di riwayat"): isi sama dengan pop-up Riwayat
 let JN_POP = [];
 function jnPopupGrup(id, judul) {
-  const semua = jnBaris(), pa = jnPolaAktif(), batas = +JN_S.periode ? Date.now() - +JN_S.periode * 864e5 : 0;
+  const semua = jnBaris(null, id.startsWith("stat:")), pa = jnPolaAktif(), batas = +JN_S.periode ? Date.now() - +JN_S.periode * 864e5 : 0;
   const dasar = semua.filter(t => t.mT >= batas && (t.sinyal !== polaJn() || !t.jenis || pa.has(t.jenis)));
   const T = (id === "__semua" ? dasar.filter(t => t.sinyal !== "LAB 4H") : id === "__ai" ? dasar.filter(t => t.sinyal === "AI 4H") : id.startsWith("lab:") ? dasar.filter(t => t.sinyal === "LAB 4H" && t.jenis === id.slice(4))
+    : id.startsWith("stat:") ? dasar.filter(t => t.sinyal === polaJn() && t.jenis === id.slice(5)) : id.startsWith("fwm:") ? dasar.filter(t => t.sinyal === polaJn() && t.jenis === id.slice(4) && t.macd != null && t.macd > 0)
     : dasar.filter(t => t.sinyal === polaJn() && (t.jenis || "—") === id)).map(t => ({ ...t, k: t.sinyal + "|" + t.koin + "|" + t.masuk })).sort((a, b) => b.mT - a.mT);
   JN_POP = T;
   popupTampil(judul + ' <small>JURNAL ' + (TF_JN === "1D" ? "1D" : "4H") + '</small>', grupPopupHtml(T, true, "jn-pop"), false);
