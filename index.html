@@ -853,6 +853,20 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
 .ao-tj-i.dibaca{opacity:.55}.ao-tj-s{font-size:10.5px;font-weight:700;color:#a3a6bd;letter-spacing:.04em}.ao-tj-i em{font-style:normal;font-size:11px;color:#a3a6bd}
 @media (max-width:600px){.ao-tj-i{grid-template-columns:10px 1fr auto}.ao-tj-s{display:none}}
 /* ==== /TAB TIM RISET v4 ==== */
+/* PANTAU MAJU / KANDIDAT (2026-10-06) */
+.pm-sek{margin-top:14px}
+.pm-sek .pm-exit{margin-bottom:8px}
+.pm-st{display:inline-block;font:600 10.5px var(--f-ui);letter-spacing:.06em;padding:2px 8px;border-radius:999px;border:1px solid var(--garis);color:var(--label);white-space:nowrap}
+.pm-st.belum{color:var(--label);background:color-mix(in srgb,var(--label) 10%,transparent)}
+.pm-st.lemah{color:var(--kuning);background:var(--kuning-bg);border-color:rgba(255,183,77,.4)}
+.pm-st.layak{color:var(--hijau);background:var(--hijau-bg);border-color:rgba(38,166,154,.45)}
+.pm-st.tidak{color:var(--merah);background:var(--merah-bg);border-color:rgba(239,83,80,.4)}
+.pm-kartu .pm-baris{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;font:11px var(--f-ui);color:var(--label)}
+.pm-kartu .pm-bt{font:11px var(--f-ui);color:var(--label);line-height:1.35}
+.pm-banding{width:100%;border-collapse:collapse;font:12px var(--f-num);margin:8px 0}
+.pm-banding th,.pm-banding td{padding:4px 6px;border-bottom:1px solid var(--garis);text-align:right}
+.pm-banding th:first-child,.pm-banding td:first-child{text-align:left;font-family:var(--f-ui)}
+.pm-banding th{color:var(--label);font-weight:500}
 </style>
 </head>
 <body>
@@ -988,6 +1002,12 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
       <button data-r="rugi" aria-pressed="false">Rugi</button>
     </div>
     <div class="jr-list" id="rwList"></div>
+    <section class="pm-sek" id="pmRw" hidden aria-label="Kandidat pantau">
+      <div class="rw-judul">🔭 KANDIDAT <small>backtest 12 bulan · 4H · kandidat pantau, BUKAN sinyal bot · ketuk kartu</small></div>
+      <div class="seg pm-exit" role="group" aria-label="Exit kandidat" id="pmRwExit"><button data-v="TANGGA">Exit tangga (utama)</button><button data-v="BOT">Exit bot</button></div>
+      <div class="rw-tabel" id="pmRwKartu"></div>
+      <p class="jr-ket" id="pmRwKet"></p>
+    </section>
     <p class="jr-ket" id="rwKetAI" style="margin-top:10px" hidden>Riwayat AI 4H = semua entry dari analisa chart Claude tiap 4 jam (buku jurnal laptop, dikirim ke GitHub tiap 4 jam). Nominal 1000 USDT per sinyal, biaya 0,2%, keluar di SL, TP, atau batas waktu. Trade "Jalan" dinilai dengan harga hidup. R = hasil ÷ jarak entry→SL.</p>
     <p class="jr-ket" id="rwKetPola" style="margin-top:10px">Riwayat = SEMUA pola 4H valid di 109 koin selama ~100 hari terakhir, dihitung di perangkat ini dengan aturan yang sama dengan Terminal (entry close bar valid, 50% di TP1, SL ke entry, 50% di TP2, biaya 0,2%, 1000 USDT). Trade lebih tua dari ~100 hari tetap disimpan di perangkat ini. Mode "Maju" memakai catatan yang sama untuk semua perangkat (berkas GitHub yang ditulis otomatis tiap 4 jam): trade tutup dari catatan itu, trade jalan dari hitungan perangkat ini. Beda dengan tab Jurnal (buku rutin: SL 2,5 ATR / TP 1R).</p>
   </div>
@@ -1000,6 +1020,12 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
     <div class="rk-jn" id="jnRingkas" hidden></div>
     <div class="geser-info">‹ geser untuk melihat pola / sinyal lain · ketuk kartu untuk menyaring daftar ›</div>
     <div class="rw-tabel" id="jnPolaKartu"></div>
+    <section class="pm-sek" id="pmJn" hidden aria-label="Pantau maju kandidat">
+      <div class="rw-judul">🔭 PANTAU MAJU <small>kandidat diukur maju sejak 06-10-2026 · BUKAN sinyal bot · ketuk kartu untuk detail</small></div>
+      <div class="seg pm-exit" role="group" aria-label="Exit pantau maju" id="pmJnExit"><button data-v="TANGGA">Exit tangga (utama)</button><button data-v="BOT">Exit bot</button></div>
+      <div class="rw-tabel" id="pmJnKartu"></div>
+      <p class="jr-ket" id="pmJnKet"></p>
+    </section>
     <details class="hp-lipat" id="jnLipatAlat"><summary>☰ Filter &amp; alat</summary>
     <div class="jn-alat">
       <div class="seg" role="group" aria-label="Sinyal" id="jnSinyal">
@@ -3249,7 +3275,7 @@ async function muatJurnal() {
     JR = await r.json();
   } catch (e) {
     $("jrRing").innerHTML = `<div class="kosong">Jurnal belum tersedia di sini. Jurnal hanya ada di versi online (amonkshark.github.io/Amonk) sesudah laptop mengirim data_jurnal.json.</div>`;
-    $("jrList").innerHTML = ""; gambarBanding("bandingJn", false); return;
+    $("jrList").innerHTML = ""; gambarBanding("bandingJn", false); if (window.pmJurnal) window.pmJurnal(); return;
   }
   gambarJurnal();
 }
@@ -3368,6 +3394,7 @@ function gambarJurnal() {
   const w = new Date(JV.waktu);
   $("jrWaktu").textContent = JV.tf === "1D" ? `Pola 1D dihitung di perangkat ini ${jamLokal(w)} ${ZONA} dari lilin 1D Binance (diambil ulang tiap 1 jam) · informasi saja, bot & alert tetap 4H.`
     : `Jurnal dikirim dari laptop ${jamLokal(w)} ${ZONA} · trade "Jalan" dinilai dengan harga hidup · jam ditampilkan dalam zona perangkat ini.`;
+  if (window.pmJurnal) window.pmJurnal();
 }
 // ---------- pembantu jurnal ----------
 const KODE_POLA = { FW: "Falling Wedge", ST: "Symmetrical Triangle", PEN: "Bullish Pennant", IHS: "Inverse H&S", AT: "Ascending Triangle", TB: "Triple Bottom", CH: "Cup & Handle", EW: "Elliott Wave" };
@@ -4703,6 +4730,7 @@ document.addEventListener("click", e => {
 });
 window.gambarRiwayat = function () {
   const ai = rwSumber === "AI", tf1 = !ai && TF_RW !== "4H", RS = RTF(TF_RW);
+  if (window.pmRiwayat) window.pmRiwayat(ai || TF_RW !== "4H");
   $("rwTF").hidden = ai; { const bp = document.querySelector('#rwSumber button[data-v="POLA"]'); if (bp) bp.textContent = "POLA " + TF_RW + " · level chart"; }
   if (tf1 && !RS.t) { $("rwRing").innerHTML = `<div class="kosong memuat">Mengambil lilin ${TF_RW} dari Binance… ${RS.n}/${KOIN.length}</div>`; $("rwPola").innerHTML = ""; $("rwList").innerHTML = ""; $("rwPeriode").hidden = true; if (!RS.memuat) muatTF(TF_RW); return; }
   if (tf1 && Date.now() - RS.t > 3600e3 && !RS.memuat) muatTF(TF_RW);
@@ -4859,6 +4887,7 @@ const INFO_BACA = {
   "Rata lama tahan": "Rata-rata berapa lama posisi dipegang dari masuk sampai keluar.",
   "RR nyata": "<b>Risk : reward yang benar-benar terjadi.</b> Rata R trade menang dibanding rata R trade kalah (sudah termasuk biaya).<br><br>Contoh 1 : 3,27 = trade yang menang rata-rata menghasilkan 3,27 kali besar rugi trade yang kalah. Angka kecil di bawahnya: rata R menang dan rata R kalah.",
   "RR rencana": "<b>Risk : reward saat masuk</b> — jarak target pertama (TP1, atau TP bila tanpa TP1) dibanding jarak SL.<br><br>Contoh 1 : 1,50 = TP1 sejauh 1,5 kali jarak SL. RR nyata bisa lebih besar dari rencana karena sisa posisi ikut trailing dan bisa lari jauh melewati TP1.",
+  "🔭 Status pantau": "Untuk kartu <b>🔭 PANTAU MAJU</b> (Jurnal) dan <b>🔭 KANDIDAT</b> (Riwayat). Ini kandidat yang sedang diukur, <b>BUKAN sinyal bot</b>.<br><br><b>BELUM CUKUP SAMPEL</b> = kurang dari 30 trade tutup atau kurang dari 6 bulan — tunggu.<br><b>LEMAH</b> = rata R positif tapi kurang dari separuh hasil backtest.<br><b>LAYAK DIPERTIMBANGKAN</b> = rata R positif dan minimal separuh backtest (≥ 30 trade, ≥ 6 bulan) — boleh dipertimbangkan masuk bot, keputusan tetap di Anda.<br><b>TIDAK LAYAK</b> = ≥ 30 trade dan rata R ≤ 0.<br><br>Status dihitung dari exit tangga, semua lilin sinyal (cara sama dengan backtest). Kartu & daftar trade memakai satu posisi per koin. <b>Exit tangga</b> = masuk open lilin berikutnya, SL low 5 lilin − 0,5 ATR, TP 2R, batas 30 lilin. <b>Exit bot</b> = 50% di 1,5R lalu trailing 15%. Riwayat KANDIDAT = backtest 12 bulan, bukan bukti baru.",
   "WR impas": "Win rate <b>minimum</b> supaya tidak rugi dengan RR nyata ini: 1 ÷ (1 + RR).<br><br>Contoh RR 1 : 3 → WR impas 25%. Kalau <b>WR sekarang lebih tinggi</b> dari WR impas, sinyal itu untung; kalau lebih rendah, rugi.",
 };
 // SATU tanda "!" per pop-up (user 10-06: "cukup satu tanda ! tapi memuat semua penjelasan")
@@ -4947,6 +4976,135 @@ $("popup").addEventListener("click", e => { if (e.target === $("popup")) popupTu
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("popup").hidden) popupTutup(); });
 setInterval(() => { if (halAktif === "Riwayat") window.gambarRiwayat(); }, 5000);
 
+// ===== PANTAU MAJU (Jurnal) & KANDIDAT (Riwayat) — 2026-10-06, permintaan user =====
+// Data dihitung di laptop oleh research/pantau_hampir.cjs (mesin tangga + kode app), dikirim lewat kirim_github:
+//   pantau_maju.json    = trade MAJU sejak tanggal mulai pantau (satu posisi per koin, exit tangga & bot)
+//   pantau_riwayat.json = backtest 12 bulan terakhir kandidat (4H, satu posisi per koin, exit tangga & bot)
+// Aturan TIDAK dihitung ulang di peramban (menyalin aturan = risiko menyimpang). BUKAN sinyal bot.
+(() => {
+  const PM = { maju: null, rw: null, tMaju: 0, tRw: 0, muatMaju: false, muatRw: false, galatMaju: "", galatRw: "", kunciRw: "", pop: [] };
+  let pmExit = baca("pmExit", "TANGGA"); if (!["TANGGA", "BOT"].includes(pmExit)) pmExit = "TANGGA";
+  const f2 = v => v == null || !isFinite(v) ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null || !isFinite(v) ? "" : v >= 0 ? "naik" : "turun";
+  const pcT = v => v == null ? "—" : Math.round(v * 100) + "%";
+  const NAMA_EX = { TANGGA: "exit tangga", BOT: "exit bot" };
+  const stKls = s => /^LAYAK/.test(s) ? "layak" : /^TIDAK/.test(s) ? "tidak" : /^LEMAH/.test(s) ? "lemah" : "belum";
+  const stChip = s => '<span class="pm-st ' + stKls(s || "") + '">' + (s || "—") + "</span>";
+  const tglU = ms => { const d = new Date(ms); return String(d.getDate()).padStart(2, "0") + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + d.getFullYear(); };
+  async function ambil(jenis) {
+    const f = jenis === "maju" ? "pantau_maju.json" : "pantau_riwayat.json", kM = jenis === "maju" ? "muatMaju" : "muatRw", kG = jenis === "maju" ? "galatMaju" : "galatRw";
+    PM[kM] = true;
+    try {
+      const r = await fetch(f + "?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) throw new Error("HTTP " + r.status);
+      PM[jenis] = await r.json(); PM[kG] = "";
+    } catch (e) { PM[kG] = String(e.message || e); }
+    PM[jenis === "maju" ? "tMaju" : "tRw"] = Date.now(); PM[kM] = false; PM.kunciRw = "";
+    if (jenis === "maju" && halAktif === "Jurnal") window.pmJurnal();
+    if (jenis === "rw" && halAktif === "Riwayat") window.pmRiwayat(rwSumber === "AI" || TF_RW !== "4H");
+  }
+  // baris larik JSON -> bentuk trade yang dipakai grupPopupHtml / jnDetailHtml
+  function keTrade(D, c, ex, r, sumber) {
+    const K = D.kolom || ["k", "t", "e", "sl", "tp", "kt", "x", "R", "s", "tp1k"], o = {}; K.forEach((k, i) => { o[k] = r[i]; });
+    const N = D.nominal || 1000, B = D.biaya || 0.002, risk = o.e > o.sl && o.sl > 0 ? N * (o.e - o.sl) / o.e : null, jalan = o.R == null;
+    const px = jalan ? hargaKini(o.k) : o.x, us = jalan ? (px > 0 && o.e > 0 ? N * (px / o.e - 1) - N * B : null) : (risk ? o.R * risk : null);
+    return { koin: o.k, mT: o.t, kT: o.kt, entry: o.e, sl: o.sl, tp: o.tp, tp1: ex === "BOT" ? o.tp : null, kenaTp1: !!o.tp1k,
+      terbuka: jalan, us, R: jalan ? (us != null && risk ? us / risk : null) : o.R, px, exit: o.x, sebab: jalan ? null : o.s,
+      jam: ((jalan ? Date.now() : o.kt || Date.now()) - o.t) / 3600e3, pc: us == null ? null : us / N * 100,
+      slPct: o.e > 0 ? (o.e - o.sl) / o.e * 100 : null, rr: o.e > o.sl && o.tp > o.e ? (o.tp - o.e) / (o.e - o.sl) : null,
+      sinyal: sumber === "maju" ? "PANTAU MAJU" : "KANDIDAT", jenis: c.nama + " · " + NAMA_EX[ex], k: sumber + "|" + c.id + "|" + ex + "|" + o.k + "|" + o.t };
+  }
+  function tradeDari(sumber, c, ex) {
+    const D = sumber === "maju" ? PM.maju : PM.rw, L = sumber === "maju" ? (c.trade || {})[ex] : (c[ex] || {}).trade;
+    return (L || []).map(r => keTrade(D, c, ex, r, sumber));
+  }
+  function kartu(sumber, c, ex, ring, nomor) {
+    const T = tradeDari(sumber, c, ex), tt = T.filter(t => !t.terbuka), H = jnHitung(tt), jalan = T.length - tt.length;
+    const seq = tt.slice().sort((a, b) => (a.kT || a.mT) - (b.kT || b.mT)).map(t => t.us || 0);
+    const bt = c.backtest || null, k10 = bt && bt.konf10 ? bt.konf10[ex] : null;
+    const btTeks = sumber === "maju"
+      ? "Backtest: " + (k10 && k10.satu ? "satu posisi 2023-26 rata " + f2(k10.satu.rata) + " R (n " + k10.satu.n + ")" : ex === "TANGGA" && bt ? "semua lilin 2023-26 rata " + f2(bt.c1.rata) + " R (n " + bt.c1.n + ")" : "exit bot belum diuji")
+      : "Dihitung ulang dari 12 bulan terakhir · bukan bukti baru";
+    return '<button type="button" class="rw-pola pm-kartu" data-pm="' + sumber + "|" + c.id + '" aria-pressed="false"><div class="j"><b>' + nomor + ". " + c.nama + '</b><span class="' + kl(H.tot) + '">' + (H.n ? f2(H.tot) : "—") + "</span></div>" +
+      '<div class="pm-baris">' + stChip(c.status) + "<span>" + NAMA_EX[ex] + " · satu posisi/koin</span></div>" + sparkMini(seq) +
+      '<div class="bar wr" title="Win rate"><i style="width:' + (H.n ? Math.round(H.wr) : 0) + '%"></i></div>' +
+      '<div class="d"><span><em>' + H.n + "</em> tutup</span><span>WR <em>" + (H.n ? Math.round(H.wr) + "%" : "—") + '</em></span><span>rata R <em class="' + kl(H.rR) + '">' + (H.rR == null ? "—" : f2(H.rR)) + "</em></span>" +
+      "<span>PF <em>" + (H.pf == null ? "—" : isFinite(H.pf) ? H.pf.toFixed(2) : "∞") + '</em></span><span>total R <em class="' + kl(ring && ring.total) + '">' + (ring && ring.n ? f2(ring.total) : "—") + "</em></span>" +
+      (jalan ? "<span>jalan <em>" + jalan + "</em></span>" : "") + (ring && ring.bulan ? "<span>bulan <em>" + ring.bulan + "</em></span>" : "") + "</div>" +
+      (H.n ? '<div class="pm-bt">' + (fRpR(H.tot) ? fRpR(H.tot) + " · " : "") + "USDT = simulasi 1000 per trade</div>" : "") +
+      '<div class="pm-bt">' + btTeks + "</div></button>";
+  }
+  function pasangExit(id, ulang) {
+    document.querySelectorAll("#" + id + " button").forEach(b => {
+      b.setAttribute("aria-pressed", b.dataset.v === pmExit ? "true" : "false");
+      if (!b.dataset.pmPasang) { b.dataset.pmPasang = "1"; b.addEventListener("click", () => { pmExit = b.dataset.v; simpan("pmExit", pmExit); PM.kunciRw = ""; ulang(); }); }
+    });
+  }
+  window.pmJurnal = function () {
+    const sek = $("pmJn"); if (!sek) return;
+    if (TF_JN === "1D") { sek.hidden = true; return; }
+    sek.hidden = false; pasangExit("pmJnExit", () => window.pmJurnal());
+    if (!PM.muatMaju && (!PM.tMaju || Date.now() - PM.tMaju > 30 * 60e3)) ambil("maju");
+    if (!PM.maju) {
+      $("pmJnKartu").innerHTML = '<div class="kosong' + (PM.galatMaju ? "" : " memuat") + '">' + (PM.galatMaju ? "Data pantau maju belum tersedia di sini (hanya di versi online sesudah laptop mengirim pantau_maju.json)." : "Memuat pantau maju…") + "</div>";
+      $("pmJnKet").textContent = ""; return;
+    }
+    const D = PM.maju;
+    $("pmJnKartu").innerHTML = D.kandidat.map((c, i) => kartu("maju", c, pmExit, c.maju && c.maju[pmExit] ? c.maju[pmExit].satu : null, i + 1)).join("");
+    $("pmJnKet").innerHTML = "Diperbarui laptop " + jamLokal(Date.parse(D.diperbarui)) + " " + ZONA + " (sekali sehari) · " + D.koin + " koin 4H · " + (D.exit[pmExit] || "") +
+      " Urutan = prioritas pantau. Status dari exit tangga semua lilin sinyal; kartu = satu posisi per koin. Trade jalan dinilai harga hidup. Arti status: ketuk kartu lalu tanda <b>!</b>.";
+  };
+  window.pmRiwayat = function (sembunyi) {
+    const sek = $("pmRw"); if (!sek) return;
+    if (sembunyi) { sek.hidden = true; return; }
+    sek.hidden = false; pasangExit("pmRwExit", () => window.pmRiwayat(false));
+    if (!PM.muatRw && (!PM.tRw || Date.now() - PM.tRw > 30 * 60e3)) ambil("rw");
+    if (!PM.rw) {
+      const t = PM.galatRw ? "Data kandidat belum tersedia di sini (hanya di versi online sesudah laptop mengirim pantau_riwayat.json)." : "Memuat kandidat…";
+      if (PM.kunciRw !== t) { PM.kunciRw = t; $("pmRwKartu").innerHTML = '<div class="kosong' + (PM.galatRw ? "" : " memuat") + '">' + t + "</div>"; }
+      return;
+    }
+    const D = PM.rw, kunci = pmExit + "|" + D.diperbarui + "|" + (KURS.idr || 0) + "|" + (TAMPIL.rp === false);
+    if (PM.kunciRw === kunci) return;
+    PM.kunciRw = kunci;
+    $("pmRwKartu").innerHTML = D.kandidat.map((c, i) => kartu("rw", c, pmExit, (c[pmExit] || {}).ring, i + 1)).join("");
+    $("pmRwKet").innerHTML = "Backtest " + tglU(Date.parse(D.mulai)) + " s/d " + jamLokal(Date.parse(D.lilinTutupTerakhir)) + " · " + D.koin + " koin 4H · satu posisi per koin · " + (D.exit[pmExit] || "") +
+      " Dihitung laptop dengan mesin yang sama dengan pemantau (diperbarui sekali sehari). Kandidat dipilih dari data yang ikut mencakup periode ini, jadi angka ini <b>bukan bukti baru</b> dan <b>bukan sinyal bot</b>. Status = hasil pantau maju.";
+  };
+  function bandingHtml(c, ex) {
+    const baris = (nm, x) => x && x.n ? "<tr><td>" + nm + "</td><td>" + x.n + "</td><td>" + (x.bulan || "—") + "</td><td>" + pcT(x.wr) + '</td><td class="' + kl(x.rata) + '">' + f2(x.rata) + "</td><td>" + (x.pf == null ? "—" : x.pf.toFixed(2)) + "</td></tr>"
+      : "<tr><td>" + nm + '</td><td colspan="5" class="redup">belum ada</td></tr>';
+    const mj = PM.maju ? PM.maju.kandidat.find(x => x.id === c.id) : null, rwC = PM.rw ? PM.rw.kandidat.find(x => x.id === c.id) : null;
+    const bt = (mj && mj.backtest) || {}, k10 = bt.konf10 ? bt.konf10[ex] : null;
+    return '<table class="pm-banding"><tr><th>' + NAMA_EX[ex] + "</th><th>n</th><th>bln</th><th>WR</th><th>rata R</th><th>PF</th></tr>" +
+      baris("Maju · satu posisi", mj && mj.maju[ex].satu) + baris("Maju · semua lilin", mj && mj.maju[ex].semua) +
+      (PM.rw ? baris("12 bln terakhir · satu posisi", rwC && rwC[ex].ring) : "") +
+      (k10 ? baris("Backtest 2023-26 · satu posisi", k10.satu) + baris("Backtest 2023-26 · semua lilin", k10.semua) : "") +
+      (ex === "TANGGA" && bt.c1 ? baris("Backtest c1 2023-26 · semua lilin", bt.c1) + baris("Backtest c2 2020-23 · semua lilin", bt.c2) : "") + "</table>";
+  }
+  function grup(sumber, id, ex) {
+    const D = sumber === "maju" ? PM.maju : PM.rw; if (!D) return;
+    const c = D.kandidat.find(x => x.id === id); if (!c) return;
+    const cm = PM.maju ? PM.maju.kandidat.find(x => x.id === id) : null;
+    const T = tradeDari(sumber, c, ex).sort((a, b) => b.mT - a.mT); PM.pop = T;
+    const tombol = '<div class="seg" role="group" aria-label="Exit" style="margin:6px 0">' + ["TANGGA", "BOT"].map(v => '<button type="button" class="pm-pex" data-s="' + sumber + '" data-id="' + id + '" data-v="' + v + '" aria-pressed="' + (v === ex) + '">' + (v === "TANGGA" ? "Exit tangga (utama)" : "Exit bot") + "</button>").join("") + "</div>";
+    const kepala = '<div class="jr-kotak" style="margin-bottom:8px"><div class="pm-baris" style="margin-bottom:6px">' + stChip(c.status) + "<span>" + (sumber === "maju" ? "pantau maju sejak " + tglU(Date.parse(c.mulaiPantau)) : "backtest 12 bulan terakhir") + "</span></div>" +
+      '<p class="jr-ket">' + (cm ? cm.statusPanjang + " · dasar status: " + cm.statusDasar.n + " trade tutup (exit tangga, semua lilin), " + cm.statusDasar.bulan + " bulan." : "") +
+      (cm ? "<br>Asal: " + cm.vonisAsal + (cm.indukNama ? " · induk: " + cm.indukNama : "") : "") + "<br>" + (D.exit[ex] || "") +
+      "<br><b>Kandidat pantau, BUKAN sinyal bot.</b> Keputusan masuk bot tetap milik Anda.</p>" + bandingHtml(c, ex) + "</div>";
+    popupTampil(c.nama + " <small>" + (sumber === "maju" ? "🔭 PANTAU MAJU" : "🔭 KANDIDAT · backtest") + " · " + NAMA_EX[ex] + "</small>", tombol + kepala + grupPopupHtml(T, true, "pm-pop"), false);
+  }
+  function detail(k) {
+    const t = PM.pop.find(x => x.k === k); if (!t) return;
+    popupTampil(t.koin + " <small>" + t.sinyal + " · " + jamLokal(t.mT) + "</small>", '<button type="button" class="btn kecil" id="popupBalik">← kembali</button>' + jnDetailHtml(t) +
+      '<p class="jr-ket">' + t.jenis + ". 1000 USDT per trade (simulasi), biaya 0,2%. R = hasil ÷ rugi bila kena SL. " + (t.tp1 ? "TP di atas = TP1 (1,5R); sisa posisi ikut trailing 15%." : "TP = 2R; batas 30 lilin.") + " Kandidat pantau, BUKAN sinyal bot.</p>", true);
+  }
+  const klikKartu = e => { const b = e.target.closest(".pm-kartu"); if (!b) return; const p = b.dataset.pm.split("|"); grup(p[0], p.slice(1).join("|"), pmExit); };
+  $("pmJnKartu").addEventListener("click", klikKartu); $("pmRwKartu").addEventListener("click", klikKartu);
+  $("popupBadan").addEventListener("click", e => {
+    const x = e.target.closest(".pm-pex");
+    if (x) { pmExit = x.dataset.v; simpan("pmExit", pmExit); PM.kunciRw = ""; grup(x.dataset.s, x.dataset.id, pmExit); if (halAktif === "Jurnal") window.pmJurnal(); return; }
+    const r = e.target.closest(".pm-pop"); if (r) detail(r.dataset.k);
+  });
+})();
 pindahHal(["Terminal", "Riwayat", "Jurnal", "Akun", "Info"].includes(halAktif) ? halAktif : "Terminal");
 // PWA (2026-09-23): service worker hanya di alamat online (https), supaya aplikasi bisa dipasang di layar utama
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
