@@ -29,6 +29,14 @@ const SEMBUNYI = new Set(["DB", "RC", "BF", "CH", "IHS", "PEN"]);          // sa
 // 2026-10-06 (user: "sinkronkan ... github, telegram dan terminal"): Telegram hanya mengirim pola yang dipakai trading (TB/FW/EW, sama dengan kolom
 // Terminal). ST & AT tetap DICATAT di maju.json (buku) tapi tidak dikirim/dihitung di rekap. + sinyal Lab L030 & L027 (notif/sinyal_lab.cjs).
 const TG_TAMPIL = new Set(["TB", "FW", "EW"]);
+// 2026-10-07 (user: "yang muncul di telegram itu semuanya hanya sinyal yang di pakai di bot"): FW hanya bila garis MACD 4H di lilin VALID > 0
+// (= worker macdGaris4h, FW_MACD_ATAS0), kartu & scan 1D dimatikan, POTENSI NAIK dibuang. ST/AT tetap dicatat di maju.json (buku), tidak dikirim.
+function macdDi(c, i) {                         // EMA12 − EMA26 dari <= 299 close tutup s/d lilin i, EMA dibenih SMA — sama dengan worker
+  const a = c.slice(Math.max(0, i - 298), i + 1); if (a.length < 120) return null;
+  const ema = n => { let e = a.slice(0, n).reduce((x, y) => x + y, 0) / n; const k = 2 / (n + 1); for (let q = n; q < a.length; q++) e = a[q] * k + e * (1 - k); return e; };
+  return ema(12) - ema(26);
+}
+const dipakaiBot = (kode, macd) => TG_TAMPIL.has(kode) && (kode !== "FW" || macd > 0);
 const LAB = require("./sinyal_lab.cjs");
 const NOMINAL = 1000, BIAYA = 0.002;
 const JENDELA_BAR = +(process.env.JENDELA_BAR || 2);    // pola baru = valid di N lilin 4H tutup terakhir
@@ -118,7 +126,10 @@ const angka = (x, dp = 0) => x.toLocaleString("en-US", { maximumFractionDigits: 
 const F_PERINGKAT = path.join(__dirname, "peringkat.json");
 let PRK = {}; try { PRK = JSON.parse(fs.readFileSync(F_PERINGKAT, "utf8")).urut || {}; } catch (e) {}
 const PRK_CADANGAN = { TB: 1, EW: 2, FW: 3, ST: 4, AT: 5 };
-const PERINGKAT = k => { const x = PRK[k]; return "#" + (x ? x.no : (PRK_CADANGAN[k] || 6)); };
+// 2026-10-07: LABEL di Telegram = peringkat kekuatan tetap (sama dengan aplikasi & Pine): #1 TB · #2 L027 · #3 L030 · #4 FW · #5 EW.
+// peringkat.json dinamis tetap dihitung & disimpan (dipakai worker untuk urutan antrean), hanya tidak dipakai untuk label.
+const PRK_TETAP = { TB: 1, L027: 2, L030: 3, FW: 4, EW: 5, ST: 6, AT: 7 };
+const PERINGKAT = k => "#" + (PRK_TETAP[k] || (PRK[k] && PRK[k].no) || PRK_CADANGAN[k] || 6);
 const PRK_TALLY = {};   // kode -> {n, tot, m} diisi selama run
 function prkCatat(kode, s) { if (s.usdt == null) return; const x = PRK_TALLY[kode] = PRK_TALLY[kode] || { n: 0, tot: 0, m: 0 }; x.n++; x.tot += s.usdt; if (s.usdt > 0) x.m++; }
 function prkSimpan() {
@@ -207,7 +218,8 @@ function pesanSetupEw(k, S, d, vol, ukuran) {
 // lilin 1D TUTUP terakhir, dan hanya dalam 3 jam sesudah lilin itu tutup (run 00:07 + cadangan 00:37, toleransi telat GitHub) (supaya tidak ada kartu
 // basi berjam-jam). Dedupe di terkirim.json dengan kunci berawalan "1D|", tahap langsung "tutup"
 // (update exit 1D TIDAK dikirim). Tidak masuk maju.json: catatan maju hanya untuk 4H.
-const TF1D_AKTIF = process.env.TF1D !== "false", JENDELA_1D_JAM = +(process.env.JENDELA_1D_JAM || 20);   // 2026-10-03: 3 -> 20 jam. Run 00:07/00:37 UTC sering telat/terlewat di GitHub (HEI 26-09, BB 25-09, XRP & PLUME 22/23-09 tidak terkirim); run 4-jaman berikutnya kini menyusulkan kartu 1D. Tanpa ganda: kunci "1D|" di terkirim.json.
+const TF1D_AKTIF = process.env.TF1D === "true",   // 2026-10-07: bawaan MATI (1D tidak dipakai bot)
+      JENDELA_1D_JAM = +(process.env.JENDELA_1D_JAM || 20);   // 2026-10-03: 3 -> 20 jam. Run 00:07/00:37 UTC sering telat/terlewat di GitHub (HEI 26-09, BB 25-09, XRP & PLUME 22/23-09 tidak terkirim); run 4-jaman berikutnya kini menyusulkan kartu 1D. Tanpa ganda: kunci "1D|" di terkirim.json.
 async function cek1D(k, status, M, sekarang) {
   const j = await getJ(`/api/v3/klines?symbol=${k}USDT&interval=1d&limit=1000`);
   if (!Array.isArray(j) || j.length < 120) return 0;
@@ -233,13 +245,13 @@ async function cek1D(k, status, M, sekarang) {
 }
 // SINYAL LAB (2026-10-06): kartu baru, TP1, tutup. Aturan = notif/sinyal_lab.cjs (salinan aplikasi). BELUM TERBUKTI, bukan sinyal bot.
 function pesanLab(k, t, jenis) {
-  const kepala = `<b>AMONK LAB · 🧪 ${esc(t.kode)}${jenis === "BARU" ? "" : " · UPDATE"}</b>\n💰 <b>${esc(k)}/USDT</b> · 4H · ${esc(t.nama)}${t.pola ? " (setup " + esc(t.pola) + ")" : ""}\n`;
+  const kepala = `<b>AMONK SINYAL · ${PERINGKAT(t.kode)} ${esc(t.kode)}${jenis === "BARU" ? "" : " · UPDATE"}</b>\n💰 <b>${esc(k)}/USDT</b> · 4H · ${esc(t.nama)}${t.pola ? " (setup " + esc(t.pola) + ")" : ""}\n`;
   const R = jenis === "TUTUP" ? t.R : null;
   const isi = jenis === "BARU"
     ? `✅ Entry: <b>${fx(t.entry)}</b> (close lilin sinyal)\n🛑 SL: <b>${fx(t.sl)}</b> (${pc(t.sl, t.entry)}) · low 5 lilin − 0,5 ATR\n🎯 TP1: <b>${fx(t.tp1)}</b> (${pc(t.tp1, t.entry)}) · 1,5R, ambil 50%\n🔁 Sisa: trailing 15% dari high tertinggi (stop tidak di bawah SL), batas 120 lilin 4H\n🕒 sinyal ${wib(t.masukT + 4 * 3600e3)}\n`
     : jenis === "TP1" ? `🎯 <b>TP1 TERCAPAI</b> di ${fx(t.tp1)} (${pc(t.tp1, t.entry)})\n👉 Ambil 50%; sisa trailing 15% dari high tertinggi (stop kini ${fx(t.stop)})\n`
     : `📕 <b>TUTUP</b>: ${esc(t.sebab)} di ${fx(t.keluarPx)} (${pc(t.keluarPx, t.entry)})\n📊 Hasil: <b>${R >= 0 ? "+" : ""}${R.toFixed(2)} R</b> (sesudah biaya)${t.kenaTp1 ? " · 50% sudah diambil di TP1" : ""}\n`;
-  return kepala + isi + `<i>BELUM TERBUKTI — dipantau maju di Lab. Bukan sinyal bot.</i>\n\n` + tautan(k, "4H");
+  return kepala + isi + `<i>Dipakai bot (${PERINGKAT(t.kode)}). Belum terbukti — dipantau maju.</i>\n\n` + tautan(k, "4H");
 }
 function pesanExit(k, nama, kode, L, s, jenis, validT) {
   const kepala = `<b>AMONK SINYAL · UPDATE</b>\n💰 <b>${esc(k)}/USDT</b> · 4H · ${PERINGKAT(kode)} ${esc(nama)}\n`;
@@ -351,7 +363,7 @@ function teksPembanding(P) {
 }
 
 async function cekAudit(maju) {
-  const tutup = Object.values(maju).filter(t => t.st !== "jalan");
+  const tutup = Object.values(maju).filter(t => t.st !== "jalan" && dipakaiBot(t.kode, t.macd));   // 2026-10-07: pola bot saja
   if (!tutup.length) return;
   let audit = {}; try { audit = JSON.parse(fs.readFileSync(F_AUDIT, "utf8")); } catch (e) {}
   if (AUDIT_PAKSA) audit = {};
@@ -443,9 +455,9 @@ async function scanTF(k, tf) {
   const n = d.c.length, px = d.c[n - 1], vol = +b[n - 1][7] * (tf === "1d" ? 1 : 6);
   // ELLIOTT (EW) di 4H DAN 1D (user 2026-09-23: "ikuti juga di 1 day"); >=2H: ambang DC 2.5, kedalaman 0.90 = Pine
   let ev; try { ev = peristiwa(d, atrArr(d.h, d.l, d.c), { setupAkhir: true, calonAkhir: true, elliott: true }) || []; } catch (e) { return null; }
-  const out = { valid: [], hampir: [], potensi: tf === "4h" ? ciriPotensi(k, d, b) : null };
+  const out = { valid: [], hampir: [], potensi: null }, macdKini = macdDi(d.c, n - 1);   // 2026-10-07: POTENSI NAIK tidak dikirim lagi
   for (const e of ev) {
-    if (SEMBUNYI.has(e.kode) || !TG_TAMPIL.has(e.kode) || n - 1 - e.i > umurMaks) continue;
+    if (SEMBUNYI.has(e.kode) || !dipakaiBot(e.kode, e.kode === "FW" ? macdDi(d.c, e.i) : 0) || n - 1 - e.i > umurMaks) continue;
     const L = level(d, e); if (!L || !(L.sl > 0)) continue;
     let kena = false; for (let q = e.i + 1; q < n; q++) if (d.l[q] <= L.sl || d.h[q] >= L.tp1) { kena = true; break; }
     const r = (px - L.entry) / (L.entry - L.sl);
@@ -453,7 +465,7 @@ async function scanTF(k, tf) {
     out.valid.push({ k, nama: e.nama, kode: e.kode, L, px, r, validT: d.t[e.i] + barMs, vol });
   }
   for (const [tahap, arr] of [["SETUP", ev.setup || []], ["CALON", ev.calon || []]]) for (const s of arr) {
-    if (SEMBUNYI.has(s.kode) || !TG_TAMPIL.has(s.kode)) continue;
+    if (SEMBUNYI.has(s.kode) || !dipakaiBot(s.kode, macdKini)) continue;   // FW hampir valid: MACD lilin terakhir > 0 (perkiraan; bot menilai di lilin VALID)
     const E = s.level, S = s.batal, T2 = (E > S ? tpAturan(s.kode, E, S, s.level + s.tinggi).tp2 : s.level + s.tinggi);
     // pola tembus menunggu harga NAIK ke garis (px < E); Elliott menunggu harga TURUN ke limit (px > E)
     if (!(S > 0) || !(E > S) || !(T2 > E) || !(s.limit ? px > E : px < E)) continue;
@@ -500,7 +512,7 @@ function pesanScan(tf, V, H, dicek) {
   const tfT = tf === "1d" ? "1D" : "4H", tipis = x => x.vol < 1e6 ? " ⚠️tipis" : "";
   const bV = V.sort((a, b) => a.r - b.r).slice(0, SCAN_MAKS).map(x =>
     `• <b>${esc(x.k)}</b> ${PERINGKAT(x.kode)} ${esc(x.nama)} · valid ${lokal(x.validT).teks.slice(0, 5)}\n` +
-    `   E ${fx(x.L.entry)} (kini ${pc(x.px, x.L.entry)}) · SL ${fx(x.L.sl)} (${pc(x.L.sl, x.L.entry)}) · TP1 ${fx(x.L.tp1)} · ${x.L.trailP ? "sisa trailing " + Math.round(x.L.trailP * 100) + "%" : "TP2 " + fx(x.L.tp2)}${tipis(x)}`).join("\n");
+    `   E ${fx(x.L.entry)} (kini ${pc(x.px, x.L.entry)}) · SL ${fx(x.L.sl)} (${pc(x.L.sl, x.L.entry)}) · ${x.kode === "TB" ? "tanpa TP1 · trailing " + Math.round(TB_MURNI_P * 100) + "% murni" : "TP1 " + fx(x.L.tp1) + " · " + (x.L.trailP ? "sisa trailing " + Math.round(x.L.trailP * 100) + "%" : "TP2 " + fx(x.L.tp2))}${tipis(x)}`).join("\n");
   const bH = H.sort((a, b) => Math.abs(a.jarak) - Math.abs(b.jarak)).slice(0, SCAN_MAKS).map(x =>
     `• <b>${esc(x.k)}</b> ${PERINGKAT(x.kode)} ${esc(x.nama)}${x.tahap === "CALON" ? " <i>(calon)</i>" : ""} · ${x.kode === "EW" ? "limit beli" : "tembus"} ${fx(x.E)} (<b>${x.jarak >= 0 ? "+" : ""}${x.jarak.toFixed(1)}%</b>)\n` +
     `   SL ${fx(x.S)} (${pc(x.S, x.E)}) · ${x.kode === "TB" ? "tanpa TP1 · trailing " + Math.round(TB_MURNI_P * 100) + "% murni" : TRAIL_K.has(x.kode) ? "sisa trailing " + Math.round(TRAIL_P * 100) + "%" : "TP2 " + fx(x.T2) + " (" + pc(x.T2, x.E) + ")"}${tipis(x)}`).join("\n");
@@ -510,7 +522,7 @@ function pesanScan(tf, V, H, dicek) {
     `⏳ <b>Hampir valid</b> — menunggu lilin ${tfT} TUTUP di atas garis tembus: ${H.length}\n${bH || "   — tidak ada"}` +
     (H.length > SCAN_MAKS ? `\n   … +${H.length - SCAN_MAKS} lagi` : "") + `\n\n` +
     `<i>Hampir valid BELUM sinyal: entry hanya sesudah lilin tutup di atas garis tembus. Calon = lembah terakhir belum sah, bisa berubah. Elliott Wave = limit beli: entry saat harga TURUN menyentuh limit (batal bila 60 lilin tak tersentuh).` +
-    (tf === "1d" ? ` Pola 1D di uji proyek tidak lebih baik dari entry acak — info saja; SL 1D lebar, hitung ukuran dari rugi-bila-SL.` : ` Level: 50% TP1, SL ke entry, sisa: TP2 (ST, AT) atau trailing ${Math.round(TRAIL_P * 100)}% (FW, TB, EW).`) + `</i>`;
+    (tf === "1d" ? ` LAPORAN SAJA: bot hanya trading 4H. Isinya pola yang dipakai bot (TB, FW bila MACD 1D > 0, EW). Pola 1D di uji proyek tidak lebih baik dari entry acak; SL 1D lebar.` : ` Hanya pola yang dipakai bot (TB, FW bila MACD>0, EW). Level: TB trailing ${Math.round(TB_MURNI_P * 100)}% murni; FW & EW 50% TP1, SL ke entry, sisa trailing ${Math.round(TRAIL_P * 100)}%.`) + `</i>`;
 }
 async function scanHarian() {
   const L0 = lokal(Date.now());
@@ -520,7 +532,7 @@ async function scanHarian() {
     if (L0.jam < SCAN_JAM || L0.jam > SCAN_JAM + 2) { console.log(`SCAN: belum jamnya (${SCAN_TZ} pukul ${L0.jam}, target ${SCAN_JAM})`); return; }
   }
   const hasil = { "4h": { V: [], H: [], n: 0 }, "1d": { V: [], H: [], n: 0 } }, POT = [];
-  for (const k of KOIN) for (const tf of ["4h", "1d"]) {
+  for (const k of KOIN) for (const tf of ["4h", "1d"]) {   // 2026-10-07 (user): 1D tetap sebagai LAPORAN, isinya hanya pola bot
     const r = await scanTF(k, tf); if (!r) continue;
     hasil[tf].n++; hasil[tf].V.push(...r.valid); hasil[tf].H.push(...r.hampir); if (r.potensi) POT.push(r.potensi);
   }
@@ -531,7 +543,8 @@ async function scanHarian() {
     if (ok) terkirimSatu = true;
   }
   // 6b. potensi naik 4H (pesan ketiga)
-  if (POT.length >= 30) { const ok = await kirim(pesanPotensi(POT)); console.log("POTENSI NAIK 4H: " + POT.length + " koin · " + (ok ? "terkirim" : "GAGAL")); if (ok) terkirimSatu = true; }
+  if (false && POT.length >= 30) {   // 2026-10-07: dimatikan (bukan sinyal bot)
+    const ok = await kirim(pesanPotensi(POT)); console.log("POTENSI NAIK 4H: " + POT.length + " koin · " + (ok ? "terkirim" : "GAGAL")); if (ok) terkirimSatu = true; }
   if (SCAN_JADWAL && process.env.SCAN !== "true" && terkirimSatu && !DRY) fs.writeFileSync(F_SCAN, JSON.stringify({ tgl: L0.tgl, t: Date.now(), tz: SCAN_TZ }));
 }
 
@@ -552,7 +565,7 @@ async function teksTimSehat() {
 
 async function rekap() {
   let maju = {}; try { maju = JSON.parse(fs.readFileSync(F_MAJU, "utf8")); } catch (e) {}
-  const semua = Object.values(maju).filter(t => TG_TAMPIL.has(t.kode)), skr = Date.now(), awal = skr - 7 * 864e5;   // 2026-10-06: TB/FW/EW saja
+  const semua = Object.values(maju).filter(t => dipakaiBot(t.kode, t.macd)), skr = Date.now(), awal = skr - 7 * 864e5;   // 2026-10-06: TB/FW/EW saja
   const f2 = v => (v >= 0 ? "+" : "") + v.toFixed(2);
   const baru = semua.filter(t => t.masukT >= awal);
   const tutupMinggu = semua.filter(t => t.st !== "jalan" && t.keluarT >= awal);
@@ -637,10 +650,12 @@ async function rekap() {
       // catatan maju (untuk rekap): semua pola sejak MAJU_MULAI; yang sudah tutup dibekukan
       if (d.t[e.i] >= MAJU_MULAI && !(maju[kunci] && maju[kunci].st !== "jalan"))
         maju[kunci] = { koin: k, nama: e.nama, kode: e.kode, masukT: d.t[e.i], entry: L.entry, sl: L.sl, tp1: L.tp1, tp2: L.tp2,
-          st: s.st, kenaTp1: s.kenaTp1, keluarT: s.keluarT, usdt: s.usdt };
+          st: s.st, kenaTp1: s.kenaTp1, keluarT: s.keluarT, usdt: s.usdt, ...(e.kode === "FW" ? { macd: macdDi(d.c, e.i) } : {}) };
+      else if (e.kode === "FW" && maju[kunci] && maju[kunci].macd === undefined) maju[kunci].macd = macdDi(d.c, e.i);   // isi susulan catatan lama
       if (!TG_TAMPIL.has(e.kode)) continue;   // ST/AT: dicatat, tidak dikirim (2026-10-06)
       // 1. pola baru
       if (e.i >= n - JENDELA_BAR && !status[kunci]) {
+        if (!dipakaiBot(e.kode, e.kode === "FW" ? macdDi(d.c, e.i) : 0)) { status[kunci] = { t: sekarang, tahap: "tutup", lewat: "FW MACD<=0" }; continue; }   // FW yang dilewati bot: tidak dikirim
         if (await kirim(pesanBaru(k, e, L, d, vol, false, null), pesanBaru(k, e, L, d, vol, false, ukuranTeks(L, M)))) {
           status[kunci] = { t: sekarang, tahap: "baru" }; baru++;
         }
