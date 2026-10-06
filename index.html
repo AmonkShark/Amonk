@@ -1071,6 +1071,8 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
         <label title="Prioritas 2. Limit beli di kedalaman 0.90 gelombang 3 (dihitung GitHub tiap jam). Maks 5 (posisi + order). Limit batal bila puncak 5 terbentuk atau 60 lilin tak tersentuh."><input type="checkbox" value="EW"> 2 Elliott Wave (limit)</label>
         <label title="Prioritas 3. Maks 3 posisi. Sejak 03-10: hanya diambil bila garis MACD 4H di atas nol saat pola valid (pilihan user; menyaring keadaan pasar naik, sekitar 1 dari 10 sinyal FW lolos)."><input type="checkbox" value="FW"> 3 Falling Wedge (MACD 4H &gt; 0)</label><label title="Prioritas 4. Maks 3 posisi."><input type="checkbox" value="ST"> 4 Symmetrical Triangle</label>
         <label title="Prioritas 5. Maks 2 posisi."><input type="checkbox" value="AT"> 5 Ascending Triangle</label>
+        <label title="SINYAL LAB (BELUM TERBUKTI, gagal DSR). L029 AO + Stoch yang muncul saat SETUP Triple Bottom / Falling Wedge masih hidup. Entry close lilin 4H, SL low 5 lilin − 0,5 ATR, 50% di TP1 1,5R, sisa trailing 15%. Maks 3 posisi, risiko sama dengan pola lain. Diproses SESUDAH pola. Butuh worker versi 2026-10-06 lab-l030-l027 dan alert LOGIKA v48."><input type="checkbox" value="L030"> 🧪 L030 (Lab)</label>
+        <label title="SINYAL LAB (BELUM TERBUKTI; dulu hampir lolos, gugur sesudah bootstrap diperbaiki). Inside bar tembus + RSI14 &lt; 35 + volume ≥ 1,5× EMA20. Entry close lilin 4H, SL low 5 lilin − 0,5 ATR, 50% di TP1 1,5R, sisa trailing 15%. Sangat jarang (±2 sinyal / 100 hari). Maks 2 posisi. Butuh worker versi 2026-10-06 lab-l030-l027 dan alert LOGIKA v48."><input type="checkbox" value="L027"> 🧪 L027 (Lab)</label>
         <label style="display:none"><input type="checkbox" value="PEN"> Bullish Pennant</label><label style="display:none"><input type="checkbox" value="IHS"> Inverse H&amp;S</label><label style="display:none"><input type="checkbox" value="CH"> Cup &amp; Handle</label></div>
       <div class="set-judul">🧩 Pembagian modal</div><div class="bt-pola" style="grid-column:1/-1"><span>Cara membagi modal:</span>
         <label title="Modal bot dibagi RATA ke tiap jenis yang dicentang (pola, Elliott). Batas posisi per pola (2026-10-03): Triple Bottom tanpa batas · Elliott 5 · Falling Wedge 3 · Symmetrical Triangle 3 · Ascending Triangle 2. Urutan ambil = angka di depan nama pola. Ukuran entry = modal bot ÷ 10 (Triple Bottom ÷ 5), lalu dipangkas Batas rugi per trade (Triple Bottom 2×). Hasil tiap jenis tetap dicatat per kantong."><input type="checkbox" id="btKantong"> Ukuran per jenis sinyal — batas posisi: TB tanpa batas · EW 5 · FW 3 · ST 3 · AT 2 (ukuran = modal ÷ 10, TB 2×, dipangkas batas rugi)</label></div>
@@ -4170,7 +4172,7 @@ function gambarBot(s) {
   const KT = s.kantong || {};
   if (KT.aktif) {
     const nPakai = {}; for (const p of (s.posisi || [])) nPakai[p.kode] = (nPakai[p.kode] || 0) + 1; nPakai.EW = (nPakai.EW || 0) + ((s.ew || {}).order || []).length; const dipakai = new Set(Object.keys(nPakai).filter(k => nPakai[k] > 0));
-    const NAMA_J = { FW: "Falling Wedge", ST: "Symmetrical Triangle", PEN: "Bullish Pennant", IHS: "Inverse H&S", AT: "Ascending Triangle", TB: "Triple Bottom", CH: "Cup & Handle", EW: "Elliott Wave" };
+    const NAMA_J = { FW: "Falling Wedge", ST: "Symmetrical Triangle", PEN: "Bullish Pennant", IHS: "Inverse H&S", AT: "Ascending Triangle", TB: "Triple Bottom", CH: "Cup & Handle", EW: "Elliott Wave", L030: "🧪 L030 (Lab)", L027: "🧪 L027 (Lab)" };
     const tot = KT.jenis.reduce((a, k) => a + (KT.per[k] ? KT.per[k].kini : 0), 0);
     // HASIL PER POLA BOT (2026-09-29, user): trade tutup, WR, total, rata — dari riwayat bot akun asli (bukan simulasi)
     const stat = {}; for (const r of R) { const z = stat[r.kode || "?"] = stat[r.kode || "?"] || { n: 0, w: 0, u: 0 }; z.n++; if (r.hasil > 0) z.w++; z.u += +r.hasil || 0; }
@@ -4443,7 +4445,7 @@ $("btForm").addEventListener("submit", async ev => {
   if (!otoUtuh && BT_S && BT_S.modal && BT_S.modal.awal > 0 && v !== BT_S.modal.awal && BT_S.modal.nTutup > 0 &&
       !confirm(`Modal awal diganti dari ${Math.round(BT_S.modal.awal)} ke ${Math.round(v)} USDT. Laba bot yang sudah tercatat (${BT_S.modal.laba >= 0 ? "+" : ""}${BT_S.modal.laba} USDT) akan mulai dihitung dari nol lagi. Lanjutkan?`)) return;
   const koin = $("btKoin").value.split(/[\s,;]+/).map(x => x.trim().toUpperCase()).filter(Boolean);
-  const pola = [...document.querySelectorAll(".bt-pola input:checked:not(#btKantong)")].map(c => c.value).filter(v => KODE_TAMPIL.has(v)), kantong = $("btKantong").checked;
+  const pola = [...document.querySelectorAll(".bt-pola input:checked:not(#btKantong)")].map(c => c.value).filter(v => KODE_TAMPIL.has(v) || v === "L030" || v === "L027"), kantong = $("btKantong").checked;   // + sinyal Lab (2026-10-06)
   if (!pola.length) { btPesan("Centang minimal satu pola.", true); return; }
   const mp = Math.round(+$("btPosisi").value);
   if (!(mp >= 1 && mp <= 20)) { btPesan("Maks entry harus 1 sampai 20.", true); return; }
