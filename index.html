@@ -691,6 +691,14 @@ body.privasi #rwRing .jr-angka b{filter:blur(7px)}
 .prio{display:inline-block;margin-left:6px;font:700 10px var(--f-num);letter-spacing:.03em;padding:1px 6px;border-radius:6px;border:1px solid var(--garis);color:var(--label);background:var(--bg2);cursor:pointer;vertical-align:middle}
 .prk{display:inline-block;margin-left:5px;font:700 10px var(--f-num);padding:1px 5px;border-radius:5px;border:1px solid var(--garis);color:var(--label);cursor:pointer;vertical-align:middle}
 .prk.satu{color:var(--kuning);border-color:rgba(255,183,77,.5);background:var(--kuning-bg)}
+.rw-judul{flex-wrap:wrap;align-items:center}.rw-judul>small{flex:1 1 180px}
+.rw-urut-i{width:18px;height:18px;margin-left:6px;border-radius:50%;border:1px solid color-mix(in srgb,var(--kuning) 60%,transparent);background:var(--kuning-bg);color:var(--kuning);font:700 11px/16px var(--f-ui);padding:0;cursor:pointer;text-align:center;vertical-align:middle}
+.rw-stat{margin:0;font-size:12px}.rw-stat[aria-pressed="true"]{border-color:var(--kuning);color:var(--kuning)}
+.rw-no-baris{display:flex;align-items:center;gap:6px;min-width:0}
+.rw-no{flex:none;font:700 11px var(--f-num);padding:1px 7px;border-radius:6px;border:1px solid var(--garis);color:var(--label)}
+.rw-no.satu{color:var(--kuning);border-color:rgba(255,183,77,.5);background:var(--kuning-bg)}
+.rw-no-ket{font:11px var(--f-ui);color:var(--label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rw-pemb{opacity:.82;border-style:dashed}
 .prio.atas{color:var(--hijau);border-color:rgba(38,166,154,.45);background:var(--hijau-bg)}
 .rw-petunjuk{border:1px dashed var(--garis);border-radius:12px;padding:14px 16px;text-align:center;color:var(--label);font-size:13px}
 #halRiwayat .jr-pilih.seg{gap:6px;padding:4px;border:1px solid var(--garis);border-radius:999px;background:var(--bg2);display:inline-flex;flex-wrap:wrap}
@@ -1729,7 +1737,12 @@ function atrArr(h, l, c, n = 14) {
 function polaSemua(d, mx) {
   if (!window.PolaDC) return [];
   const ev = window.PolaDC.peristiwa(d, atrArr(d.h, d.l, d.c), mx > 0 ? { elliott: true, mx } : { elliott: true }) || [];   // + Elliott Wave (EW), 2026-09-23
-  return ev.filter(e => !SEMBUNYI_POLA.has(e.kode)).map(e => simTrade(d, e));
+  // macd (2026-10-07, user): garis MACD(12,26) = EMA12 - EMA26 dari close TF yang sama di lilin VALID (e.i), hanya untuk FW.
+  // Sama dengan worker macdGaris4h (EMA benih SMA, lilin tutup) & research/statistik_sinyal_bot_4h.cjs. Penanda saja: exit/angka trade tidak berubah.
+  const e12 = emaArr(d.c, 12), e26 = emaArr(d.c, 26);
+  return ev.filter(e => !SEMBUNYI_POLA.has(e.kode)).map(e => { const t = simTrade(d, e);
+    if (e.kode === "FW") t.macd = e12[e.i] != null && e26[e.i] != null ? e12[e.i] - e26[e.i] : null;
+    return t; });
 }
 function polaTerakhir(d, semua) {
   const a = semua || polaSemua(d);
@@ -2707,7 +2720,7 @@ async function muat1H() {
           if (sekarang - +b[b.length - 1][6] <= 6 * 3600e3) {
             const dd = { t: b.map(x => +x[0]), o: b.map(x => +x[1]), h: b.map(x => +x[2]), l: b.map(x => +x[3]), c: b.map(x => +x[4]), v: b.map(x => +x[5]) };
             for (const t of polaSemua(dd, 3.5)) rw[k + "|" + t.masukT] = { koin: k, nama: t.nama, kode: t.kode, masukT: t.masukT, keluarT: t.keluarT, entry: t.entry, sl: t.sl,
-              tp1: t.tp1, tp2: t.tp2, st: t.st, kenaTp1: t.kenaTp1, sisa: t.sisa, real: t.real, keluarPx: t.keluarPx, tf: "1H" };
+              tp1: t.tp1, tp2: t.tp2, st: t.st, kenaTp1: t.kenaTp1, sisa: t.sisa, real: t.real, keluarPx: t.keluarPx, macd: t.macd, tf: "1H" };
             try { const L = sinyalLab(dd, 3.5); for (const kode of LAB_KODE) for (const x of L[kode] || []) { const t = labKeRw(x); rw[k + "|" + kode + "|" + t.masukT] = { koin: k, ...t, tf: "1H" }; } } catch (e) {} } }
         else R1H.galat++; } catch (e) { R1H.galat++; }
       R1H.n++; if (R1H.n % 10 === 0 && halAktif === "Riwayat" && TF_RW === "1H" && !R1H.t) $("rwRing").innerHTML = `<div class="kosong memuat">Mengambil lilin 1H dari Binance… ${R1H.n}/${KOIN.length}</div>`; } }));
@@ -2729,7 +2742,7 @@ async function muat1D() {
           if (sekarang - +b[b.length - 1][6] <= 3 * 864e5) {   // koin basi (delisting) dilewati
             const dd = { t: b.map(x => +x[0]), o: b.map(x => +x[1]), h: b.map(x => +x[2]), l: b.map(x => +x[3]), c: b.map(x => +x[4]), v: b.map(x => +x[5]) };
             for (const t of polaSemua(dd)) rw[k + "|" + t.masukT] = { koin: k, nama: t.nama, kode: t.kode, masukT: t.masukT, keluarT: t.keluarT, entry: t.entry, sl: t.sl,
-              tp1: t.tp1, tp2: t.tp2, st: t.st, kenaTp1: t.kenaTp1, sisa: t.sisa, real: t.real, keluarPx: t.keluarPx, tf: "1D" };
+              tp1: t.tp1, tp2: t.tp2, st: t.st, kenaTp1: t.kenaTp1, sisa: t.sisa, real: t.real, keluarPx: t.keluarPx, macd: t.macd, tf: "1D" };
             try { const L = sinyalLab(dd); for (const kode of LAB_KODE) for (const x of L[kode] || []) { const t = labKeRw(x); rw[k + "|" + kode + "|" + t.masukT] = { koin: k, ...t, tf: "1D" }; } } catch (e) {} } }
         else R1D.galat++; } catch (e) { R1D.galat++; }
       R1D.n++; if (R1D.n % 10 === 0) tulis(); } }));
@@ -4565,7 +4578,7 @@ function kumpulRiwayat() {
   for (const k of KOIN) for (const kode of LAB_KODE) for (const x of (data[k] && data[k].lab && data[k].lab[kode]) || []) { const t = labKeRw(x); skr[k + "|" + kode + "|" + t.masukT] = { koin: k, ...t }; }
   for (const k of KOIN) for (const t of (data[k] && data[k].riwayat) || [])
     skr[k + "|" + t.masukT] = { koin: k, nama: t.nama, kode: t.kode, masukT: t.masukT, keluarT: t.keluarT, entry: t.entry, sl: t.sl,
-      tp1: t.tp1, tp2: t.tp2, st: t.st, kenaTp1: t.kenaTp1, sisa: t.sisa, real: t.real, keluarPx: t.keluarPx };
+      tp1: t.tp1, tp2: t.tp2, st: t.st, kenaTp1: t.kenaTp1, sisa: t.sisa, real: t.real, keluarPx: t.keluarPx, macd: t.macd };
   return skr;
 }
 window.simpanRiwayat = function () {
@@ -4627,7 +4640,7 @@ function gabungMaju() {
   for (const [kk, t] of Object.entries(RW)) if (t.masukT >= RW_MULAI) out[kk] = t;
   if (MAJU_GH.rec) for (const m of Object.values(MAJU_GH.rec)) {
     const kk = m.koin + "|" + m.masukT, lokal = out[kk];
-    if (m.st !== "jalan" || !lokal || lokal.luar) out[kk] = dariMaju(m);   // tutup: GitHub menang; jalan: perangkat menang
+    if (m.st !== "jalan" || !lokal || lokal.luar) out[kk] = { ...dariMaju(m), macd: m.macd != null ? m.macd : lokal ? lokal.macd : undefined };   // tutup: GitHub menang; jalan: perangkat menang (macd FW dibawa dari hitungan perangkat)
   }
   return Object.values(out);
 }
@@ -4705,7 +4718,7 @@ async function rwMuatLebih(tf, target) {
           if (b.length && skr - +b[b.length - 1][6] <= basi) {
             const dd = { t: b.map(q => +q[0]), o: b.map(q => +q[1]), h: b.map(q => +q[2]), l: b.map(q => +q[3]), c: b.map(q => +q[4]), v: b.map(q => +q[5]) };
             for (const t of polaSemua(dd, mx)) rw[k + "|" + t.masukT] = { koin: k, nama: t.nama, kode: t.kode, masukT: t.masukT, keluarT: t.keluarT, entry: t.entry, sl: t.sl,
-              tp1: t.tp1, tp2: t.tp2, st: t.st, kenaTp1: t.kenaTp1, sisa: t.sisa, real: t.real, keluarPx: t.keluarPx, ...tf2 };
+              tp1: t.tp1, tp2: t.tp2, st: t.st, kenaTp1: t.kenaTp1, sisa: t.sisa, real: t.real, keluarPx: t.keluarPx, macd: t.macd, ...tf2 };
             try { const L = sinyalLab(dd, mx); for (const kode of LAB_KODE) for (const q of L[kode] || []) { const t = labKeRw(q); rw[k + "|" + kode + "|" + t.masukT] = { koin: k, ...t, ...tf2 }; } } catch (e) {} } } }
       catch (e) { S.galat++; }
       S.n++; tulis(); } }));
@@ -4914,11 +4927,47 @@ function rwRingDetail(tutup, P) {
     `<div><span>WR impas</span><b>${impas == null ? "—" : Math.round(impas) + "%"}</b><span class="rp">WR sekarang ${Math.round(H.wr)}% ${impas == null ? "" : H.wr - impas >= 10 ? "✓ aman" : H.wr > impas ? "⚠ tipis" : "✗ di bawah"}</span></div>` +
     `<div><span>Terbaik / terburuk</span><b><span class="naik">${f2(H.best)}</span> / <span class="turun">${f2(H.worst)}</span></b><span class="rp">menang beruntun ${H.mW} · kalah beruntun ${H.mL}</span></div></div>`;
 }
+// PERINGKAT KEKUATAN KARTU (2026-10-07, user "kerjakan semua biar jelas"): urutan kartu "Hasil per pola" = peringkat backtest multi-tahun
+// (research/hasil_statistik_sinyal_bot_4h.txt: rata R exit bot, biaya 0,2%, 2020-23 / 2023-26), BUKAN profit periode yang dipilih; belum terbukti maju.
+const RW_PERINGKAT = {
+  TB: { no: 1, r1: "+0,69R", r2: "+1,32R", ket: "terkuat" },
+  L027: { no: 2, r1: "+0,37R", r2: "+0,68R", ket: "Lab · belum terbukti maju" },
+  L030: { no: 3, r1: "+0,32R", r2: "+0,31R", ket: "Lab · belum terbukti maju" },
+  FWM: { no: 4, r1: "+0,21R", r2: "+0,29R", ket: "versi bot (saringan MACD)" },
+  EW: { no: 5, r1: "+0,14R", r2: "+0,08R", ket: "tipis" },
+  FW: { no: null, r1: "+0,14R", r2: "+0,11R", ket: "FW tanpa saringan · bot tidak memakai ini", label: "Falling Wedge (semua, tanpa saringan)" },
+  ST: { no: 6, r1: "+0,14R", r2: "+0,09R", ket: "tidak dipakai bot · pembanding" },
+  AT: { no: 7, r1: "+0,08R", r2: "−0,02R", ket: "tidak dipakai bot · pembanding" },
+};
+const RW_URUT = ["TB", "L027", "L030", "FWM", "EW", "FW", "ST", "AT"];
+const rwUrutKartu = kd => { const i = RW_URUT.indexOf(kd); return i < 0 ? 99 : i; };
+let rwStAt = !!baca("rwStAt", false);   // tombol "Tampilkan ST & AT (pembanding)": bawaan MATI; KODE_TERMINAL/KODE_TAMPIL tidak diubah
+const FWM_NAMA = "Falling Wedge + MACD>0 (versi bot)";
+// trade tambahan khusus kartu: salinan FW yang lolos MACD>0 (+ ST/AT bila tombol nyala), disaring periode yang sama (waktu MASUK)
+function rwKartuTambah(semua, J, sumber) {
+  const dlm = t => J.semua || (t.masukT >= J.a && t.masukT < J.b);
+  const fwm = semua.filter(t => t.kode === "FW" && t.macd != null && t.macd > 0).map(t => ({ ...t, nama: TF_RW === "4H" ? FWM_NAMA : "Falling Wedge + MACD>0 (MACD " + TF_RW + ", info)", kartu: "FWM" }));
+  const stat = rwStAt ? sumber.filter(t => (t.kode === "ST" || t.kode === "AT") && dlm(t)) : [];
+  return fwm.concat(stat);
+}
+function rwInfoUrutHtml() {
+  const f = k => RW_PERINGKAT[k];
+  return '<p><b>Urutan kartu = peringkat kekuatan dari backtest multi-tahun</b>, bukan profit periode yang sedang dipilih. Angka = rata R per trade dengan exit bot, biaya 0,2%, dua era terpisah (2020-23 / 2023-26). Sumber: research/hasil_statistik_sinyal_bot_4h.txt.</p>' +
+    '<table class="bd-tab"><thead><tr><th>#</th><th>Sinyal</th><th>2020-23</th><th>2023-26</th></tr></thead><tbody>' +
+    RW_URUT.map(k => '<tr><td>' + (f(k).no == null ? "—" : f(k).no) + '</td><td>' + ({ TB: "Triple Bottom", L027: "L027 Inside bar + kapitulasi", L030: "L030 AO + Stoch", FWM: "Falling Wedge + MACD>0 (versi bot)", EW: "Elliott Wave", FW: "Falling Wedge semua (pembanding)", ST: "Symmetrical Triangle", AT: "Ascending Triangle" })[k] + '</td><td>' + f(k).r1 + '</td><td>' + f(k).r2 + '</td></tr>').join("") + '</tbody></table>' +
+    '<div class="bd-catatan" style="margin-top:10px"><b>Belum terbukti maju.</b> Ini ringkasan backtest (tiap sinyal dihitung sendiri, tanpa batas slot), bukan janji. Saringan MACD>0 pada FW = memilih keadaan pasar naik (efek rezim), bukan mutu pola. L027/L030 = sinyal Lab, bukan sinyal bot. ST & AT tidak dipakai bot; tampilkan lewat tombol hanya sebagai pembanding.<br><br>' +
+    '<b>FW + MACD>0:</b> trade FW yang sama, hanya yang garis MACD(12,26) dari close lilin VALID (lilin sinyal yang sudah tutup) di atas nol — sama dengan saringan bot. Di 1H/1D memakai MACD dari TF itu sendiri (info saja; bot memakai 4H). Trade lama yang tersimpan tanpa angka MACD tidak ikut kartu ini.</div>';
+}
+document.addEventListener("click", e => {
+  if (e.target.closest("#rwStAtTgl")) { rwStAt = !rwStAt; simpan("rwStAt", rwStAt); window.gambarRiwayat(); return; }
+  if (e.target.closest("#rwUrutInfo")) popupTampil("Urutan kartu: peringkat kekuatan", rwInfoUrutHtml(), false);
+});
 function gambarRiwayatTF(ai, tf1) {
   if (!TAMPIL.maju && rwMode === "maju") rwMode = "semua";
   $("rwPeriode").hidden = ai || tf1 || !TAMPIL.maju; $("rwKetAI").hidden = !ai; $("rwKetPola").hidden = ai;
   $("rwJudulPer").innerHTML = ai ? `Hasil per koin <small>ketuk koin untuk melihat trade-nya · urut dari total USDT terbesar</small>`
-    : `Hasil per pola <small><span class="hpsj">geser ‹ › untuk pola lain · </span>ketuk untuk melihat trade-nya</small>`;
+    : `<span>Hasil per pola <button type="button" class="rw-urut-i" id="rwUrutInfo" title="Urutan = peringkat backtest multi-tahun, bukan profit periode ini; belum terbukti maju. Ketuk untuk rincian." aria-label="Cara baca urutan kartu">!</button></span><small><span class="hpsj">geser ‹ › untuk pola lain · </span>urut peringkat kekuatan (backtest) · ketuk untuk trade-nya</small>` +
+      `<button type="button" class="btn kecil rw-stat" id="rwStAtTgl" aria-pressed="${rwStAt}" title="Symmetrical & Ascending Triangle tidak dipakai bot; tampilkan hanya sebagai pembanding">${rwStAt ? "✓ " : ""}Tampilkan ST &amp; AT (pembanding)</button>`;
   $("bandingRw").hidden = true; if (!ai) gambarBanding("bandingRw", true);
   if (ai) return gambarRiwayatAI();
   const semuaRw = rwDasarPola(tf1 ? TF_RW : "4H");
@@ -4952,32 +5001,40 @@ function gambarRiwayatTF(ai, tf1) {
     `<div class="jr-angka"><div><span>Jalan</span><b>${jalan.length}</b></div><div><span>Rata/trade</span><b class="${kl(tot)}">${tutup.length ? f2(tot / tutup.length) : "—"}</b>${tutup.length ? rpSpan(tot / tutup.length) : ""}${P && tutup.length ? rwDl(tot / tutup.length, P.rata, 2) : ""}</div>` +
     `<div><span>Profit jalan (USDT)</span><b class="${kl(totJ)}">${f2(totJ)}</b>${rpSpan(totJ)}</div></div>` + rwRingDetail(tutup, P) + kurva + kursKet() + `</div>`;
   // ---- PER POLA (2026-09-22, "riwayat per pola agar tau mana yang lebih menghasilkan")
+  // KARTU PER POLA (2026-10-07, user): urut PERINGKAT KEKUATAN (rwPeringkat), + kartu FW+MACD>0 (versi bot), + ST/AT opsional (pembanding).
+  // Kartu tambahan TIDAK masuk angka ringkasan di atas (ringkasan tetap TB/FW/EW + Lab); trade FW+MACD>0 = salinan trade FW yang sama.
+  const kartuDasar = semua.concat(rwKartuTambah(semua, J, rwMode === "maju" ? gabungMaju() : semuaRw));
+  const tutupK = kartuDasar.filter(t => t.st !== "jalan"), jalanK = kartuDasar.filter(t => t.st === "jalan" && !t.luar);
+  tutupK.forEach(t => t.pnl = pnlTrade(t)); jalanK.forEach(t => t.pnl = pnlTrade(t));
   const per = {};
-  const dapat = nm => per[nm] = per[nm] || { n: 0, m: 0, u: 0, tp2: 0, be: 0, sl: 0, jalan: 0, uJalan: 0, win: 0, loss: 0, seq: [] };
-  for (const t of tutup) {
-    const x = dapat(t.nama); x.n++; x.u += t.pnl; x.seq.push([t.keluarT || t.masukT || 0, t.pnl]);
+  const dapat = (nm, kd) => per[nm] = per[nm] || { kd, n: 0, m: 0, u: 0, tp2: 0, be: 0, sl: 0, jalan: 0, uJalan: 0, win: 0, loss: 0, seq: [] };
+  for (const t of tutupK) {
+    const x = dapat(t.nama, t.kartu || t.kode); x.n++; x.u += t.pnl; x.seq.push([t.keluarT || t.masukT || 0, t.pnl]);
     { const rk = t.entry > t.sl && t.sl > 0 ? MODAL_POLA * (t.entry - t.sl) / t.entry : null; (x.tt = x.tt || []).push({ R: rk ? t.pnl / rk : null, entry: t.entry, sl: t.sl, tp1: t.tp1, tp: t.tp2 }); }
     x.best = x.best == null ? t.pnl : Math.max(x.best, t.pnl); x.worst = x.worst == null ? t.pnl : Math.min(x.worst, t.pnl);
     if (t.pnl > 0) { x.m++; x.win += t.pnl; } else x.loss += t.pnl;
     if (t.st === "TP2" || t.st === "TP") x.tp2++; else if (t.st === "BE") x.be++; else x.sl++;
   }
-  for (const t of jalan) { const x = dapat(t.nama); x.jalan++; x.uJalan += t.pnl || 0; }
-  $("rwPola").innerHTML = Object.entries(per).sort((a, b) => b[1].u - a[1].u).map(([nm, x]) => {
+  for (const t of jalanK) { const x = dapat(t.nama, t.kartu || t.kode); x.jalan++; x.uJalan += t.pnl || 0; }
+  $("rwPola").innerHTML = Object.entries(per).sort((a, b) => rwUrutKartu(a[1].kd) - rwUrutKartu(b[1].kd) || b[1].u - a[1].u).map(([nm, x]) => {
     const wr = x.n ? Math.round(x.m / x.n * 100) : 0, rata = x.n ? x.u / x.n : null;
     const avgW = x.m ? x.win / x.m : null, avgL = x.n - x.m ? x.loss / (x.n - x.m) : null;
     const w = v => x.n ? (v / x.n * 100).toFixed(1) + "%" : "0";
-    return `<button type="button" class="rw-pola" data-p="${nm}" aria-pressed="${rwPola === nm}">` +
-      `<div class="j"><b>${nm}</b><span class="${kl(x.u)}">${x.n ? f2(x.u) : "—"}</span></div>` + sparkMini(x.seq.sort((a, b) => a[0] - b[0]).map(s => s[1])) +
+    const P0 = RW_PERINGKAT[x.kd];
+    return `<button type="button" class="rw-pola${P0 && P0.no == null ? " rw-pemb" : ""}" data-p="${nm}" aria-pressed="${rwPola === nm}">` +
+      (P0 ? `<div class="rw-no-baris"><span class="rw-no${P0.no === 1 ? " satu" : ""}" title="Peringkat kekuatan dari backtest multi-tahun (rata R exit bot, biaya 0,2%): 2020-23 ${P0.r1} · 2023-26 ${P0.r2}. Bukan profit periode ini; belum terbukti maju.">${P0.no == null ? "pembanding" : "#" + P0.no}</span>` +
+        `<span class="rw-no-ket">${P0.ket}</span></div>` : "") +
+      `<div class="j"><b>${P0 && P0.label ? P0.label : nm}</b><span class="${kl(x.u)}">${x.n ? f2(x.u) : "—"}</span></div>` + sparkMini(x.seq.sort((a, b) => a[0] - b[0]).map(s => s[1])) +
       `<div class="bar" title="TP1+TP2 (atau trailing) / TP1+BE / SL"><i style="width:${w(x.tp2)};background:var(--hijau)"></i><i style="width:${w(x.be)};background:rgba(38,166,154,.45)"></i><i style="width:${w(x.sl)};background:var(--merah)"></i></div>` +
       `<div class="rw-atas">${wrCincin(wr, x.n)}<div class="kv"><div><i>Tutup</i><b>${x.n}</b></div><div><i>Rata/trade</i><b class="${kl(rata)}">${f2(rata)}</b></div><div><i>Terbaik</i><b class="naik">${f2(x.best)}</b></div><div><i>Terburuk</i><b class="turun">${f2(x.worst)}</b></div></div></div>` +
       `<div class="kv empat"><div title="Tutup di TP1+TP2 atau trailing"><i>TP2</i><b class="naik">${x.tp2}</b></div><div title="Tutup di TP1 lalu impas (BE)"><i>BE</i><b>${x.be}</b></div><div title="Kena stop-loss"><i>SL</i><b class="turun">${x.sl}</b></div><div title="Masih berjalan"><i>Jalan</i><b>${x.jalan || 0}</b></div></div>` +
       `<div class="kv"><div title="Rata-rata trade untung"><i>Untung</i><b class="naik">${f2(avgW)}</b></div><div title="Rata-rata trade rugi"><i>Rugi</i><b class="turun">${f2(avgL)}</b></div><div title="Rata untung ÷ rata rugi"><i>Rasio</i><b>${avgW != null && avgL ? (avgW / Math.abs(avgL)).toFixed(2) + "×" : "—"}</b></div></div>` +
       (() => { const Rs = (x.tt || []).map(q => q.R).filter(v => v != null), rr = rrHitung(x.tt || []), rata = Rs.length ? Rs.reduce((a, b) => a + b, 0) / Rs.length : null;
         return `<div class="kv"><div title="Rata R per trade (hasil ÷ rugi bila kena SL)"><i>Rata R</i><b class="${kl(rata)}">${rata == null ? "—" : f2(rata)}</b></div><div title="RR nyata = rata R menang : rata R kalah"><i>RR nyata</i><b>${rrTeks(rr.rrN)}</b></div><div title="RR rencana = jarak TP1 ÷ jarak SL saat masuk"><i>RR rencana</i><b>${rrTeks(rr.rrP)}</b></div></div>`; })() +
-      (rwMode === "maju" ? majuHtml(nm, x, semua) : "") + `</button>`;
+      (rwMode === "maju" ? majuHtml(nm, x, kartuDasar) : "") + `</button>`;
   }).join("") + (Object.values(per).some(x => x.n < 30) ? '<div class="rw-kaki">Pola dengan kurang dari 30 trade belum bisa disimpulkan.</div>' : "");
   { const sel = $("rwPola").querySelector('[aria-pressed="true"]'); if (sel) { const c = $("rwPola"); c.scrollTo({ left: sel.offsetLeft - (c.clientWidth - sel.clientWidth) / 2, behavior: "smooth" }); } }
-  RW_TAMPIL = { sumber: "POLA", semua, tf: tf1 ? TF_RW : "4H" };                             // dipakai pop-up
+  RW_TAMPIL = { sumber: "POLA", semua: kartuDasar, tf: tf1 ? TF_RW : "4H" };   // dipakai pop-up (+ kartu FW+MACD>0 / ST / AT)
   let rows = semua.slice();
   if (rwPola) rows = rows.filter(t => t.nama === rwPola);
   rwTabHitung({ semua: rows.length, jalan: rows.filter(t => t.st === "jalan" && !t.luar).length, tutup: rows.filter(t => t.st !== "jalan").length, untung: rows.filter(t => t.st !== "jalan" && t.pnl > 0).length, rugi: rows.filter(t => t.st !== "jalan" && t.pnl <= 0).length });
@@ -5059,6 +5116,7 @@ const INFO_BACA = {
   "RR nyata": "<b>Risk : reward yang benar-benar terjadi.</b> Rata R trade menang dibanding rata R trade kalah (sudah termasuk biaya).<br><br>Contoh 1 : 3,27 = trade yang menang rata-rata menghasilkan 3,27 kali besar rugi trade yang kalah. Angka kecil di bawahnya: rata R menang dan rata R kalah.",
   "RR rencana": "<b>Risk : reward saat masuk</b> — jarak target pertama (TP1, atau TP bila tanpa TP1) dibanding jarak SL.<br><br>Contoh 1 : 1,50 = TP1 sejauh 1,5 kali jarak SL. RR nyata bisa lebih besar dari rencana karena sisa posisi ikut trailing dan bisa lari jauh melewati TP1.",
   "🔭 Status pantau": "Untuk kartu <b>🔭 PANTAU MAJU</b> (Jurnal) dan <b>🔭 KANDIDAT</b> (Riwayat). Ini kandidat yang sedang diukur, <b>BUKAN sinyal bot</b>.<br><br><b>BELUM CUKUP SAMPEL</b> = kurang dari 30 trade tutup atau kurang dari 6 bulan — tunggu.<br><b>LEMAH</b> = rata R positif tapi kurang dari separuh hasil backtest.<br><b>LAYAK DIPERTIMBANGKAN</b> = rata R positif dan minimal separuh backtest (≥ 30 trade, ≥ 6 bulan) — boleh dipertimbangkan masuk bot, keputusan tetap di Anda.<br><b>TIDAK LAYAK</b> = ≥ 30 trade dan rata R ≤ 0.<br><br>Status dihitung dari exit tangga, semua lilin sinyal (cara sama dengan backtest). Kartu & daftar trade memakai satu posisi per koin. <b>Exit tangga</b> = masuk open lilin berikutnya, SL low 5 lilin − 0,5 ATR, TP 2R, batas 30 lilin. <b>Exit bot</b> = 50% di 1,5R lalu trailing 15%. Riwayat KANDIDAT = backtest 12 bulan, bukan bukti baru.",
+  "Urutan kartu Riwayat": "Kartu \"Hasil per pola\" diurutkan menurut <b>peringkat kekuatan dari backtest multi-tahun</b> (rata R exit bot, biaya 0,2%, 2020-23 / 2023-26; research/hasil_statistik_sinyal_bot_4h.txt), <b>bukan</b> profit periode yang dipilih, dan <b>belum terbukti maju</b>. #1 Triple Bottom · #2 L027 · #3 L030 · #4 FW + MACD>0 (versi bot) · #5 Elliott Wave · FW semua = pembanding · #6 ST · #7 AT (dua terakhir hanya bila tombol pembanding dinyalakan).",
   "WR impas": "Win rate <b>minimum</b> supaya tidak rugi dengan RR nyata ini: 1 ÷ (1 + RR).<br><br>Contoh RR 1 : 3 → WR impas 25%. Kalau <b>WR sekarang lebih tinggi</b> dari WR impas, sinyal itu untung; kalau lebih rendah, rugi.",
 };
 // SATU tanda "!" per pop-up (user 10-06: "cukup satu tanda ! tapi memuat semua penjelasan")
