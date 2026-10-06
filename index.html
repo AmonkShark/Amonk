@@ -4693,7 +4693,8 @@ document.querySelectorAll("#rwPeriode button").forEach(b => b.addEventListener("
 let rwRentang = (() => { const s = baca("rwRentang", null); return s && s.p ? s : { p: "semua", dari: "", sampai: "" }; })();
 const RW_EXT = { "4H": null, "1H": null, "1D": null };
 const RW_EXT_IV = { "4H": ["4h", 4 * 3600e3, 12 * 3600e3, 60, 0], "1H": ["1h", 3600e3, 6 * 3600e3, 300, 3.5], "1D": ["1d", 864e5, 3 * 864e5, 60, 0] };
-const RW_EXT_MAKS = { "4H": 730, "1H": 180, "1D": 1460 };
+const RW_HARI_2017 = Math.ceil((Date.now() - Date.UTC(2017, 0, 1)) / 864e5);   // 2026-10-07 user: riwayat 4H & 1D boleh mundur sampai 2017 (Binance mulai 2017-08)
+const RW_EXT_MAKS = { "4H": RW_HARI_2017, "1H": 180, "1D": RW_HARI_2017 };
 const tglDMY = ms => { const d = new Date(ms); return _d2(d.getDate()) + "-" + _d2(d.getMonth() + 1) + "-" + d.getFullYear(); };
 const tglIn = ms => { const d = new Date(ms); return d.getFullYear() + "-" + _d2(d.getMonth() + 1) + "-" + _d2(d.getDate()); };
 const tglDariIn = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ""); return m ? new Date(+m[1], +m[2] - 1, +m[3]).getTime() : null; };
@@ -4791,7 +4792,7 @@ function rwCakupTulis() {
     else if (J.pa < c - 864e5) h += ' <span class="kng">Pembanding ' + J.vs + " belum bisa dihitung (data belum ada).</span>";
   }
   if (X && !X.memuat && X.siap == null && X.galat) h += ' <span class="kng">Gagal memuat lilin tambahan (' + X.galat + " koin gagal).</span>";
-  if (!ai && !J.semua && J.pa < Date.now() - RW_EXT_MAKS[tf] * 864e5) h += " Batas muat " + tf + ": " + (RW_EXT_MAKS[tf] >= 365 ? Math.round(RW_EXT_MAKS[tf] / 365) + " tahun" : RW_EXT_MAKS[tf] + " hari") + " ke belakang.";
+  if (!ai && !J.semua && J.pa < Date.now() - RW_EXT_MAKS[tf] * 864e5) h += " Batas muat " + tf + ": " + (RW_EXT_MAKS[tf] === RW_HARI_2017 ? "paling jauh 01-01-2017 (data Binance mulai 2017-08; koin baru mulai dari tanggal listing)." : (RW_EXT_MAKS[tf] >= 365 ? Math.round(RW_EXT_MAKS[tf] / 365) + " tahun" : RW_EXT_MAKS[tf] + " hari") + " ke belakang.");
   el.innerHTML = h;
 }
 function rwDl(kini, lalu, dp, sat, netral) {
