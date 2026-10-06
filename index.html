@@ -698,6 +698,7 @@ body.privasi #rwRing .jr-angka b{filter:blur(7px)}
 .rw-no{flex:none;font:700 11px var(--f-num);padding:1px 7px;border-radius:6px;border:1px solid var(--garis);color:var(--label)}
 .rw-no.satu{color:var(--kuning);border-color:rgba(255,183,77,.5);background:var(--kuning-bg)}
 .rw-no-ket{font:11px var(--f-ui);color:var(--label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bt-baris .rw-no-ket{white-space:normal}
 .rw-pemb{opacity:.82;border-style:dashed}
 .jn-ai-pisah{margin-left:14px}
 @media(min-width:900px){.rw-tabel>.jn-ai-pisah{margin-left:0;grid-column:1}}
@@ -1128,16 +1129,16 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
       <label for="btBrBerturut">Jeda bila rugi berturut (kali)<input id="btBrBerturut" type="number" step="1" min="1" max="30" inputmode="decimal"></label>
       <label class="cek" style="flex-direction:row;align-items:center;gap:8px"><input id="btBrAktif" type="checkbox"> Circuit breaker aktif (bawaan mati: bot jalan terus)</label>
       <div class="set-judul">🎯 Koin &amp; pola yang diambil bot</div><label for="btKoin" style="grid-column:span 2">Koin yang diambil bot<input id="btKoin" type="text" autocapitalize="characters" placeholder="kosong = semua koin ber-webhook · contoh: XRP, ETH, SOL"></label>
-      <div class="bt-pola" style="grid-column:1/-1"><span>Pola yang diambil bot:</span>
-        <label title="Prioritas 1. Tanpa batas jumlah posisi, ukuran 2× (risiko 1%), trailing murni 25%. Bila dana kurang, order Elliott yang antri dibatalkan untuk TB."><input type="checkbox" value="TB"> 1 Triple Bottom</label>
-        <label title="Prioritas 2. Limit beli di kedalaman 0.90 gelombang 3 (dihitung GitHub tiap jam). Maks 5 (posisi + order). Limit batal bila puncak 5 terbentuk atau 60 lilin tak tersentuh."><input type="checkbox" value="EW"> 2 Elliott Wave (limit)</label>
-        <label title="Prioritas 3. Maks 3 posisi. Sejak 03-10: hanya diambil bila garis MACD 4H di atas nol saat pola valid (pilihan user; menyaring keadaan pasar naik, sekitar 1 dari 10 sinyal FW lolos)."><input type="checkbox" value="FW"> 3 Falling Wedge (MACD 4H &gt; 0)</label><label title="Prioritas 4. Maks 3 posisi."><input type="checkbox" value="ST"> 4 Symmetrical Triangle</label>
-        <label title="Prioritas 5. Maks 2 posisi."><input type="checkbox" value="AT"> 5 Ascending Triangle</label>
+      <div class="bt-pola" style="grid-column:1/-1"><span style="order:-1">Pola yang diambil bot <button type="button" class="rw-urut-i" id="akUrutInfo" title="Nomor # = peringkat kekuatan backtest multi-tahun (sama dengan Riwayat & Jurnal), bukan urutan ambil bot. Ketuk untuk rincian." aria-label="Cara baca nomor peringkat">!</button>:</span>
+        <label title="Urutan ambil bot 1. Tanpa batas jumlah posisi, ukuran 2× (risiko 1%), trailing murni 25%. Bila dana kurang, order Elliott yang antri dibatalkan untuk TB."><input type="checkbox" value="TB"> Triple Bottom</label>
+        <label title="Urutan ambil bot 2. Limit beli di kedalaman 0.90 gelombang 3 (dihitung GitHub tiap jam). Maks 5 (posisi + order). Limit batal bila puncak 5 terbentuk atau 60 lilin tak tersentuh."><input type="checkbox" value="EW"> Elliott Wave (limit)</label>
+        <label title="Urutan ambil bot 3. Maks 3 posisi. Sejak 03-10: hanya diambil bila garis MACD 4H di atas nol saat pola valid (pilihan user; menyaring keadaan pasar naik, sekitar 1 dari 10 sinyal FW lolos)."><input type="checkbox" value="FW"> Falling Wedge (bot: MACD&gt;0)</label><label title="Urutan ambil bot 4. Maks 3 posisi."><input type="checkbox" value="ST"> Symmetrical Triangle</label>
+        <label title="Urutan ambil bot 5. Maks 2 posisi."><input type="checkbox" value="AT"> Ascending Triangle</label>
         <label title="SINYAL LAB (BELUM TERBUKTI, gagal DSR). L029 AO + Stoch yang muncul saat SETUP Triple Bottom / Falling Wedge masih hidup. Entry close lilin 4H, SL low 5 lilin − 0,5 ATR, 50% di TP1 1,5R, sisa trailing 15%. Maks 3 posisi, risiko sama dengan pola lain. Diproses SESUDAH pola. Butuh worker versi 2026-10-06 lab-l030-l027 dan alert LOGIKA v48."><input type="checkbox" value="L030"> 🧪 L030 (Lab)</label>
         <label title="SINYAL LAB (BELUM TERBUKTI; dulu hampir lolos, gugur sesudah bootstrap diperbaiki). Inside bar tembus + RSI14 &lt; 35 + volume ≥ 1,5× EMA20. Entry close lilin 4H, SL low 5 lilin − 0,5 ATR, 50% di TP1 1,5R, sisa trailing 15%. Sangat jarang (±2 sinyal / 100 hari). Maks 2 posisi. Butuh worker versi 2026-10-06 lab-l030-l027 dan alert LOGIKA v48."><input type="checkbox" value="L027"> 🧪 L027 (Lab)</label>
         <label style="display:none"><input type="checkbox" value="PEN"> Bullish Pennant</label><label style="display:none"><input type="checkbox" value="IHS"> Inverse H&amp;S</label><label style="display:none"><input type="checkbox" value="CH"> Cup &amp; Handle</label></div>
       <div class="set-judul">🧩 Pembagian modal</div><div class="bt-pola" style="grid-column:1/-1"><span>Cara membagi modal:</span>
-        <label title="Modal bot dibagi RATA ke tiap jenis yang dicentang (pola, Elliott). Batas posisi per pola (2026-10-03): Triple Bottom tanpa batas · Elliott 5 · Falling Wedge 3 · Symmetrical Triangle 3 · Ascending Triangle 2. Urutan ambil = angka di depan nama pola. Ukuran entry = modal bot ÷ 10 (Triple Bottom ÷ 5), lalu dipangkas Batas rugi per trade (Triple Bottom 2×). Hasil tiap jenis tetap dicatat per kantong."><input type="checkbox" id="btKantong"> Ukuran per jenis sinyal — batas posisi: TB tanpa batas · EW 5 · FW 3 · ST 3 · AT 2 (ukuran = modal ÷ 10, TB 2×, dipangkas batas rugi)</label></div>
+        <label title="Modal bot dibagi RATA ke tiap jenis yang dicentang (pola, Elliott). Batas posisi per pola (2026-10-03): Triple Bottom tanpa batas · Elliott 5 · Falling Wedge 3 · Symmetrical Triangle 3 · Ascending Triangle 2. Urutan ambil bot (tetap): TB → EW → FW → ST → AT, lalu sinyal Lab; nomor # di depan nama pola = peringkat kekuatan backtest, bukan urutan ambil. Ukuran entry = modal bot ÷ 10 (Triple Bottom ÷ 5), lalu dipangkas Batas rugi per trade (Triple Bottom 2×). Hasil tiap jenis tetap dicatat per kantong."><input type="checkbox" id="btKantong"> Ukuran per jenis sinyal — batas posisi: TB tanpa batas · EW 5 · FW 3 · ST 3 · AT 2 (ukuran = modal ÷ 10, TB 2×, dipangkas batas rugi)</label></div>
       <div class="tb"><button class="btn" type="submit" id="btSimpan">Simpan ke bot</button></div>
     </form>
     <p class="ak-pesan" id="btPesan">Pengaturan ini disimpan DI BOT, jadi tetap berlaku walau aplikasi tertutup. Modal bot = modal awal + hasil semua trade bot yang sudah tutup (untung menambah, rugi mengurangi). Ukuran tiap posisi = modal bot ÷ maks entry, lalu dipangkas kalau rugi bila kena SL melewati batas rugi bot. SL SELALU dari sinyal; batas rugi hanya mengubah ukuran. Total posisi terbuka tidak pernah melewati modal bot. Mengganti angka modal awal = mulai hitungan baru.</p>
@@ -4220,7 +4221,7 @@ function gambarBot(s) {
     `<div><span>Laba bot</span><b class="${kl(MO.laba)}">${f2(MO.laba)} USDT</b><span class="rp">${MO.awal > 0 ? f2(MO.laba / MO.awal * 100) + "% modal · " : ""}${R.length} trade tutup · WR ${wr}%</span></div>` +
     `<div><span>Posisi terbuka</span><b>${P.length} / ${PG.maksPosisi || "?"}</b><span class="rp">terpakai ${usd(pakai)}${maks ? ` (${Math.round(pakai / maks * 100)}%)` : ""}</span></div></div>` +
     `<div class="jr-angka"><div><span>Rata-rata per trade</span><b class="${kl(rRata)}">${rRata == null ? "—" : f2(rRata) + " R"}</b><span class="rp">R = rugi bila kena SL</span></div>` +
-    `<div><span>Pola dipilih</span><b class="kecil">${(PG.polaBoleh || []).join(" · ") || "—"}</b></div>` +
+    `<div><span>Pola dipilih</span><b class="kecil">${(PG.polaBoleh || []).slice().sort((a, b) => akUrut(a) - akUrut(b)).join(" · ") || "—"}</b><span class="rp">urut peringkat kekuatan</span></div>` +
     `<div><span>Koin</span><b class="kecil">${(PG.koin || []).length ? PG.koin.map(k => k.replace(/USDT$/, "")).join(", ") : "semua ber-webhook"}</b></div></div>` +
     `<div class="rw-maju"><div class="pb"><span>trade</span><div><i style="width:${Math.min(1, R.length / AMBANG_N) * 100}%"></i></div><span>${R.length}/${AMBANG_N}</span></div>` +
     `<div class="pb"><span>waktu</span><div><i style="width:${Math.min(1, blnBot / AMBANG_BULAN) * 100}%"></i></div><span>${blnBot.toFixed(1)}/${AMBANG_BULAN} bln</span></div>` +
@@ -4262,13 +4263,15 @@ function gambarBot(s) {
   const KT = s.kantong || {};
   if (KT.aktif) {
     const nPakai = {}; for (const p of (s.posisi || [])) nPakai[p.kode] = (nPakai[p.kode] || 0) + 1; nPakai.EW = (nPakai.EW || 0) + ((s.ew || {}).order || []).length; const dipakai = new Set(Object.keys(nPakai).filter(k => nPakai[k] > 0));
-    const NAMA_J = { FW: "Falling Wedge", ST: "Symmetrical Triangle", PEN: "Bullish Pennant", IHS: "Inverse H&S", AT: "Ascending Triangle", TB: "Triple Bottom", CH: "Cup & Handle", EW: "Elliott Wave", L030: "🧪 L030 (Lab)", L027: "🧪 L027 (Lab)" };
+    const NAMA_J = { FW: "Falling Wedge (bot: MACD>0)", ST: "Symmetrical Triangle", PEN: "Bullish Pennant", IHS: "Inverse H&S", AT: "Ascending Triangle", TB: "Triple Bottom", CH: "Cup & Handle", EW: "Elliott Wave", L030: "🧪 L030 (Lab)", L027: "🧪 L027 (Lab)" };
     const tot = KT.jenis.reduce((a, k) => a + (KT.per[k] ? KT.per[k].kini : 0), 0);
     // HASIL PER POLA BOT (2026-09-29, user): trade tutup, WR, total, rata — dari riwayat bot akun asli (bukan simulasi)
     const stat = {}; for (const r of R) { const z = stat[r.kode || "?"] = stat[r.kode || "?"] || { n: 0, w: 0, u: 0 }; z.n++; if (r.hasil > 0) z.w++; z.u += +r.hasil || 0; }
-    baris.push(`<div class="jr-kotak"><h3>Hasil per pola (bot) <small>${R.length} trade tutup · total ${f2(R.reduce((a, r) => a + (+r.hasil || 0), 0))} USDT</small></h3>` +
-      KT.jenis.map(k => { const z = stat[k] || { n: 0, w: 0, u: 0 };
-        return `<div class="jr-tr bt-baris"><div style="min-width:0"><div class="nm">${NAMA_J[k] || k} <span class="jn-label">${k}</span></div>` +
+    // URUTAN = PERINGKAT KEKUATAN (2026-10-07): akUrut/akLencana (sama dengan Riwayat & Jurnal); jenis bot yang punya trade tapi tak ada di KT.jenis ikut tampil di akhir. Angka tidak berubah.
+    const jenisAk = KT.jenis.concat(Object.keys(stat).filter(k => !KT.jenis.includes(k))).map((k, i) => [k, i]).sort((a, b) => akUrut(a[0]) - akUrut(b[0]) || a[1] - b[1]).map(a => a[0]);
+    baris.push(`<div class="jr-kotak"><h3><span>Hasil per pola (bot) <button type="button" class="rw-urut-i" id="akUrutInfo2" title="Urutan = peringkat kekuatan backtest multi-tahun (sama dengan Riwayat & Jurnal), bukan hasil bot. Ketuk untuk rincian." aria-label="Cara baca urutan">!</button></span><small>${R.length} trade tutup · total ${f2(R.reduce((a, r) => a + (+r.hasil || 0), 0))} USDT · urut peringkat kekuatan</small></h3>` +
+      jenisAk.map(k => { const z = stat[k] || { n: 0, w: 0, u: 0 };
+        return `<div class="jr-tr bt-baris"><div style="min-width:0">${akLencana(k)}<div class="nm">${NAMA_J[k] || k} <span class="jn-label">${k}</span></div>` +
           `<div class="sub">${z.n} tutup · WR ${z.n ? Math.round(z.w / z.n * 100) : 0}% · jalan ${nPakai[k] || 0}</div></div>` +
           `<div class="lv">${z.n ? "rata " + f2(z.u / z.n) + " USDT/trade" : "belum ada trade tutup"}</div>` +
           `<div class="ha"><b class="${kl(z.u)}">${f2(z.u)} USDT</b><span class="rp">${dipakai.has(k) ? "posisi/order jalan" : "menunggu sinyal"}</span></div></div>`; }).join("") +
@@ -4969,10 +4972,35 @@ function rwKartuTambah(semua, J, sumber) {
   return fwm.concat(stat);
 }
 // lencana nomor kartu (dipakai Riwayat & Jurnal); ket = keterangan pengganti (opsional)
-function rwNoHtml(P0, ket) {
-  return `<div class="rw-no-baris"><span class="rw-no${P0.no === 1 ? " satu" : ""}" title="Peringkat kekuatan dari backtest multi-tahun (rata R exit bot, biaya 0,2%): 2020-23 ${P0.r1} · 2023-26 ${P0.r2}. Bukan profit periode ini; belum terbukti maju.">${P0.no == null ? "pembanding" : "#" + P0.no}</span>` +
-    `<span class="rw-no-ket">${ket || P0.ket}</span></div>`;
+function rwNoSpan(P0) {
+  return `<span class="rw-no${P0.no === 1 ? " satu" : ""}" title="Peringkat kekuatan dari backtest multi-tahun (rata R exit bot, biaya 0,2%): 2020-23 ${P0.r1} · 2023-26 ${P0.r2}. Bukan profit periode ini; belum terbukti maju.">${P0.no == null ? "pembanding" : "#" + P0.no}</span>`;
 }
+function rwNoHtml(P0, ket) {
+  return `<div class="rw-no-baris">${rwNoSpan(P0)}<span class="rw-no-ket">${ket || P0.ket}</span></div>`;
+}
+// AKUN (2026-10-07, user "rubah sesuai peringkat di amonk bot terminal bagian akun"): daftar per jenis sinyal bot memakai peringkat yang SAMA.
+// Kode bot "FW" = FW yang lolos MACD 4H > 0 (saringan worker) -> peringkat kartu FWM. Hanya urutan TAMPILAN & lencana; nilai/payload bot tidak berubah.
+const akKd = k => k === "FW" ? "FWM" : k;
+const akUrut = k => rwUrutKartu(akKd(k));
+const akBot = k => k === "ST" || k === "AT";
+function akLencana(k) {
+  const P0 = RW_PERINGKAT[akKd(k)];
+  if (!P0) return '<div class="rw-no-baris"><span class="rw-no-ket">tidak diperingkat</span></div>';
+  return rwNoHtml(P0, akBot(k) ? "tidak dipakai bot lagi" : null);
+}
+// daftar centang pengaturan bot: urutan lewat CSS `order` saja (urutan DOM tetap, jadi array `pola` yang dikirim /atur tetap sama)
+function akPolaLencana() {
+  const kotak = document.querySelector(".bt-pola input[value='TB']");
+  if (!kotak) return;
+  kotak.closest(".bt-pola").querySelectorAll("label").forEach(lb => {
+    const c = lb.querySelector("input[type=checkbox]"); if (!c || lb.querySelector(".rw-no, .ak-tdk")) return;
+    const k = c.value, P0 = RW_PERINGKAT[akKd(k)];
+    lb.style.order = akUrut(k);
+    c.insertAdjacentHTML("afterend", P0 ? rwNoSpan(P0) : '<span class="rw-no-ket ak-tdk">tidak diperingkat</span>');
+    if (P0 && akBot(k)) lb.insertAdjacentHTML("beforeend", '<span class="rw-no-ket">· tidak dipakai bot lagi</span>');
+  });
+}
+akPolaLencana();
 function rwInfoUrutHtml(jn) {
   const f = k => RW_PERINGKAT[k];
   return '<p><b>Urutan kartu = peringkat kekuatan dari backtest multi-tahun</b>, bukan profit periode yang sedang dipilih. Angka = rata R per trade dengan exit bot, biaya 0,2%, dua era terpisah (2020-23 / 2023-26). Sumber: research/hasil_statistik_sinyal_bot_4h.txt.</p>' +
@@ -4986,6 +5014,8 @@ document.addEventListener("click", e => {
   if (e.target.closest("#rwStAtTgl, #jnStAtTgl")) { rwStAt = !rwStAt; simpan("rwStAt", rwStAt); if (halAktif === "Jurnal") gambarJurnal(); else window.gambarRiwayat(); return; }
   if (e.target.closest("#rwUrutInfo")) popupTampil("Urutan kartu: peringkat kekuatan", rwInfoUrutHtml(), false);
   if (e.target.closest("#jnUrutInfo")) popupTampil("Urutan kartu Jurnal: peringkat kekuatan", rwInfoUrutHtml(true), false);
+  if (e.target.closest("#akUrutInfo, #akUrutInfo2")) popupTampil("Urutan di Akun: peringkat kekuatan", rwInfoUrutHtml() +
+    '<div class="bd-catatan" style="margin-top:10px"><b>Di Akun:</b> hanya urutan tampilan & nomor. Bot TIDAK berubah: pola yang dicentang, nilai yang dikirim ke bot, dan urutan ambil bot (TB → EW → FW → ST → AT, lalu sinyal Lab) tetap sama. Falling Wedge di bot = FW dengan MACD 4H > 0, jadi memakai nomor #4. ST & AT ditaruh di akhir (tidak dipakai bot lagi; hasil lamanya tetap tampil bila ada). Jenis lain (mis. AI) tidak diperingkat dan ditaruh paling akhir.</div>', false);
 });
 function gambarRiwayatTF(ai, tf1) {
   if (!TAMPIL.maju && rwMode === "maju") rwMode = "semua";
