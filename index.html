@@ -867,6 +867,22 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
 .pm-banding th,.pm-banding td{padding:4px 6px;border-bottom:1px solid var(--garis);text-align:right}
 .pm-banding th:first-child,.pm-banding td:first-child{text-align:left;font-family:var(--f-ui)}
 .pm-banding th{color:var(--label);font-weight:500}
+/* SARINGAN PERIODE RIWAYAT (2026-10-07) */
+.rw-rentang{margin:0 0 10px}
+.rw-rentang .jr-pilih{margin-bottom:6px}
+.rw-kustom{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px;margin:0 0 6px}
+.rw-kustom[hidden]{display:none}
+.rw-kustom label{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--label)}
+.rw-kustom input{font:13px var(--f-num);color:var(--teks);background:var(--bg2);border:1px solid var(--garis);border-radius:6px;padding:6px 8px;min-width:0;color-scheme:light dark}
+.rw-cakup{font:11.5px var(--f-ui);color:var(--label);margin:0;line-height:1.45}
+.rw-cakup b{color:var(--teks);font-weight:500}
+.rw-cakup .kng{color:var(--kuning)}
+#rwRing .jr-angka span.rw-dl,.rw-dl{display:block;font:500 11px var(--f-num);letter-spacing:0;text-transform:none;color:var(--label);margin-top:1px}
+.rw-dl.naik{color:var(--hijau)}.rw-dl.turun{color:var(--merah)}
+.rw-vs{font:11.5px var(--f-ui);color:var(--label);margin:2px 0 8px;line-height:1.45;grid-column:1/-1}
+#rwRing .jr-kotak>.jr-ket{grid-column:1/-1}
+.rw-vs b{color:var(--teks);font-weight:500}
+@media (max-width:480px){.rw-kustom label{flex:1 1 130px}.rw-kustom input{width:100%}}
 </style>
 </head>
 <body>
@@ -986,6 +1002,13 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
     </div>
     <button class="btn kecil" type="button" id="rwKolToggle" aria-expanded="false" aria-controls="rwKolForm" style="margin-bottom:8px">⚙ Kolom</button>
     <div class="ak-set" id="rwKolForm" hidden></div>
+    <div class="rw-rentang" id="rwRentangBox">
+      <div class="jr-pilih seg" role="group" aria-label="Periode riwayat menurut waktu masuk" id="rwRentang">
+        <button type="button" data-p="7" aria-pressed="false">7 hari</button><button type="button" data-p="30" aria-pressed="false">30 hari</button><button type="button" data-p="90" aria-pressed="false">90 hari</button><button type="button" data-p="180" aria-pressed="false">180 hari</button><button type="button" data-p="365" aria-pressed="false">1 tahun</button><button type="button" data-p="semua" aria-pressed="true">Semua</button><button type="button" data-p="kustom" aria-pressed="false">📅 Kustom</button>
+      </div>
+      <div class="rw-kustom" id="rwKustom" hidden><label for="rwDari">Dari tanggal<input type="date" id="rwDari"></label><label for="rwSampai">Sampai tanggal<input type="date" id="rwSampai"></label></div>
+      <p class="rw-cakup" id="rwCakup"></p>
+    </div>
     <div class="jr-ring" id="rwRing"><div class="kosong memuat">Riwayat muncul sesudah lilin 4H termuat…</div></div>
     <div class="jr-ring banding-ring" id="bandingRw" hidden></div>
     <div class="jr-pilih seg" role="group" aria-label="Periode riwayat" id="rwPeriode">
@@ -1009,7 +1032,7 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
       <p class="jr-ket" id="pmRwKet"></p>
     </section>
     <p class="jr-ket" id="rwKetAI" style="margin-top:10px" hidden>Riwayat AI 4H = semua entry dari analisa chart Claude tiap 4 jam (buku jurnal laptop, dikirim ke GitHub tiap 4 jam). Nominal 1000 USDT per sinyal, biaya 0,2%, keluar di SL, TP, atau batas waktu. Trade "Jalan" dinilai dengan harga hidup. R = hasil ÷ jarak entry→SL.</p>
-    <p class="jr-ket" id="rwKetPola" style="margin-top:10px">Riwayat = SEMUA pola 4H valid di 109 koin selama ~100 hari terakhir, dihitung di perangkat ini dengan aturan yang sama dengan Terminal (entry close bar valid, 50% di TP1, SL ke entry, 50% di TP2, biaya 0,2%, 1000 USDT). Trade lebih tua dari ~100 hari tetap disimpan di perangkat ini. Mode "Maju" memakai catatan yang sama untuk semua perangkat (berkas GitHub yang ditulis otomatis tiap 4 jam): trade tutup dari catatan itu, trade jalan dari hitungan perangkat ini. Beda dengan tab Jurnal (buku rutin: SL 2,5 ATR / TP 1R).</p>
+    <p class="jr-ket" id="rwKetPola" style="margin-top:10px">Riwayat = SEMUA pola 4H valid di 109 koin selama ~100 hari terakhir, dihitung di perangkat ini dengan aturan yang sama dengan Terminal (entry close bar valid, 50% di TP1, SL ke entry, 50% di TP2, biaya 0,2%, 1000 USDT). Trade lebih tua dari ~100 hari tetap disimpan di perangkat ini. Mode "Maju" memakai catatan yang sama untuk semua perangkat (berkas GitHub yang ditulis otomatis tiap 4 jam): trade tutup dari catatan itu, trade jalan dari hitungan perangkat ini. Beda dengan tab Jurnal (buku rutin: SL 2,5 ATR / TP 1R). <b>Periode</b> (7/30/90/180 hari, 1 tahun, kustom) menyaring menurut waktu MASUK trade dan menghitung ulang semua angka, kartu, daftar, dan pop-up; panah ▲▼ = selisih dengan periode sebelumnya yang sama panjang. Bila periode lebih panjang dari data, lilin tambahan diambil dari Binance saat itu juga (4H sampai 2 tahun, 1H sampai 180 hari, 1D sampai 4 tahun ke belakang), dengan aturan yang sama.</p>
   </div>
 
   <div class="hal" id="halJurnal" hidden>
@@ -4630,6 +4653,142 @@ function majuHtml(nm, x, kolam) {
 }
 document.querySelectorAll("#rwPeriode button").forEach(b => b.addEventListener("click", () => {
   rwMode = b.dataset.m; simpan("rwMode", rwMode); rwPola = null; window.gambarRiwayat(); }));
+// SARINGAN PERIODE RIWAYAT (2026-10-07, user: "seperti Binance riwayat PnL: 7 hari, 30 hari, 1 tahun, tanggal manual, agar terlihat jelas perbedaannya").
+// Menyaring menurut waktu MASUK trade; semua angka dihitung ulang dari himpunan tersaring + pembanding periode sebelumnya (panjang sama).
+// Aturan sinyal/exit TIDAK diubah. Lilin tambahan dari Binance hanya dimuat bila periode yang dipilih lebih panjang dari data yang ada.
+let rwRentang = (() => { const s = baca("rwRentang", null); return s && s.p ? s : { p: "semua", dari: "", sampai: "" }; })();
+const RW_EXT = { "4H": null, "1H": null, "1D": null };
+const RW_EXT_IV = { "4H": ["4h", 4 * 3600e3, 12 * 3600e3, 60, 0], "1H": ["1h", 3600e3, 6 * 3600e3, 300, 3.5], "1D": ["1d", 864e5, 3 * 864e5, 60, 0] };
+const RW_EXT_MAKS = { "4H": 730, "1H": 180, "1D": 1460 };
+const tglDMY = ms => { const d = new Date(ms); return _d2(d.getDate()) + "-" + _d2(d.getMonth() + 1) + "-" + d.getFullYear(); };
+const tglIn = ms => { const d = new Date(ms); return d.getFullYear() + "-" + _d2(d.getMonth() + 1) + "-" + _d2(d.getDate()); };
+const tglDariIn = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ""); return m ? new Date(+m[1], +m[2] - 1, +m[3]).getTime() : null; };
+function rwJangka() {
+  const p = rwRentang.p, skr = Date.now(), SEMUA = { semua: true, a: -Infinity, b: Infinity, label: "Semua" };
+  if (p === "kustom") {
+    let a = tglDariIn(rwRentang.dari), b = tglDariIn(rwRentang.sampai);
+    if (a == null && b == null) return SEMUA;
+    if (b == null) b = tglDariIn(tglIn(skr));
+    if (a == null) a = b - 29 * 864e5;
+    if (a > b) { const x = a; a = b; b = x; }
+    const b1 = new Date(b); b1.setDate(b1.getDate() + 1);
+    const bb = b1.getTime(), L = bb - a, hari = Math.round(L / 864e5);
+    return { semua: false, a, b: bb, pa: a - L, pb: a, label: "Kustom · " + tglDMY(a) + " s/d " + tglDMY(bb - 1), vs: hari + " hari sebelumnya" };
+  }
+  const d = +p; if (!(d > 0)) return SEMUA;
+  const a = skr - d * 864e5, nm = d === 365 ? "1 tahun" : d + " hari";
+  return { semua: false, a, b: Infinity, pa: a - d * 864e5, pb: a, label: nm + " terakhir · " + tglDMY(a) + " s/d " + tglDMY(skr), vs: nm + " sebelumnya" };
+}
+async function klinesDari(k, iv, ms, mulai, skr) {
+  const out = []; let s = mulai;
+  for (let g = 0; g < 40 && s < skr; g++) {
+    const j = await getJ(`/api/v3/klines?symbol=${k}USDT&interval=${iv}&startTime=${s}&limit=1000`);
+    if (!Array.isArray(j)) return out.length ? out : null;
+    if (!j.length) break;
+    out.push(...j); if (j.length < 1000) break;
+    s = +j[j.length - 1][0] + ms;
+  }
+  return out;
+}
+async function rwMuatLebih(tf, target) {
+  const x = RW_EXT[tf]; if (x && (x.memuat || x.target <= target)) return;
+  const [iv, ms, basi, minB, mx] = RW_EXT_IV[tf], S = { target, siap: x ? x.siap : null, rw: x ? x.rw : {}, memuat: true, n: 0, galat: 0 };
+  RW_EXT[tf] = S;
+  const rw = {}, antri = KOIN.slice(), skr = Date.now(), mulai = target - 260 * ms, tf2 = tf === "4H" ? {} : { tf };
+  const tulis = () => { if (halAktif === "Riwayat") rwCakupTulis(); };
+  tulis();
+  await Promise.all(Array.from({ length: 6 }, async () => {
+    while (antri.length) { const k = antri.shift();
+      try { const j = await klinesDari(k, iv, ms, mulai, skr);
+        if (j === null) S.galat++;
+        else if (j.length >= minB) { const b = j.filter(q => +q[6] < skr);
+          if (b.length && skr - +b[b.length - 1][6] <= basi) {
+            const dd = { t: b.map(q => +q[0]), o: b.map(q => +q[1]), h: b.map(q => +q[2]), l: b.map(q => +q[3]), c: b.map(q => +q[4]), v: b.map(q => +q[5]) };
+            for (const t of polaSemua(dd, mx)) rw[k + "|" + t.masukT] = { koin: k, nama: t.nama, kode: t.kode, masukT: t.masukT, keluarT: t.keluarT, entry: t.entry, sl: t.sl,
+              tp1: t.tp1, tp2: t.tp2, st: t.st, kenaTp1: t.kenaTp1, sisa: t.sisa, real: t.real, keluarPx: t.keluarPx, ...tf2 };
+            try { const L = sinyalLab(dd, mx); for (const kode of LAB_KODE) for (const q of L[kode] || []) { const t = labKeRw(q); rw[k + "|" + kode + "|" + t.masukT] = { koin: k, ...t, ...tf2 }; } } catch (e) {} } } }
+      catch (e) { S.galat++; }
+      S.n++; tulis(); } }));
+  S.memuat = false;
+  if (S.galat < KOIN.length / 2) { S.rw = rw; S.siap = target; S.t = Date.now(); }
+  if (halAktif === "Riwayat") window.gambarRiwayat();
+}
+function rwDasarPola(tf) {
+  const base = tf === "4H" ? RW : RTF(tf).rw, X = RW_EXT[tf], out = Object.values(base);
+  if (!X || X.siap == null) return out;
+  const awal = {}; let g = Infinity;
+  for (const t of out) if (!t.luar) { if (awal[t.koin] == null || t.masukT < awal[t.koin]) awal[t.koin] = t.masukT; if (t.masukT < g) g = t.masukT; }
+  for (const [kk, t] of Object.entries(X.rw)) if (!(kk in base) && t.masukT < (awal[t.koin] ?? g)) out.push(t);
+  return out;
+}
+function rwCakupTF(tf) {
+  const base = Object.values(tf === "4H" ? RW : RTF(tf).rw).filter(t => !t.luar);
+  let c = base.length ? Math.min(...base.map(t => t.masukT)) : null;
+  const X = RW_EXT[tf]; if (X && X.siap != null && (c == null || X.siap < c)) c = X.siap;
+  return c;
+}
+const rwMajuAktif = () => rwSumber !== "AI" && TF_RW === "4H" && rwMode === "maju" && TAMPIL.maju;
+function rwCakupAktif() {
+  if (rwSumber === "AI") { const T = JR ? jnBaris(JR).filter(t => t.sinyal === "AI 4H") : []; return T.length ? Math.min(...T.map(t => t.mT)) : null; }
+  const c = rwCakupTF(TF_RW); return rwMajuAktif() ? Math.max(c || 0, RW_MULAI) : c;
+}
+function rwPerluMuat() {
+  if (rwSumber === "AI" || rwMajuAktif()) return;
+  const J = rwJangka(); if (J.semua) return;
+  if (TF_RW === "4H" ? !Object.keys(RW).length : !RTF(TF_RW).t) return;
+  const c = rwCakupTF(TF_RW); if (c == null) return;
+  const hari = 864e5, batas = Math.floor((Date.now() - RW_EXT_MAKS[TF_RW] * hari) / hari) * hari;
+  const perlu = Math.max(batas, Math.floor(J.pa / hari) * hari);
+  if (perlu < c - hari) rwMuatLebih(TF_RW, perlu);
+}
+function rwVsAda(J) {
+  if (J.semua) return false;
+  const c = rwCakupAktif(), X = rwSumber === "AI" ? null : RW_EXT[TF_RW];
+  return c != null && J.pa >= c - 864e5 && !(X && X.memuat);
+}
+function rwCakupTulis() {
+  const el = $("rwCakup"); if (!el) return;
+  const J = rwJangka(), ai = rwSumber === "AI", tf = ai ? "4H" : TF_RW, X = ai ? null : RW_EXT[tf], c = rwCakupAktif();
+  const nama = ai ? "buku AI 4H" : rwMajuAktif() ? "pola 4H (mode Maju)" : "pola " + tf;
+  let h = "Disaring menurut waktu <b>MASUK</b> trade" + (J.semua ? " · semua data" : " · " + J.label) + ". Data " + nama + " tersedia sejak <b>" + (c == null ? "—" : tglDMY(c)) + "</b>.";
+  if (X && X.memuat) h += ' <span class="kng">Memuat lilin ' + tf + " tambahan dari Binance… " + X.n + "/" + KOIN.length + " koin</span>";
+  else if (!J.semua && c != null) {
+    if (J.a < c - 864e5) h += ' <span class="kng">Periode dimulai sebelum data tersedia — angka hanya dari ' + tglDMY(c) + ", pembanding tidak ditampilkan.</span>";
+    else if (J.pa < c - 864e5) h += ' <span class="kng">Pembanding ' + J.vs + " belum bisa dihitung (data belum ada).</span>";
+  }
+  if (X && !X.memuat && X.siap == null && X.galat) h += ' <span class="kng">Gagal memuat lilin tambahan (' + X.galat + " koin gagal).</span>";
+  if (!ai && !J.semua && J.pa < Date.now() - RW_EXT_MAKS[tf] * 864e5) h += " Batas muat " + tf + ": " + (RW_EXT_MAKS[tf] >= 365 ? Math.round(RW_EXT_MAKS[tf] / 365) + " tahun" : RW_EXT_MAKS[tf] + " hari") + " ke belakang.";
+  el.innerHTML = h;
+}
+function rwDl(kini, lalu, dp, sat, netral) {
+  if (kini == null || lalu == null || !isFinite(kini) || !isFinite(lalu)) return "";
+  const d = kini - lalu, nol = Math.abs(d) < Math.pow(10, -dp) / 2, k = netral || nol ? "" : d > 0 ? " naik" : " turun";
+  return '<span class="rw-dl' + k + '" title="dibanding periode sebelumnya">' + (nol ? "= " : d > 0 ? "▲ +" : "▼ ") + d.toFixed(dp) + (sat || "") + "</span>";
+}
+function rwStatPola(tutup) {
+  const u = tutup.map(t => pnlTrade(t)), n = u.length, tot = u.reduce((a, b) => a + (b || 0), 0), m = u.filter(v => v > 0).length;
+  const Rs = tutup.map((t, i) => { const rk = t.entry > t.sl && t.sl > 0 ? MODAL_POLA * (t.entry - t.sl) / t.entry : null; return rk && u[i] != null ? u[i] / rk : null; }).filter(v => v != null);
+  return { n, tot, wr: n ? m / n * 100 : null, rata: n ? tot / n : null, rR: Rs.length ? Rs.reduce((a, b) => a + b, 0) / Rs.length : null };
+}
+function rwVsHtml(J, P) {
+  const f2 = v => v == null || !isFinite(v) ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2);
+  if (!P) return "";
+  return '<div class="rw-vs">Pembanding <b>' + J.vs + "</b> (" + tglDMY(J.pa) + " s/d " + tglDMY(J.pb - 1) + "): " + P.n + " tutup · profit " + f2(P.tot) + " USDT · WR " + (P.wr == null ? "—" : Math.round(P.wr) + "%") +
+    " · rata R " + (P.rR == null ? "—" : f2(P.rR)) + ". Panah ▲▼ di bawah angka = selisih periode ini dibanding itu.</div>";
+}
+function rwRentangUI() {
+  document.querySelectorAll("#rwRentang button").forEach(b => b.setAttribute("aria-pressed", b.dataset.p === rwRentang.p ? "true" : "false"));
+  $("rwKustom").hidden = rwRentang.p !== "kustom";
+  $("rwDari").max = $("rwSampai").max = tglIn(Date.now());
+  $("rwDari").value = rwRentang.dari || ""; $("rwSampai").value = rwRentang.sampai || "";
+}
+document.querySelectorAll("#rwRentang button").forEach(b => b.addEventListener("click", () => {
+  rwRentang.p = b.dataset.p;
+  if (rwRentang.p === "kustom" && !rwRentang.dari) { rwRentang.dari = tglIn(Date.now() - 29 * 864e5); rwRentang.sampai = tglIn(Date.now()); }
+  simpan("rwRentang", rwRentang); rwRentangUI(); window.gambarRiwayat(); }));
+["rwDari", "rwSampai"].forEach(id => $(id).addEventListener("change", () => {
+  rwRentang.dari = $("rwDari").value; rwRentang.sampai = $("rwSampai").value; simpan("rwRentang", rwRentang); window.gambarRiwayat(); }));
+rwRentangUI();
 // RIWAYAT AI 4H (2026-09-22, permintaan user). Sumber: buku AI 4H di data_jurnal.json (sama dengan tab Jurnal).
 let rwSumber = baca("rwSumber", "POLA");
 document.querySelectorAll("#rwSumber button").forEach(b => {
@@ -4643,15 +4802,18 @@ function gambarRiwayatAI() {
     muatJurnal().then(() => { if (halAktif !== "Riwayat" || rwSumber !== "AI") return;
       if (JR) gambarRiwayatAI(); else $("rwRing").innerHTML = `<div class="kosong">Buku AI 4H belum tersedia di sini. Buku ini hanya ada di versi online (amonkshark.github.io/Amonk).</div>`; }); return; }
   const f2 = v => v == null || !isFinite(v) ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
-  const semua = jnBaris(JR).filter(t => t.sinyal === "AI 4H");
+  const semuaA = jnBaris(JR).filter(t => t.sinyal === "AI 4H"), J = rwJangka();
+  const semua = J.semua ? semuaA : semuaA.filter(t => t.mT >= J.a && t.mT < J.b);
   const tutup = semua.filter(t => !t.terbuka), jalan = semua.filter(t => t.terbuka), H = jnHitung(tutup);
+  const P = rwVsAda(J) ? jnHitung(semuaA.filter(t => !t.terbuka && t.mT >= J.pa && t.mT < J.pb)) : null;
   const uJ = jalan.reduce((a, t) => a + (t.us || 0), 0);
-  const awal = semua.length ? Math.min(...semua.map(t => t.mT)) : null;
+  const awal = semuaA.length ? Math.min(...semuaA.map(t => t.mT)) : null;
   const bln = tutup.length ? (Date.now() - Math.min(...tutup.map(t => t.mT))) / (30.44 * 864e5) : 0;
-  $("rwRing").innerHTML = `<div class="jr-kotak"><h3>Riwayat trade AI 4H <small>sejak ${awal ? tglLokal(awal) : "—"} · analisa chart Claude</small></h3>` +
-    `<div class="jr-angka"><div><span>Tutup</span><b>${H.n}</b></div><div><span>WR</span><b>${H.n ? Math.round(H.wr) : 0}%</b></div><div><span>Profit tutup (USDT)</span><b class="${kl(H.tot)}">${f2(H.tot)}</b>${rpSpan(H.tot)}</div></div>` +
-    `<div class="jr-angka"><div><span>Jalan</span><b>${jalan.length}</b></div><div><span>Rata/trade</span><b class="${kl(H.rata)}">${f2(H.rata)}</b>${rpSpan(H.rata)}</div><div><span>Profit jalan (USDT)</span><b class="${kl(uJ)}">${jalan.length ? f2(uJ) : "—"}</b>${jalan.length ? rpSpan(uJ) : ""}</div></div>` +
-    `<div class="jr-angka"><div><span>Rata R</span><b class="${kl(H.rR)}">${H.rR == null ? "—" : f2(H.rR) + " R"}</b></div><div><span>Profit factor</span><b>${H.pf == null ? "—" : isFinite(H.pf) ? H.pf.toFixed(2) : "∞"}</b></div><div><span>Drawdown maks</span><b class="${H.dd < 0 ? "turun" : ""}">${f2(H.dd)}</b></div></div>` +
+  $("rwRing").innerHTML = `<div class="jr-kotak"><h3>Riwayat trade AI 4H <small>${J.semua ? "sejak " + (awal ? tglLokal(awal) : "—") : J.label} · analisa chart Claude</small></h3>` +
+    rwVsHtml(J, P && { n: P.n, tot: P.tot, wr: P.n ? P.wr : null, rR: P.rR }) + (!H.n && !jalan.length && !J.semua ? '<p class="jr-ket">Tidak ada trade yang MASUK di periode ini.</p>' : "") +
+    `<div class="jr-angka"><div><span>Tutup</span><b>${H.n}</b>${P ? rwDl(H.n, P.n, 0, "", true) : ""}</div><div><span>WR</span><b>${H.n ? Math.round(H.wr) : 0}%</b>${P && H.n && P.n ? rwDl(H.wr, P.wr, 0, " poin") : ""}</div><div><span>Profit tutup (USDT)</span><b class="${kl(H.tot)}">${f2(H.tot)}</b>${rpSpan(H.tot)}${P ? rwDl(H.tot, P.tot, 2) : ""}</div></div>` +
+    `<div class="jr-angka"><div><span>Jalan</span><b>${jalan.length}</b></div><div><span>Rata/trade</span><b class="${kl(H.rata)}">${f2(H.rata)}</b>${rpSpan(H.rata)}${P ? rwDl(H.rata, P.rata, 2) : ""}</div><div><span>Profit jalan (USDT)</span><b class="${kl(uJ)}">${jalan.length ? f2(uJ) : "—"}</b>${jalan.length ? rpSpan(uJ) : ""}</div></div>` +
+    `<div class="jr-angka"><div><span>Rata R</span><b class="${kl(H.rR)}">${H.rR == null ? "—" : f2(H.rR) + " R"}</b>${P ? rwDl(H.rR, P.rR, 2, " R") : ""}</div><div><span>Profit factor</span><b>${H.pf == null ? "—" : isFinite(H.pf) ? H.pf.toFixed(2) : "∞"}</b></div><div><span>Drawdown maks</span><b class="${H.dd < 0 ? "turun" : ""}">${f2(H.dd)}</b></div></div>` +
     kurvaJ(tutup.map(t => ({ usdt: t.us || 0, keluar: t.keluar || t.masuk, masuk: t.masuk }))) +
     `<div class="rw-maju"><div class="pb"><span>trade</span><div><i style="width:${Math.min(1, H.n / AMBANG_N) * 100}%"></i></div><span>${H.n}/${AMBANG_N}</span></div>` +
     `<div class="pb"><span>waktu</span><div><i style="width:${Math.min(1, bln / AMBANG_BULAN) * 100}%"></i></div><span>${bln.toFixed(1)}/${AMBANG_BULAN} bln</span></div>` +
@@ -4731,6 +4893,7 @@ document.addEventListener("click", e => {
 window.gambarRiwayat = function () {
   const ai = rwSumber === "AI", tf1 = !ai && TF_RW !== "4H", RS = RTF(TF_RW);
   if (window.pmRiwayat) window.pmRiwayat(ai || TF_RW !== "4H");
+  try { rwPerluMuat(); rwCakupTulis(); } catch (e) {}
   $("rwTF").hidden = ai; { const bp = document.querySelector('#rwSumber button[data-v="POLA"]'); if (bp) bp.textContent = "POLA " + TF_RW + " · level chart"; }
   if (tf1 && !RS.t) { $("rwRing").innerHTML = `<div class="kosong memuat">Mengambil lilin ${TF_RW} dari Binance… ${RS.n}/${KOIN.length}</div>`; $("rwPola").innerHTML = ""; $("rwList").innerHTML = ""; $("rwPeriode").hidden = true; if (!RS.memuat) muatTF(TF_RW); return; }
   if (tf1 && Date.now() - RS.t > 3600e3 && !RS.memuat) muatTF(TF_RW);
@@ -4738,13 +4901,13 @@ window.gambarRiwayat = function () {
   try { return gambarRiwayatTF(ai, tf1); } finally { rwMode = m0; }
 };
 // DETAIL RINGKASAN RIWAYAT (2026-10-06, user: "sertakan pf, rr, dan detail lainnya"): Rata R, RR nyata, PF, drawdown, WR impas, terbaik/terburuk
-function rwRingDetail(tutup) {
+function rwRingDetail(tutup, P) {
   const f2 = v => v == null || !isFinite(v) ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
   const T = tutup.map(t => { const rk = t.entry > t.sl && t.sl > 0 ? MODAL_POLA * (t.entry - t.sl) / t.entry : null;
     return { us: t.pnl || 0, R: rk && t.pnl != null ? t.pnl / rk : null, mT: t.masukT, kT: t.keluarT, jam: ((t.keluarT || t.masukT) - t.masukT) / 3600e3, entry: t.entry, sl: t.sl, tp1: t.tp1, tp: t.tp2 }; });
   const H = jnHitung(T); if (!H.n) return "";
   const impas = H.rrN == null ? null : isFinite(H.rrN) ? 100 / (1 + H.rrN) : 0;
-  return `<div class="jr-angka"><div><span>Rata R</span><b class="${kl(H.rR)}">${H.rR == null ? "—" : f2(H.rR) + " R"}</b><span class="rp">per trade</span></div>` +
+  return `<div class="jr-angka"><div><span>Rata R</span><b class="${kl(H.rR)}">${H.rR == null ? "—" : f2(H.rR) + " R"}</b><span class="rp">per trade</span>${P ? rwDl(H.rR, P.rR, 2, " R") : ""}</div>` +
     `<div><span>RR nyata</span><b>${rrTeks(H.rrN)}</b><span class="rp">menang ${H.rRW == null ? "—" : f2(H.rRW) + " R"} · kalah ${H.rRL == null ? "—" : f2(H.rRL) + " R"}</span></div>` +
     `<div><span>Profit factor</span><b class="${H.pf == null ? "" : H.pf >= 1 ? "naik" : "turun"}">${H.pf == null ? "—" : isFinite(H.pf) ? H.pf.toFixed(2) : "∞"}</b><span class="rp">untung ÷ rugi</span></div></div>` +
     `<div class="jr-angka"><div><span>Drawdown maks (USDT)</span><b class="${H.dd < 0 ? "turun" : ""}">${f2(H.dd)}</b>${rpSpan(H.dd)}</div>` +
@@ -4758,10 +4921,12 @@ function gambarRiwayatTF(ai, tf1) {
     : `Hasil per pola <small><span class="hpsj">geser ‹ › untuk pola lain · </span>ketuk untuk melihat trade-nya</small>`;
   $("bandingRw").hidden = true; if (!ai) gambarBanding("bandingRw", true);
   if (ai) return gambarRiwayatAI();
-  const semuaRw = tf1 ? Object.values(RTF(TF_RW).rw) : Object.values(RW);
+  const semuaRw = rwDasarPola(tf1 ? TF_RW : "4H");
   if (rwMode === "maju" && !MAJU_GH.t) ambilMajuGH();
   if (!semuaRw.length && !(rwMode === "maju" && MAJU_GH.rec)) return;
-  const semua = (rwMode === "maju" ? gabungMaju() : semuaRw).filter(t => KODE_TERMINAL.has(t.kode) || LAB_KODE.includes(t.kode));   // 2026-10-06 (user): Riwayat hanya TB/FW/EW + Lab L030/L027 (ST & AT disembunyikan; pengaturan bot tetap)
+  const semuaP = (rwMode === "maju" ? gabungMaju() : semuaRw).filter(t => KODE_TERMINAL.has(t.kode) || LAB_KODE.includes(t.kode));   // 2026-10-06 (user): Riwayat hanya TB/FW/EW + Lab L030/L027 (ST & AT disembunyikan; pengaturan bot tetap)
+  const J = rwJangka(), semua = J.semua ? semuaP : semuaP.filter(t => t.masukT >= J.a && t.masukT < J.b);
+  const P = rwVsAda(J) ? rwStatPola(semuaP.filter(t => t.st !== "jalan" && t.masukT >= J.pa && t.masukT < J.pb)) : null;
   document.querySelectorAll("#rwPeriode button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === rwMode ? "true" : "false"));
   const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
   const tutup = semua.filter(t => t.st !== "jalan"), jalan = semua.filter(t => t.st === "jalan" && !t.luar);
@@ -4770,16 +4935,22 @@ function gambarRiwayatTF(ai, tf1) {
   const totJ = jalan.reduce((a, t) => a + (t.pnl || 0), 0);
   const nGh = rwMode === "maju" ? semua.filter(t => t.gh).length : 0;
   const mulai = rwMode === "maju" ? `2026-09-22 (maju) · ${MAJU_GH.rec ? `${nGh} dari catatan GitHub` : MAJU_GH.galat ? "catatan GitHub gagal dibaca — hanya perangkat ini" : "membaca catatan GitHub…"}` : semua.length ? new Date(Math.min(...semua.map(t => t.masukT))).toISOString().slice(0, 10) : "—";
+  const judulRw = `Riwayat trade pola ${tf1 ? TF_RW : "4H"} <small>${J.semua ? "sejak " + mulai : J.label + (rwMode === "maju" ? " · mode maju" : "")}${tf1 ? " · info saja, bot & alert tetap 4H" : ""}</small>`;
+  if (!semua.length && !J.semua) {
+    $("rwRing").innerHTML = `<div class="jr-kotak"><h3>${judulRw}</h3>` + rwVsHtml(J, P) + `<p class="jr-ket">Tidak ada trade yang MASUK di periode ini. Pilih periode lain atau "Semua".</p></div>`;
+    $("rwPola").innerHTML = ""; $("rwList").innerHTML = ""; RW_TAMPIL = { sumber: "POLA", semua: [], tf: tf1 ? TF_RW : "4H" };
+    rwTabHitung({ semua: 0, jalan: 0, tutup: 0, untung: 0, rugi: 0 }); return;
+  }
   if (!semua.length) {
     $("rwRing").innerHTML = `<div class="jr-kotak"><h3>Pemantauan maju <small>sejak 22-09-2026</small></h3><p class="jr-ket">Belum ada pola 4H yang valid sejak 22-09-2026. Trade akan muncul di sini begitu pola baru lahir, dan dicatat terus sampai tiap pola punya ≥ 30 trade dalam ≥ 6 bulan.</p></div>`;
     $("rwPola").innerHTML = ""; $("rwList").innerHTML = ""; return;
   }
   const kurva = kurvaJ(tutup.map(t => ({ usdt: t.pnl, keluar: new Date(t.keluarT || t.masukT).toISOString(), masuk: "" })));
-  $("rwRing").innerHTML = `<div class="jr-kotak"><h3>Riwayat trade pola ${tf1 ? TF_RW : "4H"} <small>sejak ${mulai}${tf1 ? " · info saja, bot & alert tetap 4H" : ""}</small></h3>` +
-    `<div class="jr-angka"><div><span>Tutup</span><b>${tutup.length}</b></div><div><span>WR</span><b>${tutup.length ? Math.round(menang / tutup.length * 100) : 0}%</b></div>` +
-    `<div><span>Profit tutup (USDT)</span><b class="${kl(tot)}">${f2(tot)}</b>${rpSpan(tot)}</div></div>` +
-    `<div class="jr-angka"><div><span>Jalan</span><b>${jalan.length}</b></div><div><span>Rata/trade</span><b class="${kl(tot)}">${tutup.length ? f2(tot / tutup.length) : "—"}</b>${tutup.length ? rpSpan(tot / tutup.length) : ""}</div>` +
-    `<div><span>Profit jalan (USDT)</span><b class="${kl(totJ)}">${f2(totJ)}</b>${rpSpan(totJ)}</div></div>` + rwRingDetail(tutup) + kurva + kursKet() + `</div>`;
+  $("rwRing").innerHTML = `<div class="jr-kotak"><h3>${judulRw}</h3>` + rwVsHtml(J, P) +
+    `<div class="jr-angka"><div><span>Tutup</span><b>${tutup.length}</b>${P ? rwDl(tutup.length, P.n, 0, "", true) : ""}</div><div><span>WR</span><b>${tutup.length ? Math.round(menang / tutup.length * 100) : 0}%</b>${P && tutup.length && P.n ? rwDl(menang / tutup.length * 100, P.wr, 0, " poin") : ""}</div>` +
+    `<div><span>Profit tutup (USDT)</span><b class="${kl(tot)}">${f2(tot)}</b>${rpSpan(tot)}${P ? rwDl(tot, P.tot, 2) : ""}</div></div>` +
+    `<div class="jr-angka"><div><span>Jalan</span><b>${jalan.length}</b></div><div><span>Rata/trade</span><b class="${kl(tot)}">${tutup.length ? f2(tot / tutup.length) : "—"}</b>${tutup.length ? rpSpan(tot / tutup.length) : ""}${P && tutup.length ? rwDl(tot / tutup.length, P.rata, 2) : ""}</div>` +
+    `<div><span>Profit jalan (USDT)</span><b class="${kl(totJ)}">${f2(totJ)}</b>${rpSpan(totJ)}</div></div>` + rwRingDetail(tutup, P) + kurva + kursKet() + `</div>`;
   // ---- PER POLA (2026-09-22, "riwayat per pola agar tau mana yang lebih menghasilkan")
   const per = {};
   const dapat = nm => per[nm] = per[nm] || { n: 0, m: 0, u: 0, tp2: 0, be: 0, sl: 0, jalan: 0, uJalan: 0, win: 0, loss: 0, seq: [] };
@@ -5014,10 +5185,13 @@ setInterval(() => { if (halAktif === "Riwayat") window.gambarRiwayat(); }, 5000)
   }
   function tradeDari(sumber, c, ex) {
     const D = sumber === "maju" ? PM.maju : PM.rw, L = sumber === "maju" ? (c.trade || {})[ex] : (c[ex] || {}).trade;
-    return (L || []).map(r => keTrade(D, c, ex, r, sumber));
+    const T = (L || []).map(r => keTrade(D, c, ex, r, sumber));
+    if (sumber !== "rw") return T;
+    const J = rwJangka(); return J.semua ? T : T.filter(t => t.mT >= J.a && t.mT < J.b);   // KANDIDAT ikut saringan periode Riwayat (2026-10-07)
   }
   function kartu(sumber, c, ex, ring, nomor) {
     const T = tradeDari(sumber, c, ex), tt = T.filter(t => !t.terbuka), H = jnHitung(tt), jalan = T.length - tt.length;
+    if (sumber === "rw" && !rwJangka().semua) { const Rs = tt.filter(t => t.R != null); ring = { n: Rs.length, total: Rs.reduce((a, t) => a + t.R, 0), bulan: null }; }
     const seq = tt.slice().sort((a, b) => (a.kT || a.mT) - (b.kT || b.mT)).map(t => t.us || 0);
     const bt = c.backtest || null, k10 = bt && bt.konf10 ? bt.konf10[ex] : null;
     const btTeks = sumber === "maju"
@@ -5062,12 +5236,12 @@ setInterval(() => { if (halAktif === "Riwayat") window.gambarRiwayat(); }, 5000)
       if (PM.kunciRw !== t) { PM.kunciRw = t; $("pmRwKartu").innerHTML = '<div class="kosong' + (PM.galatRw ? "" : " memuat") + '">' + t + "</div>"; }
       return;
     }
-    const D = PM.rw, kunci = pmExit + "|" + D.diperbarui + "|" + (KURS.idr || 0) + "|" + (TAMPIL.rp === false);
+    const D = PM.rw, JP = rwJangka(), kunci = pmExit + "|" + D.diperbarui + "|" + (KURS.idr || 0) + "|" + (TAMPIL.rp === false) + "|" + JP.label;
     if (PM.kunciRw === kunci) return;
     PM.kunciRw = kunci;
     $("pmRwKartu").innerHTML = D.kandidat.map((c, i) => kartu("rw", c, pmExit, (c[pmExit] || {}).ring, i + 1)).join("");
     $("pmRwKet").innerHTML = "Backtest " + tglU(Date.parse(D.mulai)) + " s/d " + jamLokal(Date.parse(D.lilinTutupTerakhir)) + " · " + D.koin + " koin 4H · satu posisi per koin · " + (D.exit[pmExit] || "") +
-      " Dihitung laptop dengan mesin yang sama dengan pemantau (diperbarui sekali sehari). Kandidat dipilih dari data yang ikut mencakup periode ini, jadi angka ini <b>bukan bukti baru</b> dan <b>bukan sinyal bot</b>. Status = hasil pantau maju.";
+      " Dihitung laptop dengan mesin yang sama dengan pemantau (diperbarui sekali sehari). Kandidat dipilih dari data yang ikut mencakup periode ini, jadi angka ini <b>bukan bukti baru</b> dan <b>bukan sinyal bot</b>. Status = hasil pantau maju." + (JP.semua ? "" : " <b>Disaring periode: " + JP.label + "</b> (waktu masuk; data kandidat hanya 12 bulan terakhir).");
   };
   function bandingHtml(c, ex) {
     const baris = (nm, x) => x && x.n ? "<tr><td>" + nm + "</td><td>" + x.n + "</td><td>" + (x.bulan || "—") + "</td><td>" + pcT(x.wr) + '</td><td class="' + kl(x.rata) + '">' + f2(x.rata) + "</td><td>" + (x.pf == null ? "—" : x.pf.toFixed(2)) + "</td></tr>"
