@@ -32,6 +32,12 @@ const atrArr = (h, l, c, n = 14) => {
 // tombol/perintah Telegram (/menuju, /baru) bisa menjawab sekali klik. Kode pola & aturan TP sama dengan aplikasi.
 const TP_A = { FW: [1.5, null], ST: [1.5, 2], AT: [1, null], TB: [1.5, 3] };
 const KODE_OK = new Set(Object.keys(TP_A));
+// 2026-10-07 (user: "ketika cek disini semua hanya yang terpasang di bot"): menuju/baru hanya pola bot — TB, FW bila garis MACD 4H > 0
+// (= worker macdGaris4h), + sinyal L027/L030 baru (notif/sinyal_lab.cjs). ST/AT tidak dikirim. TB murni: tanpa TP1 (tp1 null).
+const KODE_BOT = new Set(["TB", "FW"]);
+const LAB = require("./sinyal_lab.cjs");
+function macdDi(c, i) { const a = c.slice(Math.max(0, i - 298), i + 1); if (a.length < 120) return null;
+  const ema = n => { let e = a.slice(0, n).reduce((x, y) => x + y, 0) / n; const k = 2 / (n + 1); for (let q = n; q < a.length; q++) e = a[q] * k + e * (1 - k); return e; }; return ema(12) - ema(26); }
 (async () => {
   const sekarang = Date.now(), koin = [], gagal = [], menuju = [], baru = [];
   let dicek = 0;
@@ -40,20 +46,25 @@ const KODE_OK = new Set(Object.keys(TP_A));
     if (!Array.isArray(j)) { gagal.push(k + "USDT"); continue; }
     const b = j.filter(x => +x[6] < sekarang);                                  // buang lilin berjalan
     if (b.length < 200 || sekarang - +b[b.length - 1][6] > 3 * BAR) continue;   // koin baru / basi / delisting
-    const d = { t: b.map(x => +x[0]), o: b.map(x => +x[1]), h: b.map(x => +x[2]), l: b.map(x => +x[3]), c: b.map(x => +x[4]) };
+    const d = { t: b.map(x => +x[0]), o: b.map(x => +x[1]), h: b.map(x => +x[2]), l: b.map(x => +x[3]), c: b.map(x => +x[4]), v: b.map(x => +x[5]) };
     const A = atrArr(d.h, d.l, d.c);
     dicek++;
     try {   // menuju valid & baru valid (tidak boleh menjatuhkan alur Elliott bila gagal)
-      const ev = peristiwa(d, A, { setupAkhir: true, calonAkhir: true }) || [], nn = d.c.length, hg = d.c[nn - 1];
-      for (const st of (ev.setup || [])) if (KODE_OK.has(st.kode) && st.level > 0 && st.batal > 0 && hg > st.batal && st.level / hg - 1 <= 0.15)
+      const ev = peristiwa(d, A, { setupAkhir: true, calonAkhir: true }) || [], nn = d.c.length, hg = d.c[nn - 1], macdKini = macdDi(d.c, nn - 1);
+      const okBot = (kode, m) => KODE_BOT.has(kode) && (kode !== "FW" || m > 0);
+      for (const st of (ev.setup || [])) if (okBot(st.kode, macdKini) && st.level > 0 && st.batal > 0 && hg > st.batal && st.level / hg - 1 <= 0.15)
         menuju.push({ sym: k + "USDT", jenis: "SETUP", nama: st.nama, kode: st.kode, level: st.level, batal: st.batal, tinggi: st.tinggi || 0, umur: st.umur, sisa: st.sisa });
-      for (const st of (ev.calon || [])) if (KODE_OK.has(st.kode) && st.level > 0 && st.batal > 0 && hg > st.batal && st.level / hg - 1 <= 0.15)
+      for (const st of (ev.calon || [])) if (okBot(st.kode, macdKini) && st.level > 0 && st.batal > 0 && hg > st.batal && st.level / hg - 1 <= 0.15)
         menuju.push({ sym: k + "USDT", jenis: "CALON", nama: st.nama, kode: st.kode, level: st.level, batal: st.batal, tinggi: st.tinggi || 0, sahP: st.sahP });
-      for (const e of ev) { if (!KODE_OK.has(e.kode) || nn - 1 - e.i > 6) continue;
+      for (const e of ev) { if (!okBot(e.kode, e.kode === "FW" ? macdDi(d.c, e.i) : 0) || nn - 1 - e.i > 6) continue;
         const E = d.c[e.i], sl = e.batal, R = E - sl; if (!(R > 0) || !(sl > 0)) continue;
         const [a1, t2] = TP_A[e.kode], tpBuku = e.level + e.tinggi, tp2 = t2 ? E + t2 * R : tpBuku; let tp1 = E + a1 * R; if (tp1 >= tp2) tp1 = E + 0.5 * (tp2 - E);
-        let mati = false; for (let q = e.i + 1; q < nn; q++) { if (d.l[q] <= sl || d.h[q] >= tp1) { mati = true; break; } }
-        if (!mati) baru.push({ sym: k + "USDT", nama: e.nama, kode: e.kode, umur: nn - 1 - e.i, entry: E, sl, tp1, tp2 }); }
+        const murni = e.kode === "TB";   // TB murni: hanya SL yang mematikan, tanpa TP1/TP2
+        let mati = false; for (let q = e.i + 1; q < nn; q++) { if (d.l[q] <= sl || (!murni && d.h[q] >= tp1)) { mati = true; break; } }
+        if (!mati) baru.push({ sym: k + "USDT", nama: e.nama, kode: e.kode, umur: nn - 1 - e.i, entry: E, sl, tp1: murni ? null : tp1, tp2: murni ? null : tp2 }); }
+      const LS = LAB.sinyalLab(d) || {};   // L027/L030: sinyal <= 6 lilin, posisi masih jalan & belum TP1
+      for (const kode of LAB.LAB_KODE) { const t = (LS[kode] || []).slice(-1)[0], i = t ? d.t.indexOf(t.masukT) : -1;
+        if (t && i >= 0 && nn - 1 - i <= 6 && t.st === "jalan" && !t.kenaTp1) baru.push({ sym: k + "USDT", nama: LAB.LAB_NAMA[kode] || kode, kode, umur: nn - 1 - i, entry: t.entry, sl: t.sl, tp1: t.tp1, tp2: null }); }
     } catch (e) { /* abaikan */ }
     let S; try { S = elliott(d, A, MX_4H).setup; } catch (e) { gagal.push(k + "USDT"); continue; }
     if (!S) continue;
