@@ -1708,12 +1708,13 @@ async function muatKoin(k) {
   if (d.harga == null) d.harga = c[c.length - 1];
   d.ok = true; d.gagal = false; d.pendek = d.ema == null;   // < 200 lilin: EMA200 belum ada
   // koin basi (delisting): lilin terakhir > 12 jam lalu -> jangan dinilai
-  if (sekarang - +b[b.length - 1][6] > 12 * 3600e3) { d.ok = false; d.gagal = true; d.basi = true; d.pola = null; d.lab = null; return; }
+  if (sekarang - +b[b.length - 1][6] > 12 * 3600e3) { d.ok = false; d.gagal = true; d.basi = true; d.pola = null; d.lab = null; d.calon = null; return; }
   try {
     const dd = { t: b.map(x => +x[0]), o: b.map(x => +x[1]), h, l, c, v: b.map(x => +x[5]) };
     // 2026-10-06 (user): kolom pola Terminal hanya TB / FW / EW. Riwayat & pengaturan bot TIDAK diubah (tetap semua jenis).
     d.riwayat = polaSemua(dd); d.pola = polaTerakhir(dd, d.riwayat.filter(t => KODE_TERMINAL.has(t.kode)));
     try { d.lab = sinyalLab(dd); } catch (e) { d.lab = null; }
+    try { d.calon = calonLab(dd); } catch (e) { d.calon = null; }   // 2026-10-07: calon L027/L030 (pantauan sebelum valid)
     // LIMIT ELLIOTT MENUNGGU (2026-09-23): aturan sama dgn bot & Telegram (elliott(), 4H mx 2.5)
     d.ew = null;
     try { const S = window.PolaDC && window.PolaDC.elliott ? window.PolaDC.elliott(dd, atrArr(dd.h, dd.l, dd.c), 2.5).setup : null;
@@ -1855,6 +1856,33 @@ function sinyalLab(d, mx) {
   }
   return out;
 }
+// CALON L027 / L030 (2026-10-07, user: "tanda-tanda sebelum dikatakan valid ... meninjau lebih awal"). Dinilai di lilin 4H TUTUP terakhir.
+// HANYA PANTAUAN: bot tetap masuk saat sinyal VALID (masuk lebih awal belum diuji). Rumus syarat sama dengan sinyalLab().
+//   L027: lilin terakhir INSIDE BAR & RSI14 < 35 (lilin pemicu tutup naik -> RSI-nya lebih tinggi, jadi < 35 tidak membuang sinyal) -> valid bila lilin berikut TUTUP > high inside bar, RSI14 < 35, volume >= 1.5 x EMA20 volume
+//   L030: setup TB/FW hidup & AO masih <= 0 & level pemicu <= 5% di atas close -> valid bila AO menyeberang 0 (butuh (H+L)/2 lilin berikut >= level) + Stoch %K > %D & %K < 80
+// SL perkiraan = low 4 lilin terakhir - 0.5 ATR (yang sebenarnya dihitung ulang di lilin sinyal).
+function calonLab(d, mx) {
+  const n = d.c.length, i = n - 1, out = []; if (n < 60) return out;
+  const A = atrArr(d.h, d.l, d.c);
+  { const x = []; for (let q = 20; q < n; q++) if (A[q]) x.push(A[q] / d.c[q]); x.sort((a, b) => a - b); if (!x.length || x[x.length >> 1] < 0.002) return out; }
+  const hl2 = d.h.map((h, q) => (h + d.l[q]) / 2), s5 = smaLab(hl2, 5), s34 = smaLab(hl2, 34);
+  const ao = s5.map((v, q) => v != null && s34[q] != null ? v - s34[q] : null);
+  const k0 = d.c.map((c, q) => { if (q < 13) return null; let H = -Infinity, L = Infinity; for (let z = q - 13; z <= q; z++) { H = Math.max(H, d.h[z]); L = Math.min(L, d.l[z]); } return H > L ? 100 * (c - L) / (H - L) : 50; });
+  const K = smaLab(k0, 3), D = smaLab(K, 3), RS = rsiLab(d.c, 14), VE = emaArr(d.v, 20);
+  let lo = Infinity; for (let q = i - 3; q <= i; q++) lo = Math.min(lo, d.l[q]);
+  const sl = A[i] ? lo - 0.5 * A[i] : null;
+  if (d.h[i] < d.h[i - 1] && d.l[i] > d.l[i - 1] && RS[i] != null && RS[i] < 35 && sl > 0)
+    out.push({ kode: "L027", nama: "Calon L027", level: d.h[i], sl, ket: "inside bar · RSI " + RS[i].toFixed(0) + (VE[i] ? " · butuh volume ≥ " + (1.5 * VE[i]).toPrecision(3) : ""), t: d.t[i] });
+  let akt = null; try { akt = window.PolaDC.peristiwa(d, A, { mx: mx > 0 ? mx : 2.5, aktifPerBar: true }).aktif || null; } catch (e) { akt = null; }
+  const pola = akt ? [...new Set((akt[i] || []).filter(k => LAB_POLA.has(k)))] : [];
+  if (pola.length && ao[i] != null && ao[i] <= 0 && sl > 0) {
+    let s4 = 0, s33 = 0; for (let q = i - 3; q <= i; q++) s4 += hl2[q]; for (let q = i - 32; q <= i; q++) s33 += hl2[q];
+    const level = (s33 / 34 - s4 / 5) / (1 / 5 - 1 / 34);
+    if (level > 0 && level <= d.c[i] * 1.05) out.push({ kode: "L030", nama: "Calon L030 (setup " + pola.map(k => KODE_POLA[k] || k).join(" + ") + ")", level, sl,
+      ket: "AO " + (ao[i] / d.c[i] * 100).toFixed(2) + "% " + (ao[i] > ao[i - 1] ? "naik" : "turun") + " ke 0 · Stoch " + (K[i] != null && D[i] != null ? (K[i] > D[i] ? "%K>%D ✓" : "%K<%D") : "—"), t: d.t[i] });
+  }
+  return out;
+}
 // trade Lab dalam bentuk Riwayat (sama dengan simTrade): real = USDT yang sudah terealisasi dari 1000, sisa = bagian posisi yang masih jalan
 function labKeRw(t) {
   const N = MODAL_POLA, e = t.entry, r1 = t.kenaTp1 ? 0.5 * N * (t.tp1 / e - 1) : 0;
@@ -1866,7 +1894,8 @@ function labKeRw(t) {
 const LAB_UMUR_TAMPIL = 6;   // sinyal Lab yang sudah tutup tetap tampil 6 lilin 4H (1 hari) supaya hasilnya terlihat
 const rLab = (t, harga) => t.st !== "jalan" ? t.R : harga ? (t.kenaTp1 ? 0.75 + 0.5 * (harga - t.entry) / (t.entry - t.sl) : (harga - t.entry) / (t.entry - t.sl)) - t.kom : null;
 function chipLab(r) {
-  return (r.lab || []).map(t => {
+  const calon = (r.calon || []).map(x => `<span class="chip lab tutup" title="${x.nama} · ${x.ket} · pemicu ${fHarga(x.level)}${x.kode === "L030" ? " ((H+L)/2 lilin 4H berikut)" : " (tutup di atas)"} · SL perkiraan ${fHarga(x.sl)} · PANTAUAN, bot masuk hanya saat sinyal valid">⏳ calon ${x.kode}</span>`).join("");
+  return calon + (r.lab || []).map(t => {
     const R = rLab(t, r.harga), Rt = R == null ? "" : " " + (R >= 0 ? "+" : "") + R.toFixed(2) + "R";
     const ket = t.st === "jalan" ? (t.kenaTp1 ? "jalan 50%" : "jalan") : (t.R > 0 ? "tutup ✓" : "tutup ✗");
     const tip = `${t.nama}${t.pola ? " (setup " + t.pola + ")" : ""} · ${jamLokal(t.masukT + 4 * 3600e3)} · entry ${fHarga(t.entry)} · SL ${fHarga(t.sl)} · TP1 ${fHarga(t.tp1)} (1.5R, 50%) lalu trailing 15% · ` +
@@ -1964,6 +1993,7 @@ function baris(k) {
   // sinyal Lab terakhir per aturan: tampil selama jalan, atau sampai LAB_UMUR_TAMPIL lilin sesudah tutup
   r.lab = LAB_KODE.map(k => { const T = (d.lab && d.lab[k]) || []; return T[T.length - 1] || null; })
     .filter(t => t && (t.st === "jalan" || (t.keluarT != null && Date.now() - (t.keluarT + 4 * 3600e3) <= LAB_UMUR_TAMPIL * 4 * 3600e3)));
+  r.calon = (d.calon || []).filter(x => !r.lab.some(t => t.kode === x.kode && t.st === "jalan"));   // calon tidak ditampilkan bila sinyal kode itu sedang jalan
   return r;
 }
 const ZNAMA = { fib: "Pita FIB", dalam: "Dalam", bawah: "Di bawah", atas: "Di atas", nd: "—" };
@@ -2179,6 +2209,7 @@ function gambarHP(rs) {
       `<span>RSI 4H <b>${r.rsi == null ? "—" : r.rsi.toFixed(0)}</b></span>` +
       `<span>Likuid <b>${fUsd(r.q)}</b></span>` +
       (r.ew ? `<span style="grid-column:1/-1">⏳ Limit Elliott <b>${fHarga(r.ew.level)}</b> · SL ${fHarga(r.ew.sl)} · sisa trailing 15% · sisa ${r.ew.sisa} lilin</span>` : "") +
+      (r.calon || []).map(x => `<span style="grid-column:1/-1">⏳ <b>${x.nama}</b> · ${x.ket} · pemicu <b>${fHarga(x.level)}</b>${x.kode === "L030" ? " ((H+L)/2 lilin berikut)" : " (tutup di atas)"} · SL perk. <b>${fHarga(x.sl)}</b> · <i>pantauan, belum sinyal</i></span>`).join("") +
       (r.lab || []).map(t => `<span style="grid-column:1/-1">🧪 <b>${t.kode}</b>${t.pola ? " (setup " + t.pola + ")" : ""} · Entry <b>${fHarga(t.entry)}</b> · SL <b>${fHarga(t.sl)}</b> · TP1 <b>${fHarga(t.tp1)}${t.kenaTp1 ? " ✓" : ""}</b> → sisa trailing 15%${t.st === "jalan" ? (t.kenaTp1 ? " · stop kini " + fHarga(t.stop) : "") + " · sisa " + t.sisaBar + " lilin" : " · " + t.sebab + " di " + fHarga(t.keluarPx)}</span>`).join("") +
       `<a href="${url}" target="_blank" rel="noopener">Buka chart 4H di TradingView →</a></div>`;
     const dK = data[r.koin] || {};
