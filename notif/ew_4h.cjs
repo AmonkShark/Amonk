@@ -65,6 +65,8 @@ function macdDi(c, i) { const a = c.slice(Math.max(0, i - 298), i + 1); if (a.le
       const LS = LAB.sinyalLab(d) || {};   // L027/L030: sinyal <= 6 lilin, posisi masih jalan & belum TP1
       for (const kode of LAB.LAB_KODE) { const t = (LS[kode] || []).slice(-1)[0], i = t ? d.t.indexOf(t.masukT) : -1;
         if (t && i >= 0 && nn - 1 - i <= 6 && t.st === "jalan" && !t.kenaTp1) baru.push({ sym: k + "USDT", nama: LAB.LAB_NAMA[kode] || kode, kode, umur: nn - 1 - i, entry: t.entry, sl: t.sl, tp1: t.tp1, tp2: null }); }
+      // 2026-10-07: CALON L027/L030 (tanda sebelum valid, PANTAUAN saja) -> tombol 🔍 Menuju valid bagian CALON; level = harga pemicu, batal = SL perkiraan
+      for (const x of LAB.calonLab(d) || []) menuju.push({ sym: k + "USDT", jenis: "CALON", nama: x.nama + " · " + x.ket, kode: x.kode, level: x.level, batal: x.sl, tinggi: 0 });
     } catch (e) { /* abaikan */ }
     let S; try { S = elliott(d, A, MX_4H).setup; } catch (e) { gagal.push(k + "USDT"); continue; }
     if (!S) continue;
