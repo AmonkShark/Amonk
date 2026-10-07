@@ -4780,8 +4780,12 @@ async function rwMuatLebih(tf, target) {
   if (halAktif === "Riwayat") window.gambarRiwayat();
 }
 function rwDasarPola(tf) {
-  const base = tf === "4H" ? RW : RTF(tf).rw, X = RW_EXT[tf], out = Object.values(base);
+  const base = tf === "4H" ? RW : RTF(tf).rw, X = RW_EXT[tf];
+  // 2026-10-08 (kartu EW 377 / +5782 vs pop-up 376 / +6218): trade "luar" = simpanan lama di luar jendela hitung sekarang (bisa dari aturan lama).
+  // Bila sejarah panjang (RW_EXT) sudah dihitung ulang untuk masa itu, simpanan lama tsb dibuang supaya tidak dobel / tidak memakai aturan lama.
+  let out = Object.values(base);
   if (!X || X.siap == null) return out;
+  out = out.filter(t => !(t.luar && t.masukT >= X.siap));
   const awal = {}; let g = Infinity;
   for (const t of out) if (!t.luar) { if (awal[t.koin] == null || t.masukT < awal[t.koin]) awal[t.koin] = t.masukT; if (t.masukT < g) g = t.masukT; }
   for (const [kk, t] of Object.entries(X.rw)) if (!(kk in base) && t.masukT < (awal[t.koin] ?? g)) out.push(t);
@@ -5256,7 +5260,7 @@ function grupPopupHtmlDasar(T, perKoin, kls) {
       `<div class="ha"><b class="${kl(t.us)}">${f2(t.us)}</b><span class="rp">${t.R == null ? "" : f2(t.R) + " R"}</span></div></div>`).join("");
 }
 function rwPopupGrup(nilai) {
-  const S = RW_TAMPIL.sumber, T = RW_TAMPIL.semua.map(t => rwNorm(t, S)).filter(t => t.grupPola === nilai && !t.luar).sort((a, b) => b.mT - a.mT);
+  const S = RW_TAMPIL.sumber, T = RW_TAMPIL.semua.map(t => rwNorm(t, S)).filter(t => t.grupPola === nilai && !(t.luar && t.terbuka)).sort((a, b) => b.mT - a.mT);
   popupTampil(`${nilai} <small>${S === "AI" ? "AI 4H" : LAB_KODE.some(k => nilai.startsWith(k)) ? "LAB " + (RW_TAMPIL.tf || "4H") + " · simulasi" : "POLA " + (RW_TAMPIL.tf || "4H")}</small>`, grupPopupHtml(T, S === "POLA", "popup-baris"), false);
 }
 function rwPopupTrade(kunci, dariGrup) {
