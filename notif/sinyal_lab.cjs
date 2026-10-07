@@ -66,6 +66,33 @@ function sinyalLab(d, mx) {
   }
   return out;
 }
+// CALON L027 / L030 (2026-10-07, user: "tanda-tanda sebelum dikatakan valid ... meninjau lebih awal"). Dinilai di lilin 4H TUTUP terakhir.
+// HANYA PANTAUAN: bot tetap masuk saat sinyal VALID (masuk lebih awal belum diuji). Rumus syarat sama dengan sinyalLab().
+//   L027: lilin terakhir INSIDE BAR & RSI14 < 35 (lilin pemicu tutup naik -> RSI-nya lebih tinggi, jadi < 35 tidak membuang sinyal) -> valid bila lilin berikut TUTUP > high inside bar, RSI14 < 35, volume >= 1.5 x EMA20 volume
+//   L030: setup TB/FW hidup & AO masih <= 0 & level pemicu <= 5% di atas close -> valid bila AO menyeberang 0 (butuh (H+L)/2 lilin berikut >= level) + Stoch %K > %D & %K < 80
+// SL perkiraan = low 4 lilin terakhir - 0.5 ATR (yang sebenarnya dihitung ulang di lilin sinyal).
+function calonLab(d, mx) {
+  const n = d.c.length, i = n - 1, out = []; if (n < 60) return out;
+  const A = atrArr(d.h, d.l, d.c);
+  { const x = []; for (let q = 20; q < n; q++) if (A[q]) x.push(A[q] / d.c[q]); x.sort((a, b) => a - b); if (!x.length || x[x.length >> 1] < 0.002) return out; }
+  const hl2 = d.h.map((h, q) => (h + d.l[q]) / 2), s5 = smaLab(hl2, 5), s34 = smaLab(hl2, 34);
+  const ao = s5.map((v, q) => v != null && s34[q] != null ? v - s34[q] : null);
+  const k0 = d.c.map((c, q) => { if (q < 13) return null; let H = -Infinity, L = Infinity; for (let z = q - 13; z <= q; z++) { H = Math.max(H, d.h[z]); L = Math.min(L, d.l[z]); } return H > L ? 100 * (c - L) / (H - L) : 50; });
+  const K = smaLab(k0, 3), D = smaLab(K, 3), RS = rsiLab(d.c, 14), VE = emaArr(d.v, 20);
+  let lo = Infinity; for (let q = i - 3; q <= i; q++) lo = Math.min(lo, d.l[q]);
+  const sl = A[i] ? lo - 0.5 * A[i] : null;
+  if (d.h[i] < d.h[i - 1] && d.l[i] > d.l[i - 1] && RS[i] != null && RS[i] < 35 && sl > 0)
+    out.push({ kode: "L027", nama: "Calon L027", level: d.h[i], sl, ket: "inside bar · RSI " + RS[i].toFixed(0) + (VE[i] ? " · butuh volume ≥ " + (1.5 * VE[i]).toPrecision(3) : ""), t: d.t[i] });
+  let akt = null; try { akt = window.PolaDC.peristiwa(d, A, { mx: mx > 0 ? mx : 2.5, aktifPerBar: true }).aktif || null; } catch (e) { akt = null; }
+  const pola = akt ? [...new Set((akt[i] || []).filter(k => LAB_POLA.has(k)))] : [];
+  if (pola.length && ao[i] != null && ao[i] <= 0 && sl > 0) {
+    let s4 = 0, s33 = 0; for (let q = i - 3; q <= i; q++) s4 += hl2[q]; for (let q = i - 32; q <= i; q++) s33 += hl2[q];
+    const level = (s33 / 34 - s4 / 5) / (1 / 5 - 1 / 34);
+    if (level > 0 && level <= d.c[i] * 1.05) out.push({ kode: "L030", nama: "Calon L030 (setup " + pola.map(k => KODE_POLA[k] || k).join(" + ") + ")", level, sl,
+      ket: "AO " + (ao[i] / d.c[i] * 100).toFixed(2) + "% " + (ao[i] > ao[i - 1] ? "naik" : "turun") + " ke 0 · Stoch " + (K[i] != null && D[i] != null ? (K[i] > D[i] ? "%K>%D ✓" : "%K<%D") : "—"), t: d.t[i] });
+  }
+  return out;
+}
 // trade Lab dalam bentuk Riwayat (sama dengan simTrade): real = USDT yang sudah terealisasi dari 1000, sisa = bagian posisi yang masih jalan
 function labKeRw(t) {
   const N = MODAL_POLA, e = t.entry, r1 = t.kenaTp1 ? 0.5 * N * (t.tp1 / e - 1) : 0;
@@ -75,4 +102,4 @@ function labKeRw(t) {
   return { nama: t.nama, kode: t.kode, masukT: t.masukT, keluarT: t.keluarT, entry: e, sl: t.sl, tp1: t.tp1, tp2: null, st, kenaTp1: t.kenaTp1, sisa: 0, real, keluarPx: px };
 }
 
-module.exports = { sinyalLab, LAB_KODE, LAB_NAMA };
+module.exports = { sinyalLab, calonLab, LAB_KODE, LAB_NAMA };
