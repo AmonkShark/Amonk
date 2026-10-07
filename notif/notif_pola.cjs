@@ -158,6 +158,12 @@ async function ambilModal() {
   }
   return MODAL_CADANGAN > 0 ? { modal: MODAL_CADANGAN, sumber: "MODAL_USDT" } : null;
 }
+// SIMULASI 1000 USDT (2026-10-08, user: channel tanpa uang bot — "ganti semuanya dengan modal 1000 usdt"): baris ukuran untuk tujuan PUBLIK
+function simTeks(L) {
+  if (!(L && L.entry > L.sl && L.sl > 0)) return "";
+  const rugi = 1000 * (L.entry - L.sl) / L.entry + 2, tp1 = L.tp1 > L.entry && !L.murni ? 500 * (L.tp1 / L.entry - 1) : null;
+  return `💵 Simulasi 1000 USDT: rugi bila SL <b>−${angka(rugi, 2)} USDT</b>${tp1 != null ? ` · untung di TP1 (50%) <b>+${angka(tp1, 2)} USDT</b>` : ""}\n`;
+}
 function ukuranTeks(L, M) {
   if (!M) return `📏 Ukuran: isi secret AKUN_URL + SANDI_APP (atau MODAL_USDT) untuk ukuran posisi otomatis\n`;
   let qty, nilai, batas = false;
@@ -248,16 +254,16 @@ function pesanLab(k, t, jenis) {
   const kepala = `<b>AMONK SINYAL · ${PERINGKAT(t.kode)} ${esc(t.kode)}${jenis === "BARU" ? "" : " · UPDATE"}</b>\n💰 <b>${esc(k)}/USDT</b> · 4H · ${esc(t.nama)}${t.pola ? " (setup " + esc(t.pola) + ")" : ""}\n`;
   const R = jenis === "TUTUP" ? t.R : null;
   const isi = jenis === "BARU"
-    ? `✅ Entry: <b>${fx(t.entry)}</b> (close lilin sinyal)\n🛑 SL: <b>${fx(t.sl)}</b> (${pc(t.sl, t.entry)}) · low 5 lilin − 0,5 ATR\n🎯 TP1: <b>${fx(t.tp1)}</b> (${pc(t.tp1, t.entry)}) · 1,5R, ambil 50%\n🔁 Sisa: trailing 15% dari high tertinggi (stop tidak di bawah SL), batas 120 lilin 4H\n🕒 sinyal ${wib(t.masukT + 4 * 3600e3)}\n`
-    : jenis === "TP1" ? `🎯 <b>TP1 TERCAPAI</b> di ${fx(t.tp1)} (${pc(t.tp1, t.entry)})\n👉 Ambil 50%; sisa trailing 15% dari high tertinggi (stop kini ${fx(t.stop)})\n`
-    : `📕 <b>TUTUP</b>: ${esc(t.sebab)} di ${fx(t.keluarPx)} (${pc(t.keluarPx, t.entry)})\n📊 Hasil: <b>${R >= 0 ? "+" : ""}${R.toFixed(2)} R</b> (sesudah biaya)${t.kenaTp1 ? " · 50% sudah diambil di TP1" : ""}\n`;
-  return kepala + isi + `<i>Dipakai bot (${PERINGKAT(t.kode)}). Belum terbukti — dipantau maju.</i>\n\n` + tautan(k, "4H");
+    ? `✅ Entry: <b>${fx(t.entry)}</b> (close lilin sinyal)\n🛑 SL: <b>${fx(t.sl)}</b> (${pc(t.sl, t.entry)}) · low 5 lilin − 0,5 ATR\n🎯 TP1: <b>${fx(t.tp1)}</b> (${pc(t.tp1, t.entry)}) · 1,5R, ambil 50%\n${simTeks({ entry: t.entry, sl: t.sl, tp1: t.tp1 })}🔁 Sisa: trailing 15% dari high tertinggi (stop tidak di bawah SL), batas 120 lilin 4H\n🕒 sinyal ${wib(t.masukT + 4 * 3600e3)}\n`
+    : jenis === "TP1" ? `🎯 <b>TP1 TERCAPAI</b> di ${fx(t.tp1)} (${pc(t.tp1, t.entry)})\n💵 Simulasi 1000 USDT: <b>+${angka(500 * (t.tp1 / t.entry - 1), 2)} USDT</b> terkunci (50%)\n👉 Ambil 50%; sisa trailing 15% dari high tertinggi (stop kini ${fx(t.stop)})\n`
+    : `📕 <b>TUTUP</b>: ${esc(t.sebab)} di ${fx(t.keluarPx)} (${pc(t.keluarPx, t.entry)})\n📊 Hasil: <b>${R >= 0 ? "+" : ""}${R.toFixed(2)} R</b> (sesudah biaya)${t.kenaTp1 ? " · 50% sudah diambil di TP1" : ""}\n💵 Simulasi 1000 USDT: <b>${(u => (u >= 0 ? "+" : "") + angka(u, 2))((t.kenaTp1 ? 500 * (t.tp1 / t.entry - 1) + 500 * (t.keluarPx / t.entry - 1) : 1000 * (t.keluarPx / t.entry - 1)) - 2)} USDT</b>\n`;
+  return kepala + isi + `<i>Belum terbukti — dipantau maju.</i>\n\n` + tautan(k, "4H");
 }
 function pesanExit(k, nama, kode, L, s, jenis, validT) {
   const kepala = `<b>AMONK SINYAL · UPDATE</b>\n💰 <b>${esc(k)}/USDT</b> · 4H · ${PERINGKAT(kode)} ${esc(nama)}\n`;
   const hasil = s.usdt != null ? `\n📊 Hasil trade: <b>${(s.usdt >= 0 ? "+" : "") + (s.usdt / NOMINAL * 100).toFixed(2)}%</b> (${(s.usdt >= 0 ? "+" : "") + s.usdt.toFixed(2)} USDT per 1000, sesudah biaya)` : "";
   const isi = {
-    TP1: `🎯 <b>TP1 TERCAPAI</b> di ${fx(L.tp1)} (${pc(L.tp1, L.entry)})\n👉 Ambil 50%, <b>pindahkan SL sisa ke entry ${fx(L.entry)}</b>\n` + (L.trailP ? `🔁 Sisa: trailing ${Math.round(L.trailP * 100)}% dari puncak (stop naik mengikuti harga, tanpa TP2)` : `🎯 Sisa menunggu TP2 ${fx(L.tp2)}`),
+    TP1: `🎯 <b>TP1 TERCAPAI</b> di ${fx(L.tp1)} (${pc(L.tp1, L.entry)})\n💵 Simulasi 1000 USDT: <b>+${angka(500 * (L.tp1 / L.entry - 1), 2)} USDT</b> terkunci (50%)\n👉 Ambil 50%, <b>pindahkan SL sisa ke entry ${fx(L.entry)}</b>\n` + (L.trailP ? `🔁 Sisa: trailing ${Math.round(L.trailP * 100)}% dari puncak (stop naik mengikuti harga, tanpa TP2)` : `🎯 Sisa menunggu TP2 ${fx(L.tp2)}`),
     TRAIL: `🔁🏁 <b>TRAILING ${Math.round(L.trailP * 100)}% KENA</b> di ~${s.keluarPx ? fx(s.keluarPx) : "?"} (${s.keluarPx ? pc(s.keluarPx, L.entry) : ""}) — ${L.murni ? "posisi penuh keluar (TB murni, tanpa TP1)" : "sisa 50% keluar"}, trade selesai${L.murni ? "" : "\nTP1 " + fx(L.tp1) + " (50%) · sisa dengan trailing"}`,
     TP2: `🏁 <b>TP2 TERCAPAI</b> di ${fx(L.tp2)} (${pc(L.tp2, L.entry)}) — trade selesai`,
     TP1TP2: `🎯🏁 <b>TP1 & TP2 TERCAPAI</b> — trade selesai\nTP1 ${fx(L.tp1)} · TP2 ${fx(L.tp2)}`,
@@ -522,7 +528,7 @@ function pesanScan(tf, V, H, dicek) {
     `⏳ <b>Hampir valid</b> — menunggu lilin ${tfT} TUTUP di atas garis tembus: ${H.length}\n${bH || "   — tidak ada"}` +
     (H.length > SCAN_MAKS ? `\n   … +${H.length - SCAN_MAKS} lagi` : "") + `\n\n` +
     `<i>Hampir valid BELUM sinyal: entry hanya sesudah lilin tutup di atas garis tembus. Calon = lembah terakhir belum sah, bisa berubah. Elliott Wave = limit beli: entry saat harga TURUN menyentuh limit (batal bila 60 lilin tak tersentuh).` +
-    (tf === "1d" ? ` LAPORAN SAJA: bot hanya trading 4H. Isinya pola yang dipakai bot (TB, FW bila MACD 1D > 0, EW). Pola 1D di uji proyek tidak lebih baik dari entry acak; SL 1D lebar.` : ` Hanya pola yang dipakai bot (TB, FW bila MACD>0, EW). Level: TB trailing ${Math.round(TB_MURNI_P * 100)}% murni; FW & EW 50% TP1, SL ke entry, sisa trailing ${Math.round(TRAIL_P * 100)}%.`) + `</i>`;
+    (tf === "1d" ? ` LAPORAN SAJA: sinyal utama AMONK di 4H. Isinya pola sinyal AMONK (TB, FW bila MACD 1D > 0, EW). Pola 1D di uji proyek tidak lebih baik dari entry acak; SL 1D lebar.` : ` Hanya pola sinyal AMONK (TB, FW bila MACD>0, EW). Level: TB trailing ${Math.round(TB_MURNI_P * 100)}% murni; FW & EW 50% TP1, SL ke entry, sisa trailing ${Math.round(TRAIL_P * 100)}%.`) + `</i>`;
 }
 async function scanHarian() {
   const L0 = lokal(Date.now());
@@ -555,7 +561,7 @@ async function teksTimSehat() {
   const R = T.riwayat || {}, P = T.paper || {}, S = T.sistem || {}, rr = x => x == null ? "—" : (x > 0 ? "+" : "") + x + "R";
   const jam = iso => iso ? (Date.now() - Date.parse(iso)) / 3600e3 : 1e9;
   let t = "\n🧑‍🔬 <b>Tim riset</b>: " + (R.diuji || 0) + " gagasan diuji · lolos " + (R.lolos || 0) + (R.eksploratif ? " (+" + R.eksploratif + " eksploratif)" : "") + " · gagal " + (R.gagal || 0) + "\n";
-  if (P.juara) { t += "📄 <b>Agen Paper</b> (kertas, bukan bot): juara " + esc(P.juara.id) + " " + P.juara.tutup + " trade · " + rr(P.juara.avgR) + "/trade · kertas " + P.juara.usdt + " USDT\n";
+  if (P.juara) { t += "📄 <b>Agen Paper</b> (simulasi kertas): juara " + esc(P.juara.id) + " " + P.juara.tutup + " trade · " + rr(P.juara.avgR) + "/trade · kertas " + P.juara.usdt + " USDT\n";
     if (P.penantang) t += "   penantang " + esc(P.penantang.id) + ": " + P.penantang.tutup + "/30 trade · " + rr(P.penantang.avgR) + " · minggu " + P.penantang.minggu + "/8\n"; }
   const cek = [["laptop/pemantau", jam(S.pantau) > 0.4], ["rutin mekanis 4H", jam(S.mekanis && S.mekanis.t) > 4.4 || !!(S.mekanis && !S.mekanis.ok)], ["rutin Claude", jam(S.scanClaude && S.scanClaude.t) > 4.9],
     ["tim riset", jam(S.dewan && S.dewan.t) > 2.5], ["daftar Monitoring Tag", jam(S.mtag && S.mtag.t) > 36]].filter(x => x[1]).map(x => x[0]);
@@ -580,7 +586,7 @@ async function rekap() {
   const baris = Object.entries(per).sort((a, b) => b[1].u - a[1].u).slice(0, 6)
     .map(([nm, x]) => `   ${PERINGKAT(x.kode)} ${esc(nm)}: ${x.n}× · ${f2(x.u)} USDT`).join("\n");
   const teks =
-    `<b>AMONK SINYAL · REKAP MINGGUAN</b>\n<i>SIMULASI 1000 USDT per trade dari pola chart — BUKAN hasil bot akun asli (lihat Telegram bot → 📈 Per pola)</i>\n◻️◻️◻️◻️◻️\n` +
+    `<b>AMONK SINYAL · REKAP MINGGUAN</b>\n<i>SIMULASI 1000 USDT per trade dari pola chart</i>\n◻️◻️◻️◻️◻️\n` +
     `📅 ${wib(awal).slice(0, 5)} – ${wib(skr).slice(0, 5)}\n\n` +
     `🆕 Pola baru minggu ini: <b>${baru.length}</b>\n` +
     `✅ Tutup minggu ini: <b>${tutupMinggu.length}</b> (TP1+TP2 ${h.tp2} · TP1+BE ${h.be} · SL ${h.sl})\n` +
@@ -636,7 +642,7 @@ async function rekap() {
           const LS = { entry: S.level, sl: S.batal, tp2: S.level + S.tinggi, trailP: TRAIL_P };
           LS.tp1 = LS.entry + 0.5 * (LS.entry - LS.sl); if (LS.tp1 >= LS.tp2) LS.tp1 = LS.entry + 0.5 * (LS.tp2 - LS.entry);
           const volS = d.v.slice(-6).reduce((a, x, q) => a + x * d.c[nB - 6 + q], 0);
-          if (LS.sl > 0 && await kirim(pesanSetupEw(k, S, d, volS, null), pesanSetupEw(k, S, d, volS, ukuranTeks(LS, M)))) status[kS] = { t: sekarang, tahap: "tutup" };
+          if (LS.sl > 0 && await kirim(pesanSetupEw(k, S, d, volS, simTeks(LS)), pesanSetupEw(k, S, d, volS, ukuranTeks(LS, M)))) status[kS] = { t: sekarang, tahap: "tutup" };
         }
       }
     }
@@ -656,7 +662,7 @@ async function rekap() {
       // 1. pola baru
       if (e.i >= n - JENDELA_BAR && !status[kunci]) {
         if (!dipakaiBot(e.kode, e.kode === "FW" ? macdDi(d.c, e.i) : 0)) { status[kunci] = { t: sekarang, tahap: "tutup", lewat: "FW MACD<=0" }; continue; }   // FW yang dilewati bot: tidak dikirim
-        if (await kirim(pesanBaru(k, e, L, d, vol, false, null), pesanBaru(k, e, L, d, vol, false, ukuranTeks(L, M)))) {
+        if (await kirim(pesanBaru(k, e, L, d, vol, false, simTeks(L)), pesanBaru(k, e, L, d, vol, false, ukuranTeks(L, M)))) {
           status[kunci] = { t: sekarang, tahap: "baru" }; baru++;
         }
         continue;
@@ -686,7 +692,7 @@ async function rekap() {
   if (UJI) {
     if (!calonUji) { console.log("UJI: tidak ada pola valid di jendela data"); return; }
     const { k, d, e, vol } = calonUji, L = level(d, e);
-    const ok = await kirim(pesanBaru(k, e, L, d, vol, true, null), pesanBaru(k, e, L, d, vol, true, ukuranTeks(L, M)));
+    const ok = await kirim(pesanBaru(k, e, L, d, vol, true, simTeks(L)), pesanBaru(k, e, L, d, vol, true, ukuranTeks(L, M)));
     console.log(`UJI: pesan ${ok ? "terkirim" : "GAGAL"} (${dicek} koin dicek, ukuran posisi: ${M ? M.sumber : "tidak ada modal"})`);
     return;
   }
