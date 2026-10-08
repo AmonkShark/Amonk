@@ -2857,6 +2857,7 @@ function ttAvatar(warna, ikon, bekerja) {
   return `<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="31" fill="${warna}" opacity=".18"/><circle cx="32" cy="24" r="11" fill="#F1C9A5"/><path d="M21 22c0-8 5-12 11-12s11 4 11 12c-3-4-7-5-11-5s-8 1-11 5z" fill="#2b1d14"/>
 <path d="M12 58c2-12 10-18 20-18s18 6 20 18z" fill="${warna}"/><text x="46" y="20" font-size="14" text-anchor="middle">${ikon}</text>${bekerja ? '<circle cx="52" cy="50" r="5" fill="#FFB74D"><animate attributeName="opacity" values="1;.2;1" dur="1s" repeatCount="indefinite"/></circle>' : ""}</svg>`; }
 function gambarTT(T, buka) {
+  const esc = x => String(x == null ? "" : x).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   const el = $("ttTim"); if (!el) return; const D = T && T.timTrading; if (!D || D.galat) { el.hidden = true; return; } el.hidden = false;
   const lalu = t => { if (!t) return ""; const m = Math.round((Date.now() - Date.parse(t)) / 60000); return m < 60 ? m + " mnt lalu" : m < 1440 ? Math.round(m / 60) + " jam lalu" : Math.round(m / 1440) + " hari lalu"; };
   const P = D.peran || {}, r = x => x == null ? "—" : (x > 0 ? "+" : "") + x.toFixed(2) + "R", f = x => x == null ? "—" : (+x).toPrecision(5);
