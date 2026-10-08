@@ -748,6 +748,26 @@ td.kosong::before{display:none}
 
 /* ==== TAB TIM RISET v4 — AGENTS OFFICE isometrik (2026-10-04, referensi user) ==== */
 .tim-kepala{display:none}
+/* TIM TRADING (kertas) 2026-10-09 */
+.tt{margin:12px 0;border:1px solid var(--garis);border-radius:12px;background:var(--bg1);padding:12px}
+.tt-kepala{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.tt-kepala b{font-size:14px;color:var(--teks)}.tt-kepala small{color:var(--label);font-size:11px}
+.tt-baris{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+@media (max-width:640px){.tt-baris{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tt-ag{background:var(--bg2);border:1px solid var(--garis);border-radius:10px;padding:8px;text-align:center;cursor:pointer;min-width:0}
+.tt-ag svg{width:56px;height:56px;display:block;margin:0 auto 4px}
+.tt-ag .nm{font-size:11px;font-weight:700;color:var(--teks)}
+.tt-ag .st{font-size:10px;margin-top:2px;color:var(--label)}
+.tt-ag .st i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:middle;background:var(--redup)}
+.tt-ag.bekerja .st i{background:var(--kuning);animation:ttKedip 1s infinite}.tt-ag.selesai .st i{background:var(--hijau)}
+@keyframes ttKedip{50%{opacity:.25}}
+.tt-ag .ak{font-size:10px;color:var(--label);margin-top:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.tt-buku{margin-top:10px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:640px){.tt-buku{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tt-buku div{background:var(--bg2);border-radius:8px;padding:6px 8px}.tt-buku span{display:block;font-size:10px;color:var(--label)}.tt-buku b{font-size:14px;color:var(--teks);font-variant-numeric:tabular-nums}
+.tt-pos{margin-top:10px;font-size:11.5px;color:var(--teks)}.tt-pos table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.tt-pos-gulir{overflow-x:auto}.tt-pos th{color:var(--label);font-weight:600;text-align:left;padding:3px 6px;border-bottom:1px solid var(--garis);white-space:nowrap}.tt-pos td{padding:3px 6px;border-bottom:1px solid var(--garis);white-space:nowrap}
+.tt-pos tr{cursor:pointer}.tt-catat{font-size:10.5px;color:var(--label);margin-top:8px}
 .ao{--ao-bg:#2a2c3a;--ao-panel:#33364a;--ao-garis:#4a4e66;--ao-teks:#e9e9f2;--ao-redup:#a3a6bd;position:relative;border-radius:16px;overflow:hidden;background:radial-gradient(120% 90% at 40% 30%,#34374a 0%,#24252f 70%);color:var(--ao-teks);border:1px solid #3c3f55;font-family:inherit}
 .ao-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid #3c3f55;background:rgba(20,21,30,.55)}
 .ao-judul{font-family:Georgia,"Times New Roman",serif;font-weight:700;font-size:17px;letter-spacing:.02em}
@@ -1152,6 +1172,7 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
 
   <div class="hal" id="halTim" hidden>
     <div class="tim-kepala"><h3>Ruang rapat agen AI</h3><small id="timWaktu">memuat…</small></div>
+    <div class="tt" id="ttTim" hidden></div>
     <div class="kantor" id="timKantor"></div>
     <div class="tim-alur" id="timAlur"></div>
     <div class="tim-modal" id="timModal" hidden role="dialog" aria-modal="true" aria-label="Penjelasan agen"><div class="tim-kartu"></div></div>
@@ -2830,6 +2851,26 @@ function pindahHal(h) {
 
 document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click", () => pindahHal(b.dataset.hal)));
 // ==== TAB TIM v4 (2026-10-04): AGENTS OFFICE isometrik — departemen = lantai berwarna berisi meja & agen, The Brain di tengah,
+// TIM TRADING (kertas, 2026-10-09, user: avatar tim trading di aplikasi). Data: T.timTrading dari research/dewan_pantau.cjs.
+const TT_PERAN = [["pemindai", "Pemindai koin", "#5B8DEF", "🔭"], ["analis-chart", "Analis chart", "#26A69A", "📈"], ["analis-berita-pasar", "Analis berita pasar", "#FFB74D", "🌐"], ["analis-berita-koin", "Analis berita koin", "#BA68C8", "📰"], ["hakim", "Hakim", "#EF5350", "⚖️"]];
+function ttAvatar(warna, ikon, bekerja) {
+  return `<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="31" fill="${warna}" opacity=".18"/><circle cx="32" cy="24" r="11" fill="#F1C9A5"/><path d="M21 22c0-8 5-12 11-12s11 4 11 12c-3-4-7-5-11-5s-8 1-11 5z" fill="#2b1d14"/>
+<path d="M12 58c2-12 10-18 20-18s18 6 20 18z" fill="${warna}"/><text x="46" y="20" font-size="14" text-anchor="middle">${ikon}</text>${bekerja ? '<circle cx="52" cy="50" r="5" fill="#FFB74D"><animate attributeName="opacity" values="1;.2;1" dur="1s" repeatCount="indefinite"/></circle>' : ""}</svg>`; }
+function gambarTT(T, buka) {
+  const el = $("ttTim"); if (!el) return; const D = T && T.timTrading; if (!D || D.galat) { el.hidden = true; return; } el.hidden = false;
+  const lalu = t => { if (!t) return ""; const m = Math.round((Date.now() - Date.parse(t)) / 60000); return m < 60 ? m + " mnt lalu" : m < 1440 ? Math.round(m / 60) + " jam lalu" : Math.round(m / 1440) + " hari lalu"; };
+  const P = D.peran || {}, r = x => x == null ? "—" : (x > 0 ? "+" : "") + x.toFixed(2) + "R", f = x => x == null ? "—" : (+x).toPrecision(5);
+  const ag = TT_PERAN.map(([k, nm, w, ik]) => { const p = P[k] || { status: "diam", aksi: "belum ada putaran" }; return `<div class="tt-ag ${p.status}" data-tt="${k}" role="button" tabindex="0">${ttAvatar(w, ik, p.status === "bekerja")}<div class="nm">${nm}</div><div class="st"><i></i>${p.status === "bekerja" ? "bekerja" : p.status === "selesai" ? "selesai" : "diam"} · ${lalu(p.t)}</div><div class="ak">${esc(p.aksi || "")}</div></div>`; }).join("");
+  const pos = [...(D.jalan || []), ...(D.menunggu || [])];
+  const tabel = pos.length ? `<div class="tt-pos"><div class="tt-pos-gulir"><table><thead><tr><th>Koin</th><th>Status</th><th>Entry</th><th>SL</th><th>TP1</th><th>Sisa</th><th>Yakin</th></tr></thead><tbody>${pos.map((p, i) => `<tr data-ttp="${i}"><td><b>${esc(p.koin)}</b></td><td>${p.st === "menunggu" ? "limit menunggu" : p.kenaTp1 ? "jalan · TP1 ✓" : "jalan"}</td><td>${f(p.st === "menunggu" ? p.limit : p.isi)}</td><td>${f(p.sl)}</td><td>${f(p.tp1)}</td><td>${p.sisa === "tp2" ? "TP2 " + f(p.tp2) : p.sisa === "trailing15" ? "trailing 15%" : "—"}</td><td>${p.yakin || "—"}</td></tr>`).join("")}</tbody></table></div></div>` : '<div class="tt-catat">Belum ada posisi atau limit terbuka.</div>';
+  const pu = D.putaran;
+  el.innerHTML = `<div class="tt-kepala"><b>🤝 Tim Trading <small>kertas · chart + berita · bukan bot</small></b><small>${pu ? "putaran terakhir " + new Date(pu.tanggal).toLocaleString("id-ID", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) + " · " + pu.diambil + " diambil · " + pu.lewat + " dilewati" : "belum ada putaran"}</small></div>
+<div class="tt-baris">${ag}</div>
+<div class="tt-buku"><div><span>Posisi jalan / limit</span><b>${(D.jalan || []).length} / ${(D.menunggu || []).length}</b></div><div><span>Trade tutup · menang</span><b>${D.tutup} · ${D.tutup ? Math.round(100 * D.menang / D.tutup) + "%" : "—"}</b></div><div><span>Rata R tim</span><b>${r(D.rataR)}</b></div><div><span>vs kembaran acak</span><b>${r(D.selisih)}</b></div></div>
+${tabel}<div class="tt-catat">${pu && pu.pasar ? "Pasar: " + esc(pu.pasar) + " · " : ""}Penilaian baru sah sesudah ≥ 30 trade tutup & ≥ 6 bulan (dibanding kembaran acak). Ketuk avatar / baris untuk rincian.</div>`;
+  el.querySelectorAll("[data-tt]").forEach(x => x.onclick = () => { const k = x.dataset.tt, d = TT_PERAN.find(p => p[0] === k), p = P[k] || {}; buka(`<h4>${d[3]} ${d[1]}</h4><div class="sub">Tim Trading · kertas</div><p><b>Status:</b> ${esc(p.status || "diam")} · ${lalu(p.t)}</p><p>${esc(p.aksi || "belum ada putaran")}</p><p class="sub">${{ "pemindai": "Membaca chart semua koin watchlist (tren, RSI, EMA200, volume, sinyal pola) dan keadaan BTC.", "analis-chart": "Memilih koin yang chart-nya layak dan mengusulkan entry/limit, SL, TP.", "analis-berita-pasar": "Membaca berita pasar 24-72 jam & mencari koin dengan berita bagus (katalis).", "analis-berita-koin": "Memeriksa berita tiap kandidat: peretasan, delisting, unlock, kemitraan, dll.", "hakim": "Menggabungkan semua dan memutuskan trade (market atau limit) — atau tidak trade." }[k]}</p>`); });
+  el.querySelectorAll("[data-ttp]").forEach(x => x.onclick = () => { const p = pos[+x.dataset.ttp]; buka(`<h4>${esc(p.koin)} · Tim Trading</h4><div class="sub">${p.st === "menunggu" ? "limit buy menunggu (48 jam)" : "posisi jalan"} · dicatat ${new Date(p.dicatat).toLocaleString("id-ID")}</div><dl><dt>Entry</dt><dd>${f(p.st === "menunggu" ? p.limit : p.isi)} (${esc(p.jenis)})</dd><dt>SL</dt><dd>${f(p.sl)}</dd><dt>TP1</dt><dd>${f(p.tp1)} (jual 50%)</dd><dt>Sisa</dt><dd>${p.sisa === "tp2" ? "TP2 " + f(p.tp2) : p.sisa === "trailing15" ? "trailing 15% dari puncak" : "semua di TP1"}</dd><dt>Batas</dt><dd>${p.batasHari} hari</dd><dt>Alasan chart</dt><dd>${esc(p.alasan_chart)}</dd><dt>Alasan berita</dt><dd>${esc(p.alasan_berita)}</dd></dl><p class="sub">Kertas saja — bukan order bot.</p>`); });
+}
 // kartu statistik melayang, panel Task Status, zoom. Data: cabang GitHub "status" (research/dewan_pantau.cjs). ====
 (() => {
   const URL_TIM = "https://raw.githubusercontent.com/AmonkShark/Amonk/status/dewan_status.json";
@@ -3241,10 +3282,10 @@ document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click"
   function keAwal() { VB = VB0 ? VB0.slice() : null; aturVB(); }
   function zoom(f, cx, cy) { if (!VB) return; const w = VB[2] * f, h = VB[3] * f; cx = cx == null ? VB[0] + VB[2] / 2 : cx; cy = cy == null ? VB[1] + VB[3] / 2 : cy; VB = [cx - w / 2, cy - h / 2, w, h]; aturVB(); }
   async function muatTim() {
-    if (Date.now() - tAkhir < 15000 && T) return gambarTim();
+    if (Date.now() - tAkhir < 15000 && T) { gambarTim(); gambarTT(T, buka); return; }
     try { const r = await fetch(URL_TIM + "?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) throw new Error("HTTP " + r.status); T = await r.json(); tAkhir = Date.now(); }
     catch (e) { $("timKantor").innerHTML = `<div class="ao"><div class="ao-bar"><span class="ao-judul">AGENTS OFFICE</span></div><div class="ao-kosong" style="padding:20px">Status belum tersedia (${esc(e.message)}).</div></div>`; return; }
-    gambarTim();
+    gambarTim(); gambarTT(T, buka);
   }
   function buka(html) { const m = $("timModal"); if (m.parentNode !== document.body) document.body.appendChild(m); document.body.classList.add("tim-buka"); m.querySelector(".tim-kartu").innerHTML = '<button class="tim-tutup" aria-label="Tutup" title="Tutup">✕</button>' + html; m.hidden = false; m.querySelector(".tim-tutup").focus(); }
   function bukaPaper(jenis) { const PA = T && T.paper; if (!PA || !PA.juara) return buka("<h4>📈 Agen Paper</h4><p>Belum ada data.</p>");
