@@ -4984,19 +4984,22 @@ function rwRingDetail(tutup, P) {
     `<div><span>WR impas</span><b>${impas == null ? "—" : Math.round(impas) + "%"}</b><span class="rp">WR sekarang ${Math.round(H.wr)}% ${impas == null ? "" : H.wr - impas >= 10 ? "✓ aman" : H.wr > impas ? "⚠ tipis" : "✗ di bawah"}</span></div>` +
     `<div><span>Terbaik / terburuk</span><b><span class="naik">${f2(H.best)}</span> / <span class="turun">${f2(H.worst)}</span></b><span class="rp">menang beruntun ${H.mW} · kalah beruntun ${H.mL}</span></div></div>`;
 }
+// 2026-10-08 (user: "samakan peringkat di app dan telegram"): urutan BARU #1 L027 · #2 L030 · #3 TB · #4 FW+MACD · #5 EW, dasar uji vs MASUK ACAK
+// koin+bulan sama (research/hasil_prioritas_sinyal_vs_acak.txt): hanya L027 lebih dari acak (7/7); L030 selisih + 7/7 tapi kecil; TB/FW/EW setara acak.
+// r1/r2 (rata R backtest) tetap ditampilkan sebagai angka, bukan dasar urutan lagi.
 // PERINGKAT KEKUATAN KARTU (2026-10-07, user "kerjakan semua biar jelas"): urutan kartu "Hasil per pola" = peringkat backtest multi-tahun
 // (research/hasil_statistik_sinyal_bot_4h.txt: rata R exit bot, biaya 0,2%, 2020-23 / 2023-26), BUKAN profit periode yang dipilih; belum terbukti maju.
 const RW_PERINGKAT = {
-  TB: { no: 1, r1: "+0,69R", r2: "+1,32R", ket: "terkuat" },
-  L027: { no: 2, r1: "+0,37R", r2: "+0,68R", ket: "Lab · belum terbukti maju" },
-  L030: { no: 3, r1: "+0,32R", r2: "+0,31R", ket: "Lab · belum terbukti maju" },
-  FWM: { no: 4, r1: "+0,21R", r2: "+0,29R", ket: "versi bot (saringan MACD)" },
-  EW: { no: 5, r1: "+0,14R", r2: "+0,08R", ket: "tipis" },
+  L027: { no: 1, r1: "+0,37R", r2: "+0,68R", ket: "satu-satunya > acak · belum terbukti maju" },
+  L030: { no: 2, r1: "+0,32R", r2: "+0,31R", ket: "sedikit di atas acak (belum lolos)" },
+  TB: { no: 3, r1: "+0,69R", r2: "+1,32R", ket: "setara acak · besar karena ikut pasar" },
+  FWM: { no: 4, r1: "+0,21R", r2: "+0,29R", ket: "versi bot (saringan MACD) · setara acak" },
+  EW: { no: 5, r1: "+0,14R", r2: "+0,08R", ket: "tipis · setara acak" },
   FW: { no: null, r1: "+0,14R", r2: "+0,11R", ket: "FW tanpa saringan · bot tidak memakai ini", label: "Falling Wedge (semua, tanpa saringan)" },
   ST: { no: 6, r1: "+0,14R", r2: "+0,09R", ket: "tidak dipakai bot · pembanding" },
   AT: { no: 7, r1: "+0,08R", r2: "−0,02R", ket: "tidak dipakai bot · pembanding" },
 };
-const RW_URUT = ["TB", "L027", "L030", "FWM", "EW", "FW", "ST", "AT"];
+const RW_URUT = ["L027", "L030", "TB", "FWM", "EW", "FW", "ST", "AT"];
 const rwUrutKartu = kd => { const i = RW_URUT.indexOf(kd); return i < 0 ? 99 : i; };
 let rwStAt = !!baca("rwStAt", false);   // tombol "Tampilkan ST & AT (pembanding)": bawaan MATI; KODE_TERMINAL/KODE_TAMPIL tidak diubah
 const FWM_NAMA = "Falling Wedge + MACD>0 (versi bot)";
@@ -5009,7 +5012,7 @@ function rwKartuTambah(semua, J, sumber) {
 }
 // lencana nomor kartu (dipakai Riwayat & Jurnal); ket = keterangan pengganti (opsional)
 function rwNoSpan(P0) {
-  return `<span class="rw-no${P0.no === 1 ? " satu" : ""}" title="Peringkat kekuatan dari backtest multi-tahun (rata R exit bot, biaya 0,2%): 2020-23 ${P0.r1} · 2023-26 ${P0.r2}. Bukan profit periode ini; belum terbukti maju.">${P0.no == null ? "pembanding" : "#" + P0.no}</span>`;
+  return `<span class="rw-no${P0.no === 1 ? " satu" : ""}" title="Peringkat (08-10): dibanding masuk ACAK di koin & bulan yang sama, 7 irisan 2019-26. Rata R backtest exit bot: 2020-23 ${P0.r1} · 2023-26 ${P0.r2}. Bukan profit periode ini; belum terbukti maju.">${P0.no == null ? "pembanding" : "#" + P0.no}</span>`;
 }
 function rwNoHtml(P0, ket) {
   return `<div class="rw-no-baris">${rwNoSpan(P0)}<span class="rw-no-ket">${ket || P0.ket}</span></div>`;
@@ -5039,7 +5042,7 @@ function akPolaLencana() {
 akPolaLencana();
 function rwInfoUrutHtml(jn) {
   const f = k => RW_PERINGKAT[k];
-  return '<p><b>Urutan kartu = peringkat kekuatan dari backtest multi-tahun</b>, bukan profit periode yang sedang dipilih. Angka = rata R per trade dengan exit bot, biaya 0,2%, dua era terpisah (2020-23 / 2023-26). Sumber: research/hasil_statistik_sinyal_bot_4h.txt.</p>' +
+  return '<p><b>Urutan kartu (sejak 08-10) = hasil uji tiap sinyal dibanding MASUK ACAK di koin & bulan yang sama</b> (7 irisan 2019-26, exit sama). Hanya L027 lebih baik dari acak (7/7); L030 sedikit di atasnya tapi belum lolos; TB, FW+MACD, EW setara acak — angka besar TB terutama ikut naiknya pasar. Angka di tabel = rata R backtest exit bot, biaya 0,2% (research/hasil_statistik_sinyal_bot_4h.txt), BUKAN dasar urutan. Sumber urutan: research/hasil_prioritas_sinyal_vs_acak.txt.</p>' +
     '<table class="bd-tab"><thead><tr><th>#</th><th>Sinyal</th><th>2020-23</th><th>2023-26</th></tr></thead><tbody>' +
     RW_URUT.map(k => '<tr><td>' + (f(k).no == null ? "—" : f(k).no) + '</td><td>' + ({ TB: "Triple Bottom", L027: "L027 Inside bar + kapitulasi", L030: "L030 AO + Stoch", FWM: "Falling Wedge + MACD>0 (versi bot)", EW: "Elliott Wave", FW: "Falling Wedge semua (pembanding)", ST: "Symmetrical Triangle", AT: "Ascending Triangle" })[k] + '</td><td>' + f(k).r1 + '</td><td>' + f(k).r2 + '</td></tr>').join("") + '</tbody></table>' +
     '<div class="bd-catatan" style="margin-top:10px"><b>Belum terbukti maju.</b> Ini ringkasan backtest (tiap sinyal dihitung sendiri, tanpa batas slot), bukan janji. Saringan MACD>0 pada FW = memilih keadaan pasar naik (efek rezim), bukan mutu pola. L027/L030 = sinyal Lab, bukan sinyal bot. ST & AT tidak dipakai bot; tampilkan lewat tombol hanya sebagai pembanding.<br><br>' +
@@ -5207,7 +5210,7 @@ const INFO_BACA = {
   "RR nyata": "<b>Risk : reward yang benar-benar terjadi.</b> Rata R trade menang dibanding rata R trade kalah (sudah termasuk biaya).<br><br>Contoh 1 : 3,27 = trade yang menang rata-rata menghasilkan 3,27 kali besar rugi trade yang kalah. Angka kecil di bawahnya: rata R menang dan rata R kalah.",
   "RR rencana": "<b>Risk : reward saat masuk</b> — jarak target pertama (TP1, atau TP bila tanpa TP1) dibanding jarak SL.<br><br>Contoh 1 : 1,50 = TP1 sejauh 1,5 kali jarak SL. RR nyata bisa lebih besar dari rencana karena sisa posisi ikut trailing dan bisa lari jauh melewati TP1.",
   "🔭 Status pantau": "Untuk kartu <b>🔭 PANTAU MAJU</b> (Jurnal) dan <b>🔭 KANDIDAT</b> (Riwayat). Ini kandidat yang sedang diukur, <b>BUKAN sinyal bot</b>.<br><br><b>BELUM CUKUP SAMPEL</b> = kurang dari 30 trade tutup atau kurang dari 6 bulan — tunggu.<br><b>LEMAH</b> = rata R positif tapi kurang dari separuh hasil backtest.<br><b>LAYAK DIPERTIMBANGKAN</b> = rata R positif dan minimal separuh backtest (≥ 30 trade, ≥ 6 bulan) — boleh dipertimbangkan masuk bot, keputusan tetap di Anda.<br><b>TIDAK LAYAK</b> = ≥ 30 trade dan rata R ≤ 0.<br><br>Status dihitung dari exit tangga, semua lilin sinyal (cara sama dengan backtest). Kartu & daftar trade memakai satu posisi per koin. <b>Exit tangga</b> = masuk open lilin berikutnya, SL low 5 lilin − 0,5 ATR, TP 2R, batas 30 lilin. <b>Exit bot</b> = 50% di 1,5R lalu trailing 15%. Riwayat KANDIDAT = backtest 12 bulan, bukan bukti baru.",
-  "Urutan kartu Riwayat": "Kartu \"Hasil per pola\" diurutkan menurut <b>peringkat kekuatan dari backtest multi-tahun</b> (rata R exit bot, biaya 0,2%, 2020-23 / 2023-26; research/hasil_statistik_sinyal_bot_4h.txt), <b>bukan</b> profit periode yang dipilih, dan <b>belum terbukti maju</b>. #1 Triple Bottom · #2 L027 · #3 L030 · #4 FW + MACD>0 (versi bot) · #5 Elliott Wave · FW semua = pembanding · #6 ST · #7 AT (dua terakhir hanya bila tombol pembanding dinyalakan).",
+  "Urutan kartu Riwayat": "Kartu \"Hasil per pola\" diurutkan menurut <b>uji vs masuk acak di koin & bulan yang sama</b> (sejak 08-10; research/hasil_prioritas_sinyal_vs_acak.txt), <b>bukan</b> profit periode yang dipilih, dan <b>belum terbukti maju</b>. #1 L027 · #2 L030 · #3 Triple Bottom · #4 FW + MACD>0 (versi bot) · #5 Elliott Wave · FW semua = pembanding · #6 ST · #7 AT (dua terakhir hanya bila tombol pembanding dinyalakan).",
   "WR impas": "Win rate <b>minimum</b> supaya tidak rugi dengan RR nyata ini: 1 ÷ (1 + RR).<br><br>Contoh RR 1 : 3 → WR impas 25%. Kalau <b>WR sekarang lebih tinggi</b> dari WR impas, sinyal itu untung; kalau lebih rendah, rugi.",
 };
 // SATU tanda "!" per pop-up (user 10-06: "cukup satu tanda ! tapi memuat semua penjelasan")
