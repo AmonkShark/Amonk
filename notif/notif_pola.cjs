@@ -126,9 +126,10 @@ const angka = (x, dp = 0) => x.toLocaleString("en-US", { maximumFractionDigits: 
 const F_PERINGKAT = path.join(__dirname, "peringkat.json");
 let PRK = {}; try { PRK = JSON.parse(fs.readFileSync(F_PERINGKAT, "utf8")).urut || {}; } catch (e) {}
 const PRK_CADANGAN = { TB: 1, EW: 2, FW: 3, ST: 4, AT: 5 };
-// 2026-10-07: LABEL di Telegram = peringkat kekuatan tetap (sama dengan aplikasi & Pine): #1 TB · #2 L027 · #3 L030 · #4 FW · #5 EW.
+// 2026-10-08 (user: "samakan peringkat di app dan telegram"): #1 L027 · #2 L030 · #3 TB · #4 FW · #5 EW (uji vs masuk acak koin+bulan; sama dgn app, Pine & worker).
+// (dulu 2026-10-07: #1 TB · #2 L027 · #3 L030 · #4 FW · #5 EW)
 // peringkat.json dinamis tetap dihitung & disimpan (dipakai worker untuk urutan antrean), hanya tidak dipakai untuk label.
-const PRK_TETAP = { TB: 1, L027: 2, L030: 3, FW: 4, EW: 5, ST: 6, AT: 7 };
+const PRK_TETAP = { L027: 1, L030: 2, TB: 3, FW: 4, EW: 5, ST: 6, AT: 7 };
 const PERINGKAT = k => "#" + (PRK_TETAP[k] || (PRK[k] && PRK[k].no) || PRK_CADANGAN[k] || 6);
 const PRK_TALLY = {};   // kode -> {n, tot, m} diisi selama run
 function prkCatat(kode, s) { if (s.usdt == null) return; const x = PRK_TALLY[kode] = PRK_TALLY[kode] || { n: 0, tot: 0, m: 0 }; x.n++; x.tot += s.usdt; if (s.usdt > 0) x.m++; }
