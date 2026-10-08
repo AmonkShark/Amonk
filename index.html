@@ -767,7 +767,10 @@ td.kosong::before{display:none}
 .tt-buku div{background:var(--bg2);border-radius:8px;padding:6px 8px}.tt-buku span{display:block;font-size:10px;color:var(--label)}.tt-buku b{font-size:14px;color:var(--teks);font-variant-numeric:tabular-nums}
 .tt-pos{margin-top:10px;font-size:11.5px;color:var(--teks)}.tt-pos table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
 .tt-pos-gulir{overflow-x:auto}.tt-pos th{color:var(--label);font-weight:600;text-align:left;padding:3px 6px;border-bottom:1px solid var(--garis);white-space:nowrap}.tt-pos td{padding:3px 6px;border-bottom:1px solid var(--garis);white-space:nowrap}
-.tt-pos tr{cursor:pointer}.tt-pos table{min-width:520px;table-layout:auto}.tt-pos td+td,.tt-pos th+th{padding-left:12px}.tt-pos th,.tt-pos td{max-width:none!important;overflow:visible!important;text-overflow:clip!important}.tt-catat{font-size:10.5px;color:var(--label);margin-top:8px}
+.tt-pos tr{cursor:pointer}
+.tt3d{position:relative;border-radius:10px;overflow:hidden;background:radial-gradient(120% 90% at 50% 20%,#2f3b55 0%,#171a24 75%);margin-bottom:10px;min-height:120px}
+#tt3d{position:relative}.tt3d-judul{position:absolute;top:8px;left:12px;z-index:3000;color:#9ff3ff;font-weight:800;font-size:11.5px;letter-spacing:.12em;pointer-events:none}
+.tt3d-judul small{color:#9a9db4;font-weight:600;letter-spacing:0;margin-left:6px}.tt-pos table{min-width:520px;table-layout:auto}.tt-pos td+td,.tt-pos th+th{padding-left:12px}.tt-pos th,.tt-pos td{max-width:none!important;overflow:visible!important;text-overflow:clip!important}.tt-catat{font-size:10.5px;color:var(--label);margin-top:8px}
 .ao{--ao-bg:#2a2c3a;--ao-panel:#33364a;--ao-garis:#4a4e66;--ao-teks:#e9e9f2;--ao-redup:#a3a6bd;position:relative;border-radius:16px;overflow:hidden;background:radial-gradient(120% 90% at 40% 30%,#34374a 0%,#24252f 70%);color:var(--ao-teks);border:1px solid #3c3f55;font-family:inherit}
 .ao-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid #3c3f55;background:rgba(20,21,30,.55)}
 .ao-judul{font-family:Georgia,"Times New Roman",serif;font-weight:700;font-size:17px;letter-spacing:.02em}
@@ -2852,6 +2855,100 @@ function pindahHal(h) {
 document.querySelectorAll(".tab button").forEach(b => b.addEventListener("click", () => pindahHal(b.dataset.hal)));
 // ==== TAB TIM v4 (2026-10-04): AGENTS OFFICE isometrik — departemen = lantai berwarna berisi meja & agen, The Brain di tengah,
 // TIM TRADING (kertas, 2026-10-09, user: avatar tim trading di aplikasi). Data: T.timTrading dari research/dewan_pantau.cjs.
+// ==== KANTOR 3D TIM TRADING (2026-10-09, user: "buat seperti ini namun dengan ruangan sendiri seperti kantor mereka") ====
+// Ruang sendiri: lantai gelap, dinding toska, 5 meja (tiap peran) + papan keputusan di tengah. bekerja = duduk mengetik,
+// selesai = berdiri di papan tengah, diam = berjalan di area sendiri. Ketuk karakter = penjelasan (window.TT_BUKA).
+function buatTT3D(THREE) {
+  const POS = { "pemindai": [-3.5, -2.3], "analis-chart": [0, -3.2], "analis-berita-pasar": [3.5, -2.3], "analis-berita-koin": [-3.5, 2.1], "hakim": [3.5, 2.1] };
+  const BAJU = { "pemindai": 0x5b8def, "analis-chart": 0x26a69a, "analis-berita-pasar": 0xffb74d, "analis-berita-koin": 0xba68c8, "hakim": 0xef5350 };
+  const NAMA = { "pemindai": "Pemindai", "analis-chart": "Analis chart", "analis-berita-pasar": "Berita pasar", "analis-berita-koin": "Berita koin", "hakim": "Hakim" };
+  const PERAN = { "pemindai": "PEMINDAI", "analis-chart": "CHART", "analis-berita-pasar": "BERITA", "analis-berita-koin": "BERITA", "hakim": "HAKIM" };
+  const RAMBUT = [0x2b1d14, 0x5b3417, 0x111114, 0x7a3f1f, 0xd9b26a];
+  let ren, scene, cam, wadah, lapis, jam = new THREE.Clock(), sudut = Math.PI / 4, zoomF = window.innerWidth < 600 ? 1.25 : 1, ORANG = [], hidup = false, tampak = true, tAkhir = 0, papan = null, data = { jalan: 0, limit: 0, tutup: 0 };
+  const mat = c => new THREE.MeshLambertMaterial({ color: c });
+  const kotak = (w, h, d, c, x, y, z, induk) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(c)); m.position.set(x, y, z); (induk || scene).add(m); return m; };
+  function kanvas(w, h) { const c = document.createElement("canvas"); c.width = w; c.height = h; const t = new THREE.CanvasTexture(c); t.minFilter = THREE.LinearFilter; return { c, t, fase: Math.random() * 10 }; }
+  function lukisLayar(L, st, waktu, jenis) {
+    const g = L.c.getContext("2d"); g.fillStyle = st === "bekerja" ? "#0f1424" : st === "selesai" ? "#0f2219" : "#1b1c24"; g.fillRect(0, 0, 128, 80);
+    if (jenis === "grafik" && st !== "diam") { let y = 50; for (let x = 6; x < 124; x += 8) { const n = Math.sin(x * .13 + waktu * .6 + L.fase) * 9 + Math.sin(x * .05 + L.fase) * 7, b = y + n * .4, a = 40 + n; g.fillStyle = a < b ? "#3ddc97" : "#ff5c74"; g.fillRect(x, Math.min(a, b), 5, Math.abs(a - b) + 2); y = a; } }
+    else if (st === "bekerja") { const k = Math.floor(waktu * 3 + L.fase) % 6; for (let r = 0; r < 6; r++) { g.fillStyle = ["#6cc6ff", "#3ddc97", "#e9e9f2", "#ffb74d", "#c39bff", "#e9e9f2"][r]; g.fillRect(8, 8 + r * 11, r === k ? 20 + (waktu * 60 % 80) : 30 + ((r * 37) % 70), 5); } }
+    else if (st === "selesai") { g.strokeStyle = "#3ddc97"; g.lineWidth = 7; g.beginPath(); g.moveTo(44, 42); g.lineTo(58, 56); g.lineTo(86, 26); g.stroke(); }
+    else { g.fillStyle = "#3a3c4c"; g.fillRect(8, 34, 112, 8); }
+    L.t.needsUpdate = true; }
+  function lukisPapan(waktu) { const g = papan.L.c.getContext("2d"); g.fillStyle = "#0b1020"; g.fillRect(0, 0, 256, 144);
+    g.fillStyle = "#9ff3ff"; g.font = "bold 18px sans-serif"; g.fillText("TIM TRADING · KERTAS", 12, 24);
+    g.fillStyle = "#e9e9f2"; g.font = "bold 22px sans-serif"; g.fillText(`Jalan ${data.jalan}   Limit ${data.limit}`, 12, 58); g.font = "15px sans-serif"; g.fillStyle = "#9a9db4"; g.fillText(`Tutup ${data.tutup}${data.rataR != null ? " · rata " + (data.rataR > 0 ? "+" : "") + data.rataR.toFixed(2) + "R" : ""}`, 12, 82);
+    let y = 120; for (let x = 10; x < 246; x += 9) { const n = Math.sin(x * .09 + waktu * .5) * 8 + Math.sin(x * .03) * 6, a = 118 + n, b = y; g.fillStyle = a < b ? "#3ddc97" : "#ff5c74"; g.fillRect(x, Math.min(a, b) - 6, 6, Math.abs(a - b) + 4); y = a; }
+    papan.L.t.needsUpdate = true; }
+  function buatOrang(warna, rambut) { const g = new THREE.Group(), kulit = 0xf1c69b, pv = (x, y) => { const p = new THREE.Group(); p.position.set(x, y, 0); g.add(p); return p; };
+    const kk = pv(-.11, .45), kn = pv(.11, .45); kotak(.18, .45, .2, 0x2b3550, 0, -.225, 0, kk); kotak(.18, .45, .2, 0x2b3550, 0, -.225, 0, kn); kotak(.46, .5, .26, warna, 0, .7, 0, g);
+    const lk = pv(-.31, .92), ln = pv(.31, .92); kotak(.14, .45, .16, warna, 0, -.2, 0, lk); kotak(.14, .45, .16, warna, 0, -.2, 0, ln); kotak(.12, .1, .14, kulit, 0, -.45, 0, lk); kotak(.12, .1, .14, kulit, 0, -.45, 0, ln);
+    const kp = pv(0, .95); kotak(.36, .36, .36, kulit, 0, .2, 0, kp); kotak(.38, .12, .38, rambut, 0, .41, 0, kp); kotak(.38, .2, .08, rambut, 0, .3, -.16, kp); kotak(.05, .05, .02, 0x111111, -.08, .22, .185, kp); kotak(.05, .05, .02, 0x111111, .08, .22, .185, kp);
+    g.userData = { kk, kn, lk, ln, kp }; return g; }
+  function buatMeja(x, z, besar) { const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g); const lw = besar ? 1.6 : 1.2;
+    kotak(lw, .08, .62, besar ? 0x6b4a2e : 0xe8d5ad, 0, .75, 0, g); for (const [a, b] of [[-lw / 2 + .05, -.26], [lw / 2 - .05, -.26], [-lw / 2 + .05, .26], [lw / 2 - .05, .26]]) kotak(.06, .75, .06, 0xffffff, a, .375, b, g);
+    kotak(.66, .42, .05, 0x1a1b22, 0, 1.06, -.24, g); kotak(.08, .2, .08, 0x1a1b22, 0, .86, -.24, g);
+    const L = kanvas(128, 80), layar = new THREE.Mesh(new THREE.PlaneGeometry(.6, .36), new THREE.MeshBasicMaterial({ map: L.t })); layar.position.set(0, 1.06, -.213); g.add(layar);
+    kotak(.44, .03, .16, 0x30323d, 0, .8, .08, g); kotak(.5, .06, .5, 0x50545f, 0, .42, .62, g); kotak(.5, .5, .06, 0x50545f, 0, .7, .86, g); kotak(.06, .42, .06, 0x8a8f9c, 0, .21, .62, g);
+    if (besar) { kotak(.3, .06, .1, 0x8a5a2b, .55, .82, .1, g); kotak(.08, .08, .22, 0x8a5a2b, .55, .86, .1, g); }   // palu hakim
+    return { g, L, kursi: new THREE.Vector3(x, 0, z + .62) }; }
+  function bangun(el) {
+    wadah = el; ren = new THREE.WebGLRenderer({ antialias: true, alpha: true }); ren.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
+    el.appendChild(ren.domElement); ren.domElement.style.display = "block"; ren.domElement.style.width = "100%"; ren.domElement.style.touchAction = "pan-y";
+    lapis = document.createElement("div"); lapis.className = "ao3-label"; el.appendChild(lapis);
+    scene = new THREE.Scene(); cam = new THREE.OrthographicCamera(-1, 1, 1, -1, .1, 100);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x445066, .95)); const sun = new THREE.DirectionalLight(0xffffff, .55); sun.position.set(6, 12, 4); scene.add(sun);
+    kotak(11.4, .3, 9.6, 0x2a3046, 0, -.15, 0);   // lantai gelap
+    for (let i = -5; i <= 5; i++) { const m = kotak(.02, .01, 9.4, 0x343b56, i, .005, 0); }
+    for (const [w, d, x, z] of [[11.6, .25, 0, -4.85], [11.6, .25, 0, 4.85], [.25, 9.8, -5.75, 0], [.25, 9.8, 5.75, 0]]) { const m = kotak(w, .6, d, 0x17c3b2, x, .15, z); m.material = new THREE.MeshBasicMaterial({ color: 0x17c3b2 }); }
+    for (const [k, [x, z]] of Object.entries(POS)) { const m = kotak(2.8, .03, 2.4, BAJU[k], x, .02, z + .2); m.material.transparent = true; m.material.opacity = .28; }
+    // papan keputusan di tengah: meja bundar + layar besar
+    const mj = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, .1, 28), mat(0x2d2f3c)); mj.position.set(0, .78, 0); scene.add(mj); kotak(.2, .74, .2, 0x2d2f3c, 0, .38, 0);
+    const L = kanvas(256, 144), pl = new THREE.Mesh(new THREE.PlaneGeometry(1.7, .96), new THREE.MeshBasicMaterial({ map: L.t, side: THREE.DoubleSide })); pl.position.set(0, 1.65, 0); scene.add(pl); kotak(.06, .9, .06, 0x1a1b22, 0, 1.05, 0); papan = { L, pl };
+    for (const [x, z] of [[-5.2, -4.3], [5.2, -4.3], [5.2, 4.3], [-5.2, 4.3]]) { kotak(.35, .35, .35, 0xd7d9e0, x, .18, z); kotak(.45, .45, .45, 0x3cae5a, x, .58, z); }
+    let turun = null, geser = 0;
+    ren.domElement.addEventListener("pointerdown", e => { turun = { x: e.clientX, s: sudut }; geser = 0; });
+    window.addEventListener("pointermove", e => { if (!turun) return; const dx = e.clientX - turun.x; geser = Math.max(geser, Math.abs(dx)); if (geser > 6) sudut = turun.s - dx * .008; });
+    window.addEventListener("pointerup", e => { if (!turun) return; turun = null; if (geser > 6) return; pilih(e); });
+    new ResizeObserver(ukur).observe(el); ukur();
+    if ("IntersectionObserver" in window) new IntersectionObserver(en => { tampak = en.some(x => x.isIntersecting); }, { threshold: .05 }).observe(el);
+    for (const [k, [x, z]] of Object.entries(POS)) { const meja = buatMeja(x, z, k === "hakim"), g = buatOrang(BAJU[k], RAMBUT[ORANG.length % RAMBUT.length]); g.userData.peran = k; g.position.set(x + .8, 0, z + 1.2); scene.add(g);
+      const tag = document.createElement("div"); tag.className = "ao3-tag"; lapis.appendChild(tag); ORANG.push({ k, g, meja, tag, st: "diam", aksi: "", tujuan: null, tunggu: Math.random() * 2, sb: ORANG.length * 1.25 }); }
+    hidup = true; putar(); }
+  function ukur() { if (!ren || !wadah.clientWidth) return; const w = wadah.clientWidth, h = Math.max(240, Math.min(440, w * .62)); ren.setSize(w, h, false); ren.domElement.style.height = h + "px"; kamera(); }
+  function kamera() { const w = wadah.clientWidth || 300, h = parseFloat(ren.domElement.style.height) || 300, a = w / h, s = 6.4 / zoomF; cam.left = -s * a; cam.right = s * a; cam.top = s; cam.bottom = -s; cam.updateProjectionMatrix(); cam.position.set(Math.cos(sudut) * 20, 17, Math.sin(sudut) * 20); cam.lookAt(0, 0, 0); }
+  function pilih(e) { const r = ren.domElement.getBoundingClientRect(), v = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), ray = new THREE.Raycaster(); ray.setFromCamera(v, cam);
+    const hit = ray.intersectObjects(ORANG.map(o => o.g), true)[0]; if (!hit) return; let o = hit.object; while (o && !o.userData.peran) o = o.parent; if (o && window.TT_BUKA) window.TT_BUKA(o.userData.peran); }
+  function isiTag(p) { const st = p.st === "bekerja" ? "Bekerja" : p.st === "selesai" ? "Selesai" : "Menunggu", e = s => String(s || "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+    const ak = p.aksi && p.st !== "diam" ? (p.aksi.length > 52 ? p.aksi.slice(0, 51) + "…" : p.aksi) : "";
+    p.tag.classList.toggle("diam", st === "Menunggu"); p.tag.innerHTML = `${ak && p.st === "bekerja" ? `<div class="ao3-balon">${e(ak)}</div>` : ""}<div class="ao3-nama"><i class="${st === "Bekerja" ? "ok" : st === "Selesai" ? "sel" : ""}"></i>${e(NAMA[p.k])}</div><div class="ao3-peran">${PERAN[p.k]} · ${st}</div>`; }
+  const v3 = new THREE.Vector3();
+  function gerak(dt, t) {
+    for (const p of ORANG) { const u = p.g.userData; let tujuan;
+      if (p.st === "bekerja") tujuan = p.meja.kursi;
+      else if (p.st === "selesai") tujuan = new THREE.Vector3(Math.cos(p.sb) * 1.55, 0, Math.sin(p.sb) * 1.55);
+      else { const [zx, zz] = POS[p.k]; if (!p.tujuan || p.tunggu < 0 && p.g.position.distanceTo(p.tujuan) < .1) { p.tujuan = new THREE.Vector3(zx + (Math.random() - .5) * 2.2, 0, zz + .9 + (Math.random() - .5) * 1.2); p.tunggu = 1 + Math.random() * 3; } tujuan = p.tujuan; }
+      const d = new THREE.Vector3().subVectors(tujuan, p.g.position); d.y = 0; const jr = d.length();
+      if (jr > .06) { const lang = Math.min(jr, dt * 1.3); d.normalize(); p.g.position.addScaledVector(d, lang); p.g.rotation.y = Math.atan2(d.x, d.z); const ay = Math.sin(t * 9) * .6; u.kk.rotation.x = ay; u.kn.rotation.x = -ay; u.lk.rotation.x = -ay * .8; u.ln.rotation.x = ay * .8; p.g.position.y = Math.abs(Math.sin(t * 9)) * .04; }
+      else { p.tunggu -= dt; p.g.position.y = 0;
+        if (p.st === "bekerja") { p.g.rotation.y = Math.PI; u.kk.rotation.x = u.kn.rotation.x = -Math.PI / 2; const k = Math.sin(t * 14 + p.sb) * .12; u.lk.rotation.x = -1.25 + k; u.ln.rotation.x = -1.25 - k; }
+        else { u.kk.rotation.x = u.kn.rotation.x = 0; u.lk.rotation.x = Math.sin(t * 1.5 + p.sb) * .08; u.ln.rotation.x = -u.lk.rotation.x; if (p.st === "selesai") p.g.rotation.y = Math.atan2(-p.g.position.x, -p.g.position.z); u.kp.rotation.y = Math.sin(t * .8 + p.sb) * .3; } }
+      if (Math.floor(t * 4) !== p.fl) { p.fl = Math.floor(t * 4); lukisLayar(p.meja.L, p.st, t, p.k === "analis-chart" || p.k === "pemindai" ? "grafik" : "kode"); }
+      v3.set(p.g.position.x, 2.05, p.g.position.z).project(cam); const w = wadah.clientWidth, h = parseFloat(ren.domElement.style.height);
+      p.tag.style.transform = `translate(${Math.max(60, Math.min(w - 60, (v3.x + 1) / 2 * w)).toFixed(0)}px,${((1 - v3.y) / 2 * h).toFixed(0)}px) translate(-50%,-100%)`; p.tag.style.zIndex = String(Math.round((1 - v3.z) * 1000)); }
+    papan.pl.rotation.y = Math.PI / 2 - sudut; if (Math.floor(t * 2) !== papan.fl) { papan.fl = Math.floor(t * 2); lukisPapan(t); } }
+  function putar() { if (!hidup) return; requestAnimationFrame(putar);
+    if (typeof halAktif !== "undefined" && halAktif !== "Tim" || document.hidden || !tampak || !wadah || !wadah.clientWidth) { jam.getDelta(); return; }
+    const kini = performance.now(); if (kini - tAkhir < 33) return; tAkhir = kini; const dt = Math.min(jam.getDelta(), .05), t = jam.elapsedTime; kamera(); gerak(dt, t); ren.render(scene, cam); }
+  return {
+    perbarui(el, peran, D) { if (!ren) bangun(el); else if (el !== wadah) { el.appendChild(ren.domElement); el.appendChild(lapis); wadah = el; ukur(); }
+      data = { jalan: (D.jalan || []).length, limit: (D.menunggu || []).length, tutup: D.tutup || 0, rataR: D.rataR };
+      for (const p of ORANG) { const q = (peran || {})[p.k] || {}; p.st = q.status || "diam"; p.aksi = q.aksi || ""; isiTag(p); } },
+    zoom(f) { zoomF = Math.max(.6, Math.min(3, zoomF / f)); }, awal() { zoomF = window.innerWidth < 600 ? 1.25 : 1; sudut = Math.PI / 4; } };
+}
+// ==== /KANTOR 3D TIM TRADING ====
+
+let ttMuat3dJalan = false;
 const TT_PERAN = [["pemindai", "Pemindai koin", "#5B8DEF", "🔭"], ["analis-chart", "Analis chart", "#26A69A", "📈"], ["analis-berita-pasar", "Analis berita pasar", "#FFB74D", "🌐"], ["analis-berita-koin", "Analis berita koin", "#BA68C8", "📰"], ["hakim", "Hakim", "#EF5350", "⚖️"]];
 function ttAvatar(warna, ikon, bekerja) {
   return `<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="31" fill="${warna}" opacity=".18"/><circle cx="32" cy="24" r="11" fill="#F1C9A5"/><path d="M21 22c0-8 5-12 11-12s11 4 11 12c-3-4-7-5-11-5s-8 1-11 5z" fill="#2b1d14"/>
@@ -2859,17 +2956,21 @@ function ttAvatar(warna, ikon, bekerja) {
 function gambarTT(T, buka) {
   const esc = x => String(x == null ? "" : x).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   const el = $("ttTim"); if (!el) return; const D = T && T.timTrading; if (!D || D.galat) { el.hidden = true; return; } el.hidden = false;
+  if (!$("ttInfo")) el.innerHTML = '<div class="tt3d" id="tt3dWadah"><div class="tt3d-judul">KANTOR TIM TRADING<small>kertas · chart + berita · geser untuk memutar, ketuk karakter</small></div><div id="tt3d"></div></div><div id="ttInfo"></div>';
   const lalu = t => { if (!t) return ""; const m = Math.round((Date.now() - Date.parse(t)) / 60000); return m < 60 ? m + " mnt lalu" : m < 1440 ? Math.round(m / 60) + " jam lalu" : Math.round(m / 1440) + " hari lalu"; };
   const P = D.peran || {}, r = x => x == null ? "—" : (x > 0 ? "+" : "") + x.toFixed(2) + "R", f = x => x == null ? "—" : (+x).toPrecision(5);
   const ag = TT_PERAN.map(([k, nm, w, ik]) => { const p = P[k] || { status: "diam", aksi: "belum ada putaran" }; return `<div class="tt-ag ${p.status}" data-tt="${k}" role="button" tabindex="0">${ttAvatar(w, ik, p.status === "bekerja")}<div class="nm">${nm}</div><div class="st"><i></i>${p.status === "bekerja" ? "bekerja" : p.status === "selesai" ? "selesai" : "diam"} · ${lalu(p.t)}</div><div class="ak">${esc(p.aksi || "")}</div></div>`; }).join("");
   const pos = [...(D.jalan || []), ...(D.menunggu || [])];
   const tabel = pos.length ? `<div class="tt-pos"><div class="tt-pos-gulir"><table><thead><tr><th>Koin</th><th>Status</th><th>Entry</th><th>SL</th><th>TP1</th><th>Sisa</th><th>Yakin</th></tr></thead><tbody>${pos.map((p, i) => `<tr data-ttp="${i}"><td><b>${esc(p.koin)}</b></td><td>${p.st === "menunggu" ? "limit" : p.kenaTp1 ? "TP1 ✓" : "jalan"}</td><td>${f(p.st === "menunggu" ? p.limit : p.isi)}</td><td>${f(p.sl)}</td><td>${f(p.tp1)}</td><td>${p.sisa === "tp2" ? "TP2 " + f(p.tp2) : p.sisa === "trailing15" ? "trailing 15%" : "—"}</td><td>${p.yakin || "—"}</td></tr>`).join("")}</tbody></table></div></div>` : '<div class="tt-catat">Belum ada posisi atau limit terbuka.</div>';
   const pu = D.putaran;
-  el.innerHTML = `<div class="tt-kepala"><b>🤝 Tim Trading <small>kertas · chart + berita · bukan bot</small></b><small>${pu ? "putaran terakhir " + new Date(pu.tanggal).toLocaleString("id-ID", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) + " · " + pu.diambil + " diambil · " + pu.lewat + " dilewati" : "belum ada putaran"}</small></div>
+  $("ttInfo").innerHTML = `<div class="tt-kepala"><b>🤝 Tim Trading <small>kertas · chart + berita · bukan bot</small></b><small>${pu ? "putaran terakhir " + new Date(pu.tanggal).toLocaleString("id-ID", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) + " · " + pu.diambil + " diambil · " + pu.lewat + " dilewati" : "belum ada putaran"}</small></div>
 <div class="tt-baris">${ag}</div>
 <div class="tt-buku"><div><span>Posisi jalan / limit</span><b>${(D.jalan || []).length} / ${(D.menunggu || []).length}</b></div><div><span>Trade tutup · menang</span><b>${D.tutup} · ${D.tutup ? Math.round(100 * D.menang / D.tutup) + "%" : "—"}</b></div><div><span>Rata R tim</span><b>${r(D.rataR)}</b></div><div><span>vs kembaran acak</span><b>${r(D.selisih)}</b></div></div>
 ${tabel}<div class="tt-catat">${pu && pu.pasar ? "Pasar: " + esc(pu.pasar) + " · " : ""}Penilaian baru sah sesudah ≥ 30 trade tutup & ≥ 6 bulan (dibanding kembaran acak). Ketuk avatar / baris untuk rincian.</div>`;
-  el.querySelectorAll("[data-tt]").forEach(x => x.onclick = () => { const k = x.dataset.tt, d = TT_PERAN.find(p => p[0] === k), p = P[k] || {}; buka(`<h4>${d[3]} ${d[1]}</h4><div class="sub">Tim Trading · kertas</div><p><b>Status:</b> ${esc(p.status || "diam")} · ${lalu(p.t)}</p><p>${esc(p.aksi || "belum ada putaran")}</p><p class="sub">${{ "pemindai": "Membaca chart semua koin watchlist (tren, RSI, EMA200, volume, sinyal pola) dan keadaan BTC.", "analis-chart": "Memilih koin yang chart-nya layak dan mengusulkan entry/limit, SL, TP.", "analis-berita-pasar": "Membaca berita pasar 24-72 jam & mencari koin dengan berita bagus (katalis).", "analis-berita-koin": "Memeriksa berita tiap kandidat: peretasan, delisting, unlock, kemitraan, dll.", "hakim": "Menggabungkan semua dan memutuskan trade (market atau limit) — atau tidak trade." }[k]}</p>`); });
+  const bukaPeran = k => { const d = TT_PERAN.find(p => p[0] === k), p = P[k] || {}; buka(`<h4>${d[3]} ${d[1]}</h4><div class="sub">Tim Trading · kertas</div><p><b>Status:</b> ${esc(p.status || "diam")} · ${lalu(p.t)}</p><p>${esc(p.aksi || "belum ada putaran")}</p><p class="sub">${{ "pemindai": "Membaca chart semua koin watchlist (tren, RSI, EMA200, volume, sinyal pola) dan keadaan BTC.", "analis-chart": "Memilih koin yang chart-nya layak dan mengusulkan entry/limit, SL, TP.", "analis-berita-pasar": "Membaca berita pasar 24-72 jam & mencari koin dengan berita bagus (katalis).", "analis-berita-koin": "Memeriksa berita tiap kandidat: peretasan, delisting, unlock, kemitraan, dll.", "hakim": "Menggabungkan semua dan memutuskan trade (market atau limit) — atau tidak trade." }[k]}</p>`); };
+  window.TT_BUKA = bukaPeran; el.querySelectorAll("[data-tt]").forEach(x => x.onclick = () => bukaPeran(x.dataset.tt));
+  if (window.THREE) { try { if (!window.TT3D) window.TT3D = buatTT3D(window.THREE); window.TT3D.perbarui($("tt3d"), P, D); } catch (e) { console.log("TT3D gagal:", e); $("tt3dWadah").hidden = true; } }
+  else if (!ttMuat3dJalan) { ttMuat3dJalan = true; const sc = document.createElement("script"); sc.src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"; sc.onload = () => gambarTT(T, buka); sc.onerror = () => { $("tt3dWadah").hidden = true; }; document.head.appendChild(sc); }
   el.querySelectorAll("[data-ttp]").forEach(x => x.onclick = () => { const p = pos[+x.dataset.ttp]; buka(`<h4>${esc(p.koin)} · Tim Trading</h4><div class="sub">${p.st === "menunggu" ? "limit buy menunggu (48 jam)" : "posisi jalan"} · dicatat ${new Date(p.dicatat).toLocaleString("id-ID")}</div><dl><dt>Entry</dt><dd>${f(p.st === "menunggu" ? p.limit : p.isi)} (${esc(p.jenis)})</dd><dt>SL</dt><dd>${f(p.sl)}</dd><dt>TP1</dt><dd>${f(p.tp1)} (jual 50%)</dd><dt>Sisa</dt><dd>${p.sisa === "tp2" ? "TP2 " + f(p.tp2) : p.sisa === "trailing15" ? "trailing 15% dari puncak" : "semua di TP1"}</dd><dt>Batas</dt><dd>${p.batasHari} hari</dd><dt>Alasan chart</dt><dd>${esc(p.alasan_chart)}</dd><dt>Alasan berita</dt><dd>${esc(p.alasan_berita)}</dd></dl><p class="sub">Kertas saja — bukan order bot.</p>`); });
 }
 // kartu statistik melayang, panel Task Status, zoom. Data: cabang GitHub "status" (research/dewan_pantau.cjs). ====
