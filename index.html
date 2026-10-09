@@ -5746,5 +5746,70 @@ muatSemua();
 sambung();
 </script>
 <script>(function(){const p=document.getElementById("pita");function ukur(){const st=getComputedStyle(p);const sticky=st.position==="sticky"&&!p.hidden;document.documentElement.style.setProperty("--pitaT",sticky?(p.getBoundingClientRect().height+parseFloat(st.marginBottom||0))+"px":"0px");}ukur();new ResizeObserver(ukur).observe(p);window.addEventListener("resize",ukur);setInterval(ukur,3000);})();</script>
+<style>
+/* TAMPILAN PER HALAMAN (2026-10-09, user "di jurnal rame banget aku ingin simpel namun semua detail ada dan bisa di sembunyikan perlakukan sama untuk terminal"):
+   bar 👁 di atas Terminal/Riwayat/Jurnal: mode Simpel/Lengkap + centang per bagian (per perangkat). Simpel = kartu ringkas tanpa grafik; ketuk kartu tetap membuka detail. */
+.th-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px}
+.th-seg{display:inline-flex;background:var(--bg2);border:1px solid var(--garis);border-radius:999px;padding:2px}
+.th-seg button{background:none;border:0;color:var(--label);font:500 12px var(--f-ui);padding:5px 12px;border-radius:999px;cursor:pointer}
+.th-seg button.aktif{background:var(--bg1);color:var(--teks);box-shadow:0 0 0 1px var(--garis)}
+.th-ket{font-size:11.5px;color:var(--redup)}
+.th-panel{margin-bottom:12px}
+.th-panel[hidden]{display:none!important}
+.th-ringkas .rw-tabel{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))!important;gap:8px!important;overflow:visible!important;scroll-snap-type:none!important}
+.th-ringkas .rw-tabel>.rw-pola{min-height:0!important;height:auto!important;padding:10px 12px!important;flex:none!important;width:auto!important;max-width:none!important}
+.th-ringkas .rw-pola>svg,.th-ringkas .rw-pola>.bar,.th-ringkas .rw-pola .pm-bt,.th-ringkas .rw-pola .wr-cincin,.th-ringkas .rw-pola .kv~.kv,.th-ringkas .rw-pola .rw-no-ket{display:none!important}
+.th-ringkas .rw-pola .rw-atas{display:block!important}
+.th-ringkas .rw-pola .j{margin-bottom:4px!important}
+.th-ringkas .rw-pola .j b{font-size:14px!important}
+.th-ringkas .rw-pola .d{display:flex!important;flex-wrap:wrap;gap:2px 14px!important;font-size:12px!important;margin-top:4px}
+.th-ringkas .rw-pola .d>*{display:inline-flex!important;flex-direction:row-reverse!important;gap:4px;align-items:baseline;padding:0!important;background:none!important;border:0!important}
+.th-ringkas .rw-pola .d *,.th-ringkas .rw-pola .kv *{text-transform:none!important;letter-spacing:0!important}
+.th-ringkas .rw-pola .kv{display:flex!important;flex-wrap:wrap;gap:2px 14px!important}
+.th-ringkas .rw-pola .kv>*{border:0!important;padding:0!important}
+.th-ringkas .geser-info,.th-ringkas .hpsj{display:none!important}
+.th-ringkas .rw-pola .pm-baris{margin:2px 0!important;font-size:11px}
+</style>
+<script>
+// TAMPILAN PER HALAMAN — lihat komentar CSS di atas. Bagian = selektor yang sudah ada (wadah statis), jadi isi yang digambar ulang tetap ikut.
+(() => {
+  const B = {
+    Terminal: [["ringkasan", "Tombol ringkasan pasar", "#stripToggle"], ["btc", "Kartu BTC", "#kartuBtc"], ["rezim", "Rezim BTC · EMA100 D", "#strip>div:nth-child(2)"], ["median", "Median vs EMA200 4H", "#strip>div:nth-child(3)"], ["tradePola", "Trade pola · 1000 USDT", "#strip>div:nth-child(4)"], ["lilin", "Lilin 4H berikut", "#strip>div:nth-child(5)"], ["alok", "Alokasi portofolio", "#trmAlok"],
+      ["aksi", "Perlu tindakan", "#trmAksi"], ["filter", "Filter & chip", "#halTerminal>.alat"],
+      ["tabel", "Tabel koin", "#halTerminal>.tabel,#hpList"], ["catatan", "Catatan kaki", "#halTerminal>.catatan"]],
+    Riwayat: [["tf", "Pilihan TF & sumber", "#rwTF,#rwSumber"], ["kolom", "Tombol ⚙ Kolom", "#rwKolToggle"], ["rentang", "Rentang waktu", "#rwRentangBox"], ["ringkas", "Ringkasan statistik", "#rwRing"],
+      ["banding", "Pembanding", "#bandingRw"], ["pola", "Hasil per pola", "#rwJudulPer,#rwPola"], ["pm", "Pantau maju", "#pmRw"], ["filter", "Filter daftar", "#halRiwayat>.jr-pilih.seg:not(#rwPeriode),#rwPeriode"],
+      ["daftar", "Daftar trade", "#rwList"], ["ket", "Keterangan", "#rwKetAI,#rwKetPola"]],
+    Jurnal: [["tf", "Pilihan TF", "#jnTF"], ["vs", "Bot vs pegang BTC", "#vsBot"], ["ringkas", "Total profit · WR · tutup", "#jnRingkas,#jrRing"], ["banding", "Pembanding", "#bandingJn"],
+      ["kartu", "Kartu per sinyal", "#halJurnal>.geser-info,#jnJudulPer,#jnPolaKartu"], ["pm", "Pantau maju", "#pmJn"], ["alat", "Filter & alat", "#jnLipatAlat"], ["stat", "Statistik & rincian", "#jnLipatStat"],
+      ["daftar", "Daftar trade", "#jnLipatStat+.rw-judul,#jrList"], ["waktu", "Waktu kirim", "#jrWaktu"]],
+  };
+  // SIMPEL bawaan: kartu ringkas + sembunyikan yang jarang dibaca (semua tetap bisa dinyalakan)
+  const SIMPEL = { Terminal: ["catatan"], Riwayat: ["banding", "ket", "pm"], Jurnal: ["banding", "pm", "stat", "waktu"] };
+  const ambil = h => { const v = baca("tampilHal_" + h, null); return v && typeof v === "object" ? v : { mode: "simpel", sembunyi: SIMPEL[h].slice() }; };
+  function terapkan(h) { const S = ambil(h), hal = $("hal" + h); if (!hal) return; hal.classList.toggle("th-ringkas", S.mode === "simpel");
+    for (const [k, , sel] of B[h]) document.querySelectorAll(sel).forEach(el => el.classList.toggle("bt-sembunyi", S.sembunyi.includes(k)));
+    const bar = $("thBar" + h); if (bar) bar.querySelectorAll("[data-th-mode]").forEach(b => b.classList.toggle("aktif", b.dataset.thMode === S.mode)); }
+  function panel(h) { const S = ambil(h);
+    return B[h].map(([k, nm]) => '<label><input type="checkbox" data-th-k="' + k + '"' + (S.sembunyi.includes(k) ? "" : " checked") + '> ' + nm + '</label>').join("") +
+      '<span class="bt-tampil-tb"><button class="btn kecil" type="button" data-th-semua="1">Tampilkan semua bagian</button></span>'; }
+  for (const h of Object.keys(B)) { const hal = $("hal" + h); if (!hal) continue;
+    const bar = document.createElement("div"); bar.className = "th-bar"; bar.id = "thBar" + h;
+    bar.innerHTML = '<span class="th-seg"><button type="button" data-th-mode="simpel">Simpel</button><button type="button" data-th-mode="lengkap">Lengkap</button></span>' +
+      '<button type="button" class="btn kecil" data-th-buka="1" aria-expanded="false">👁 Tampilan</button><span class="th-ket">Simpel = kartu ringkas tanpa grafik · ketuk kartu untuk detail</span>';
+    const p = document.createElement("div"); p.className = "ak-set th-panel"; p.id = "thPanel" + h; p.hidden = true; p.innerHTML = '<div class="bt-tampil">' + panel(h) + '</div>';
+    hal.prepend(p); hal.prepend(bar);
+    bar.addEventListener("click", e => { const m = e.target.closest("[data-th-mode]"), o = e.target.closest("[data-th-buka]");
+      if (m) { const S = ambil(h); S.mode = m.dataset.thMode; if (S.mode === "lengkap") S.sembunyi = []; else if (!S.sembunyi.length) S.sembunyi = SIMPEL[h].slice(); simpan("tampilHal_" + h, S); p.firstChild.innerHTML = panel(h); terapkan(h); }
+      if (o) { p.hidden = !p.hidden; o.setAttribute("aria-expanded", String(!p.hidden)); } });
+    p.addEventListener("change", e => { const c = e.target.closest("[data-th-k]"); if (!c) return; const S = ambil(h);
+      S.sembunyi = S.sembunyi.filter(x => x !== c.dataset.thK); if (!c.checked) S.sembunyi.push(c.dataset.thK); simpan("tampilHal_" + h, S); terapkan(h); });
+    p.addEventListener("click", e => { if (!e.target.closest("[data-th-semua]")) return; const S = ambil(h); S.sembunyi = []; simpan("tampilHal_" + h, S); p.firstChild.innerHTML = panel(h); terapkan(h); });
+    terapkan(h); }
+  // beberapa wadah (mis. baris judul daftar) baru tampil/terisi belakangan: terapkan ulang saat halaman dibuka
+  document.addEventListener("click", e => { const t = e.target.closest("[data-hal]"); if (t && B[t.dataset.hal]) setTimeout(() => terapkan(t.dataset.hal), 50); });
+  setInterval(() => { for (const h of Object.keys(B)) { const hal = $("hal" + h); if (hal && !hal.hidden) terapkan(h); } }, 4000);
+})();
+</script>
 </body>
 </html>
