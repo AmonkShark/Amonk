@@ -1,8 +1,14 @@
 {
- "dibuat": "2026-10-08T23:30:54.186Z",
+ "dibuat": "2026-10-09T11:32:18.190Z",
  "sumber": "judul pengumuman CMS Binance (katalog 49 & 161)",
- "jumlahPengumuman": 2089,
+ "jumlahPengumuman": 2090,
  "aktif": {
+  "BICO": {
+   "sejak": "2026-10-09"
+  },
+  "CVC": {
+   "sejak": "2026-10-09"
+  },
   "AVA": {
    "sejak": "2026-09-04"
   },
