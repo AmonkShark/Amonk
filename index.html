@@ -2791,12 +2791,25 @@ window.notifMati = async () => {
   // angka profit tanpa tulisan USDT (baris jurnal/riwayat, total profit, kolom PnL Terminal)
   function prosesAngka(akar) {
     if (!KURS.idr || TAMPIL.rp === false) return;
-    for (const el of akar.querySelectorAll("td.pnl, #sPola, #jrList .ha>b, #rwList .ha>b, .rk-jn>div:first-child>b, .ak-hero-bawah>div:nth-child(3)>b")) {
+    // 2026-10-09 (user "semua yang menampilkan pnl profit atau rugi selalu ada nilai rupiah"): + kartu bot gaya Binance, kartu per sinyal/per pola/Pantau maju,
+    // angka uang di kotak kecil kartu (label rata/terbaik/terburuk/untung/rugi/profit — bukan R, RR, PF, WR), dan "terbaik / terburuk" (dua angka).
+    const UANG = /^(rata\/trade|rata|terbaik|terburuk|untung|rugi|profit.*|total|pnl.*|terbaik \/ terburuk|drawdown.*)$/i;
+    const label = el => { const p = el.parentElement; if (!p) return ""; const i = p.querySelector(":scope>i, :scope>em, :scope>span:first-child"); return i && i !== el ? i.textContent.trim() : ""; };
+    const A = "td.pnl, #sPola, #jrList .ha>b, #rwList .ha>b, .rk-jn>div:first-child>b, .ak-hero-bawah>div:nth-child(3)>b, .bn-grid[data-bt=angka]>div:nth-child(-n+3)>b, .bn-kanan>b.naik, .bn-kanan>b.turun, .rw-pola .j>span.naik, .rw-pola .j>span.turun";
+    const Bsel = ".rw-pola .kv>div>b, .rw-pola .d>span, .jr-angka>div>b";
+    const daftar = [...akar.querySelectorAll(A)].map(el => [el, false]).concat([...akar.querySelectorAll(Bsel)].map(el => [el, true]));
+    for (const [el, cekLabel] of daftar) {
       if (el.querySelector(".rp-auto")) continue;
-      const n = [...el.childNodes].find(x => x.nodeType === 3 && x.nodeValue.trim()); if (!n) continue;
-      const m = /^\s*([+\-−]?\d[\d,]*\.?\d*)/.exec(n.nodeValue); if (!m) continue;
-      const v = parseFloat(m[1].replace(/,/g, "").replace("−", "-")); if (!isFinite(v) || Math.abs(v) < 0.005) continue;
-      const sp = document.createElement("span"); sp.className = "rp-auto blok"; sp.textContent = "≈ " + fmt(v); n.parentNode.insertBefore(sp, n.nextSibling);
+      const dSpan = el.matches(".d>span"), em = dSpan ? el.querySelector("em") : null;
+      if (cekLabel) { const lb = dSpan ? [...el.childNodes].filter(x => x.nodeType === 3).map(x => x.nodeValue).join(" ").trim() : label(el); if (!UANG.test(lb)) continue;
+        if (!dSpan && [...el.parentElement.children].some(c => c !== el && !c.classList.contains("rp-auto") && /Rp\s?\d/.test(c.textContent))) continue; }
+      const teks = dSpan ? (em ? em.textContent : "") : el.textContent;
+      const M = [...teks.matchAll(/([+\-−]?\d[\d,]*\.?\d*)/g)].map(x => parseFloat(x[1].replace(/,/g, "").replace("−", "-"))).filter(isFinite);
+      if (!M.length || M.every(v => Math.abs(v) < 0.005)) continue;
+      const dua = !dSpan && M.length >= 2 && /\//.test(teks);
+      const sp = document.createElement("span"); sp.className = "rp-auto blok"; sp.textContent = "≈ " + (dua ? fmt(M[0]) + " / " + fmt(M[1]) : fmt(M[0]));
+      const n = [...el.childNodes].find(x => x.nodeType === 3 && x.nodeValue.trim());
+      if (cekLabel || dua || !n) el.appendChild(sp); else n.parentNode.insertBefore(sp, n.nextSibling);
     }
   }
   let tm = null;
@@ -5763,8 +5776,10 @@ sambung();
 .th-ringkas .rw-pola .j{margin-bottom:4px!important}
 .th-ringkas .rw-pola .j b{font-size:14px!important}
 .th-ringkas .rw-pola .d{display:flex!important;flex-wrap:wrap;gap:2px 14px!important;font-size:12px!important;margin-top:4px}
-.th-ringkas .rw-pola .d>*{display:inline-flex!important;flex-direction:row-reverse!important;gap:4px;align-items:baseline;padding:0!important;background:none!important;border:0!important}
+.th-ringkas .rw-pola .d>*{display:inline-flex!important;flex-direction:row!important;gap:4px;align-items:baseline;padding:0!important;background:none!important;border:0!important}
 .th-ringkas .rw-pola .d *,.th-ringkas .rw-pola .kv *{text-transform:none!important;letter-spacing:0!important}
+.th-ringkas .rw-pola .d>* em{order:-1}
+.th-ringkas .rw-pola .d .rp-auto{margin:0!important}
 .th-ringkas .rw-pola .kv{display:flex!important;flex-wrap:wrap;gap:2px 14px!important}
 .th-ringkas .rw-pola .kv>*{border:0!important;padding:0!important}
 .th-ringkas .geser-info,.th-ringkas .hpsj{display:none!important}
