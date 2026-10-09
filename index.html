@@ -966,6 +966,40 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
 #rwRing .jr-kotak>.jr-ket{grid-column:1/-1}
 .rw-vs b{color:var(--teks);font-weight:500}
 @media (max-width:480px){.rw-kustom label{flex:1 1 130px}.rw-kustom input{width:100%}}
+
+/* ===== RIWAYAT & JURNAL GAYA BINANCE (2026-10-09, user "buat di semua tab riwayat dan jurnal sama seperti di binance sebagai referensi") =====
+   Kulit saja (CSS): data & logika tidak berubah. Baris trade ringkas 2 baris (nama+PnL, lalu level), angka datar tanpa kotak, label huruf biasa. */
+:is(#halRiwayat,#halJurnal) .jr-angka span,:is(#halRiwayat,#halJurnal) .rk-jn span,:is(#halRiwayat,#halJurnal) .kv span{text-transform:none!important;letter-spacing:.01em!important}
+#rwRing>.jr-kotak{padding:16px 18px}
+#rwRing .jr-angka{gap:0 18px!important;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))!important}
+#rwRing .jr-angka>div{background:none!important;border:0!important;box-shadow:none!important;border-radius:0!important;padding:9px 2px!important;border-bottom:1px solid var(--garis)!important;align-items:flex-start!important;text-align:left!important;min-width:0}
+#rwRing .jr-angka>div>span:first-child{font-size:11.5px!important;color:var(--label)!important}
+#rwRing .jr-angka>div>b{font-size:clamp(15px,2.6vw,20px)!important;line-height:1.25;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+#rwRing .jr-angka>div>.rp,#rwRing .jr-angka>div>small{font-size:11px!important}
+#jnRingkas{text-align:left!important}
+#jnRingkas>div{align-items:flex-start!important;text-align:left!important}
+#jnRingkas>div>span{font-size:11.5px!important;color:var(--label)!important}
+.rw-pola{border-radius:14px!important}
+.rw-pola .kv>*{background:none!important;border:0!important;box-shadow:none!important;border-radius:0!important;padding:4px 0!important;border-bottom:1px solid var(--garis)!important}
+.rw-pola .kv *,.rw-pola .kv{text-transform:none!important;letter-spacing:.01em!important}
+:is(#rwList,#jrList){gap:0!important;background:var(--bg1);border:1px solid var(--garis);border-radius:16px;padding:2px 12px;overflow:hidden}
+:is(#rwList,#jrList)>.jr-tr{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:3px 12px!important;padding:11px 2px 11px 10px!important;margin:0!important;background:none!important;border:0!important;border-bottom:1px solid var(--garis)!important;border-left:3px solid transparent!important;border-radius:0!important;box-shadow:none!important;align-items:start!important;transform:none!important}
+:is(#rwList,#jrList)>.jr-tr:last-child{border-bottom:0!important}
+:is(#rwList,#jrList)>.jr-tr.buka{border-left-color:var(--kuning,#F0B90B)!important}
+:is(#rwList,#jrList)>.jr-tr.u,:is(#rwList,#jrList)>.jr-tr.menang{border-left-color:var(--hijau)!important}
+:is(#rwList,#jrList)>.jr-tr.r,:is(#rwList,#jrList)>.jr-tr.kalah{border-left-color:var(--merah)!important}
+:is(#rwList,#jrList)>.jr-tr>div:first-child{grid-column:1;grid-row:1}
+:is(#rwList,#jrList)>.jr-tr .nm{font:600 14px var(--f-ui)!important}
+:is(#rwList,#jrList)>.jr-tr .sub{font-size:11.5px!important;color:var(--label)!important}
+:is(#rwList,#jrList)>.jr-tr>.lv{grid-column:1!important;grid-row:2!important;text-align:left!important;font:11.5px/1.55 var(--f-num)!important;color:var(--label)!important;display:block!important;min-width:0}
+:is(#rwList,#jrList)>.jr-tr>.ha{grid-column:2!important;grid-row:1/span 2!important;display:flex!important;flex-direction:row!important;flex-wrap:wrap;justify-content:flex-end;align-items:center!important;align-content:flex-start;gap:2px 6px!important;text-align:right;max-width:150px}
+:is(#rwList,#jrList)>.jr-tr>.ha>b{flex-basis:100%;text-align:right}
+:is(#rwList,#jrList)>.jr-tr>.ha>b{background:none!important;border:0!important;box-shadow:none!important;padding:0!important;font:600 15px var(--f-num)!important;font-variant-numeric:tabular-nums}
+:is(#rwList,#jrList)>.jr-tr>.ha .rp,:is(#rwList,#jrList)>.jr-tr>.ha .rp-auto{font-size:10.5px!important}
+:is(#rwList,#jrList)>.jr-tr>.ha .chip{font-size:10.5px!important;padding:1px 6px!important;margin-top:2px}
+@media(hover:hover){:is(#rwList,#jrList)>.jr-tr:hover{background:var(--bg2)!important}}
+:is(#rwList,#jrList)>.jr-tr::before,:is(#rwList,#jrList)>.jr-tr::after{display:none!important}
+@media(max-width:600px){:is(#rwList,#jrList){padding:2px 8px}:is(#rwList,#jrList)>.jr-tr>.lv{grid-column:1/-1!important}:is(#rwList,#jrList)>.jr-tr>.ha{grid-row:1!important;max-width:130px}}
 </style>
 </head>
 <body>
