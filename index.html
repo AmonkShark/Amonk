@@ -1173,7 +1173,7 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
         <button data-v="semua">Semua sinyal</button><button data-v="POLA 4H">POLA 4H</button><button data-v="AI 4H">AI 4H</button><button data-v="LAB 4H">🧪 LAB 4H</button>
       </div>
       <div class="seg" role="group" aria-label="Status" id="jnStatus">
-        <button data-v="semua">Semua</button><button data-v="jalan">Jalan</button><button data-v="tutup">Tutup</button><button data-v="untung">Untung</button><button data-v="rugi">Rugi</button>
+        <button data-v="semua">Semua</button><button data-v="jalan" title="Semua sinyal yang masih jalan (simulasi 1000 USDT per sinyal)">Jalan · semua</button><button data-v="jalanbot" title="Hanya sinyal yang posisinya sedang dipegang bot akun asli (butuh status bot terbaca)">Jalan · bot</button><button data-v="tutup">Tutup</button><button data-v="untung">Untung</button><button data-v="rugi">Rugi</button>
       </div>
       <select id="jnPeriode" aria-label="Periode"><option value="7">7 hari</option><option value="30">30 hari</option><option value="90">90 hari</option><option value="0">Semua waktu</option></select>
       <select id="jnUrut" aria-label="Urutkan"><option value="baru">Urut: terbaru</option><option value="usdtB">Urut: USDT terbesar</option><option value="usdtK">Urut: USDT terkecil</option><option value="r">Urut: R terbesar</option><option value="lama">Urut: tahan terlama</option></select>
@@ -3749,11 +3749,15 @@ function jnBaris(buku, ikutStAt) {
   }
   return out;
 }
+// JALAN · BOT (2026-10-10, user: pilihan "jalan yang diambil bot" vs "jalan semua sinyal" di Jurnal): sinyal jalan dianggap diambil bot
+// bila bot akun asli sedang memegang koin yang sama dan waktu masuknya berdekatan (< 12 jam) dengan waktu sinyal. Bot = satu posisi per koin.
+function jnDiBot(t) { let B = null; try { B = BT_S; } catch (e) {} const P = (B && B.posisi) || [], sym = String(t.koin || "").toUpperCase() + "USDT";
+  return P.some(p => p.sym === sym && Math.abs((p.t || 0) - (t.mT || 0)) < 12 * 3600e3); }
 function jnSaring(a) {
   const batas = +JN_S.periode ? Date.now() - +JN_S.periode * 864e5 : 0, cari = JN_S.cari.trim().toUpperCase(), polaAktif = jnPolaAktif();
   return a.filter(t => (JN_S.sinyal === "semua" || t.sinyal === JN_S.sinyal) && t.mT >= batas && (!cari || t.koin.toUpperCase().includes(cari)) &&
     (t.sinyal !== polaJn() || !t.jenis || polaAktif.has(t.jenis)) &&
-    (JN_S.status === "semua" || (JN_S.status === "jalan" ? t.terbuka : JN_S.status === "tutup" ? !t.terbuka
+    (JN_S.status === "semua" || (JN_S.status === "jalan" ? t.terbuka : JN_S.status === "jalanbot" ? t.terbuka && jnDiBot(t) : JN_S.status === "tutup" ? !t.terbuka
       : JN_S.status === "untung" ? !t.terbuka && t.us > 0 : !t.terbuka && t.us <= 0)));
 }
 // RR (2026-10-06, user: "agar aku tau setiap sinyal menghasilkan rr berapa"):
