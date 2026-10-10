@@ -1219,7 +1219,7 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
     </form>
     <p class="ak-pesan" id="akPesan">Belum tersambung. Alamat &amp; sandi disimpan hanya di perangkat ini. Aplikasi hanya MEMBACA saldo — tidak bisa memasang order atau menarik dana.</p>
     <section class="mb-kartu" id="mbKartu" data-ak="beli">
-      <div class="mb-kepala"><h3>🛒 Beli manual <small class="redup">SL · TP · trailing dipasang otomatis oleh bot sesudah terisi</small></h3><button class="btn kecil" type="button" id="mbLipat" aria-expanded="true">Sembunyikan</button></div>
+      <div class="mb-kepala"><h3>🛒 Beli manual <small class="redup">semua sinyal alert boleh (termasuk yang dilewati bot) · SL/TP/trailing dipasang otomatis sesudah terisi · aturan bot tidak berubah</small></h3><button class="btn kecil" type="button" id="mbLipat" aria-expanded="true">Sembunyikan</button></div>
       <div id="mbIsi">
         <div class="mb-grid">
           <label>Koin<input id="mbKoin" list="mbDaftar" autocapitalize="characters" placeholder="mis. JST"><datalist id="mbDaftar"></datalist></label>
@@ -5904,7 +5904,13 @@ sambung();
   const esc = v => String(v == null ? "" : v).replace(/[<>&"]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" })[c]);
   const koin = () => String($("mbKoin").value || "").trim().toUpperCase().replace(/USDT$/, "").replace(/[^A-Z0-9]/g, "");
   let tp1Manual = false, nilaiManual = false;
-  const sinyalTerbuka = () => { try { return (typeof jnBaris === "function" ? jnBaris() : []).filter(t => t.terbuka && !/AI/.test(t.sinyal || "")); } catch (e) { return []; } };
+  // 2026-10-11 (user: "semua sinyal yang ada di alert tetap bisa dimasukkan ke manual, kecuali ke bot tetap dengan aturan sekarang"):
+  // sumber = buku Jurnal TERMASUK ST & AT dan FW MACD<=0 (yang dilewati bot) + pola 4H LIVE di Terminal (alert yang baru masuk, sebelum buku diperbarui).
+  const sinyalTerbuka = () => { const out = [];
+    try { for (const t of (typeof jnBaris === "function" ? jnBaris(undefined, true) : [])) if (t.terbuka && !/AI/.test(t.sinyal || "")) out.push(t); } catch (e) {}
+    try { for (const [k, d] of Object.entries(typeof data === "object" && data ? data : {})) { const P = d && d.pola; if (!P || !(P.umur <= 6) || !(P.entry > P.sl)) continue;
+      out.push({ koin: k, jenis: P.nama, entry: P.entry, sl: P.sl, tp: P.tp2, mT: P.masukT, sinyal: "POLA 4H live", terbuka: true }); } } catch (e) {}
+    return out; };
   function isiDaftar() { const S = sinyalTerbuka(), set = [...new Set(S.map(t => String(t.koin).toUpperCase()))].sort(); $("mbDaftar").innerHTML = set.map(k => `<option value="${esc(k)}">`).join(""); }
   function hargaEntry() { if ($("mbTipe").value === "limit") return angka("mbHarga"); const k = koin(); try { const p = hargaKini(k); return p > 0 ? p : null; } catch (e) { return null; } }
   function terapkanAturan(ganti) { const A = ATURAN[$("mbJenis").value] || ATURAN.MAN;
