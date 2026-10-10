@@ -2921,7 +2921,7 @@ window.notifMati = async () => {
     // angka uang di kotak kecil kartu (label rata/terbaik/terburuk/untung/rugi/profit — bukan R, RR, PF, WR), dan "terbaik / terburuk" (dua angka).
     const UANG = /^(rata\/trade|rata|terbaik|terburuk|untung|rugi|profit.*|total|pnl.*|terbaik \/ terburuk|drawdown.*)$/i;
     const label = el => { const p = el.parentElement; if (!p) return ""; const i = p.querySelector(":scope>i, :scope>em, :scope>span:first-child"); return i && i !== el ? i.textContent.trim() : ""; };
-    const A = "td.pnl, #sPola, #jrList .ha>b, #rwList .ha>b, .rk-jn>div:first-child>b, .ak-hero-bawah>div:nth-child(3)>b, .bn-grid[data-bt=angka]>div:nth-child(-n+3)>b, .bn-kanan>b.naik, .bn-kanan>b.turun, .rw-pola .j>span.naik, .rw-pola .j>span.turun";
+    const A = "td.pnl, #sPola, #jrList .ha>b, #rwList .ha>b, .rk-jn>div:first-child>b, .ak-hero-bawah:not(#akSisaManual)>div:nth-child(3)>b, .bn-grid[data-bt=angka]>div:nth-child(-n+3)>b, .bn-kanan>b.naik, .bn-kanan>b.turun, .rw-pola .j>span.naik, .rw-pola .j>span.turun";
     const Bsel = ".rw-pola .kv>div>b, .rw-pola .d>span, .jr-angka>div>b";
     const daftar = [...akar.querySelectorAll(A)].map(el => [el, false]).concat([...akar.querySelectorAll(Bsel)].map(el => [el, true]));
     for (const [el, cekLabel] of daftar) {
@@ -4232,7 +4232,7 @@ function trmAlok() {
 setTimeout(trmAlok, 200);
 let AK_CACHE = null;
 function gambarAkun(baris, akun) {
-  setTimeout(periksaAlarm, 0);
+  setTimeout(periksaAlarm, 0); setTimeout(() => window.gambarSisaManual && window.gambarSisaManual(), 0);
   { const u = baris.find(b => b.aset === "USDT"); if (u) simpan("usdtBebas", +u.bebas || 0); }   // dasar porsi modal manual
   AK_CACHE = { baris, akun };
   const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
@@ -4248,6 +4248,7 @@ function gambarAkun(baris, akun) {
   $("akRing").innerHTML = `<div class="ak-hero"><div class="ak-hero-atas"><span>Total saldo · ${baris.length} aset</span><b>${total.toFixed(2)} <small>USDT</small></b><em>${rpN(total)}</em></div>` +
     `<div class="ak-hero-bawah"><div><span>Stablecoin</span><b>${stabil.toFixed(2)}</b></div><div><span>Koin</span><b>${(total - stabil).toFixed(2)}</b></div>` +
     `<div><span>PnL koin</span><b class="${kl(pnl)}">${f2(pnl)}</b>${pctPnl == null ? "" : `<em class="${kl(pnl)}">${f2(pctPnl)}%</em>`}</div></div>` +
+    `<div class="ak-hero-bawah" id="akSisaManual"></div>` +
     `<p class="jr-ket hp-sembunyi">PnL koin = harga kini vs harga beli rata-rata dari 500 trade terakhir tiap koin (belum terealisasi). Koin hasil deposit/transfer tidak punya harga beli.` +
     (KURS.idr ? ` Kurs 1 USDT ≈ Rp ${Math.round(KURS.idr).toLocaleString("id-ID")} (${KURS.sumber}).` : ` Kurs rupiah gagal diambil.`) + `</p></div>` +
     donatAlokasi(baris, total) + risikoSerentak(baris, total, akun);
@@ -4291,7 +4292,12 @@ $("akPorsi").addEventListener("change", () => { simpan("porsiManual", +$("akPors
 // KANTONG MANUAL vs BOT (2026-10-11, user: "pilihan mengambil usdt 100/70/50/30% sebagai saldo manual dan sisanya saldo bot, jangan digabung lagi
 // hingga aku tambah saldo bot atau aku kurangi"). Disimpan di worker bot (atur.manualKantong) supaya bot & Beli manual memakai angka yang sama.
 function kantongManual() { return ((typeof BT_S !== "undefined" && BT_S) && BT_S.manual && BT_S.manual.modal) || null; }
-window.gambarKantong = () => { const K = kantongManual(), el = $("akKantong"); if (!el) return; const M = (typeof BT_S !== "undefined" && BT_S) && BT_S.modal;
+// 10-11 (user): SISA saldo manual di kartu Total saldo — saldo manual, dipakai entry, sisa (belum dipakai), hasil trade tutup.
+window.gambarSisaManual = () => { const el = document.getElementById("akSisaManual"); if (!el) return; const K = (typeof BT_S !== "undefined" && BT_S && BT_S.manual && BT_S.manual.modal) || null;
+  const rp = v => KURS.idr ? `<em>≈ ${v < 0 ? "−" : ""}Rp ${Math.round(Math.abs(v) * KURS.idr).toLocaleString("id-ID")}</em>` : "";
+  if (!K) { el.hidden = true; return; } el.hidden = false;
+  el.innerHTML = `<div><span>Saldo manual</span><b>${K.kini.toFixed(2)}</b>${rp(K.kini)}</div><div><span>Dipakai entry</span><b>${K.terpakai.toFixed(2)}</b>${rp(K.terpakai)}</div><div><span>Sisa manual</span><b class="naik">${K.bebas.toFixed(2)}</b>${rp(K.bebas)}<em class="${K.laba >= 0 ? "naik" : "turun"}">hasil tutup ${K.laba >= 0 ? "+" : ""}${K.laba.toFixed(2)}</em></div>`; };
+window.gambarKantong = () => { if (window.gambarSisaManual) window.gambarSisaManual(); const K = kantongManual(), el = $("akKantong"); if (!el) return; const M = (typeof BT_S !== "undefined" && BT_S) && BT_S.modal;
   if (!K) return;
   el.innerHTML = `<b>Saldo manual ${K.kini.toFixed(2)} USDT</b> (${K.porsi}% saat dibagi ${new Date(K.sejak).toLocaleDateString("id-ID")}) · terpakai ${K.terpakai.toFixed(2)} · bebas <b>${K.bebas.toFixed(2)}</b> · hasil manual ${K.laba >= 0 ? "+" : ""}${K.laba.toFixed(2)}${K.penyesuaian ? " · tambah/kurang " + (K.penyesuaian > 0 ? "+" : "") + K.penyesuaian.toFixed(2) : ""}<br>Saldo bot ${M ? (+M.kini).toFixed(2) : "?"} USDT · dua saldo ini terpisah.`; };
 async function danaKantong(jalur, isi, ok) {
@@ -4719,7 +4725,7 @@ function gambarBot(s) {
       `<div><span>PnL ${MO.sejak ? "sejak " + tglLokal(MO.sejak) : "bot"}</span><b class="${kl(MO.laba)} bn-uang">${f2(MO.laba)}${MO.awal > 0 ? ` <small>(${f2(MO.laba / MO.awal * 100)}%)</small>` : ""}</b></div>` +
       `<div><span>PnL hari ini (tutup)</span><b class="${kl(hariIni)} bn-uang">${f2(hariIni)}</b></div>` +
       `<div><span>PnL berjalan (${P.length} posisi)</span><b class="${kl(berjalan)} bn-uang">${P.length ? f2(berjalan) : "—"}</b></div>` +
-      `<div><span>Terpakai · bebas</span><b class="bn-uang">${Math.round(pakai)} · ${Math.round(bebas)}</b><small class="redup">${P.length} / ${PG.maksPosisi || "?"} posisi${maks ? " · " + Math.round(pakai / maks * 100) + "%" : ""}</small></div></div>` +
+      `<div><span>Terpakai · sisa</span><b class="bn-uang">${Math.round(pakai)} · ${Math.round(bebas)}</b><small class="redup">${KURS.idr ? "sisa ≈ Rp " + Math.round(bebas * KURS.idr).toLocaleString("id-ID") + " · " : ""}${P.length} / ${PG.maksPosisi || "?"} posisi${maks ? " · " + Math.round(pakai / maks * 100) + "%" : ""}</small></div></div>` +
     kurvaModalBot(MO, R) +
     `<div class="bn-grid bn-grid2" data-bt="angka2"><div><span>Rata-rata · ${namaPer}</span><b class="${kl(rRata)}">${rRata == null ? "—" : f2(rRata) + " R"}</b><small class="redup">${RP.length} trade · WR ${wrP == null ? "—" : wrP + "%"}</small></div>` +
       `<div><span>Pola diambil</span><b class="kecil">${(PG.polaBoleh || []).slice().sort((a, b) => akUrut(a) - akUrut(b)).join(" · ") || "—"}</b></div>` +
@@ -5064,7 +5070,7 @@ $("btForm").addEventListener("submit", async ev => {
 // BILAH STATUS (2026-09-23): diperbarui dari status bot yang SAMA (satu panggilan /status tiap 60 dtk,
 // hanya operasi BACA KV). Di tab Akun muatBot() yang memanggil; di tab lain muatPita().
 function gambarPita(s) {
-  setTimeout(periksaAlarm, 0);
+  setTimeout(periksaAlarm, 0); setTimeout(() => window.gambarSisaManual && window.gambarSisaManual(), 0);
   const set = (id, teks, kls, lampu) => { const el = $(id); if (!el) return; const b = el.querySelector("b"); b.textContent = teks; b.className = kls || "";
     const l = el.querySelector(".lampu"); if (l && lampu !== undefined) l.className = "lampu " + lampu; };
   if (!s) { set("pitaBot", "tak terbaca", "turun", "off"); return; }
@@ -5082,12 +5088,12 @@ function gambarPita(s) {
   const t0 = new Date(); t0.setHours(0, 0, 0, 0);
   { const pakaiBot = (+s.terpakai || 0) + ((s.ew || {}).order || []).reduce((a, o) => a + (+o.nilai || 0), 0) + ((s.fib || {}).order || []).reduce((a, o) => a + (+o.nilai || 0), 0);
     const sisaB = Math.max(0, (+M.kini || 0) - pakaiBot), hasilB = +M.laba || 0;
-    isi("pitaModal", M.kini ? `${u0(M.kini)} USDT${rpT(M.kini)} · sisa ${u0(sisaB)}${rpT(sisaB)} · hasil ${u2(hasilB)}${rpT(hasilB, 1)}` : "—", "",
+    isi("pitaModal", M.kini ? `${u0(M.kini)} USDT${rpT(M.kini)}` : "—", "",
       M.kini ? `Saldo bot ${(+M.kini).toFixed(2)} USDT = awal ${(+M.awal || 0).toFixed(2)} + hasil trade tutup ${u2(hasilB)}${M.penyesuaian ? " + tambah/kurang " + u2(M.penyesuaian) : ""}
 Dipakai posisi/order ${pakaiBot.toFixed(2)} · sisa ${sisaB.toFixed(2)} USDT` : ""); }
   { const MK = s.manual && s.manual.modal, MR = (s.manual && s.manual.riwayat) || [];
     const hm = MR.filter(r => (r.keluarT || 0) >= t0.getTime()).reduce((a, r) => a + (+r.hasil || 0), 0), np = ((s.manual && s.manual.posisi) || []).length + ((s.manual && s.manual.order) || []).length;
-    isi("pitaManual", MK ? `${u0(MK.kini)} USDT${rpT(MK.kini)} · sisa ${u0(MK.bebas)}${rpT(MK.bebas)} · hasil ${u2(MK.laba)}${rpT(MK.laba, 1)} · hari ini ${u2(hm)} · ${np} posisi` : "belum dibagi",
+    isi("pitaManual", MK ? `${u0(MK.kini)} USDT${rpT(MK.kini)} · hari ini ${u2(hm)}${rpT(hm, 1)} · ${np} posisi` : "belum dibagi",
       MK ? (hm > 0 ? "naik" : hm < 0 ? "turun" : "") : "redup",
       MK ? `Saldo manual ${MK.kini.toFixed(2)} USDT = awal ${MK.awal.toFixed(2)} + hasil trade tutup ${u2(MK.laba)}${MK.penyesuaian ? " + tambah/kurang " + u2(MK.penyesuaian) : ""}
 Dipakai posisi/order ${MK.terpakai.toFixed(2)} · sisa ${MK.bebas.toFixed(2)} USDT` : ""); }
