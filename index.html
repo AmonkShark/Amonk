@@ -1300,6 +1300,7 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
           <label>Risiko per trade<select id="mbRisiko"><option value="">ikut pengaturan</option><option value="0.25">0.25%</option><option value="0.5">0.5%</option><option value="0.75">0.75% (sama bot)</option><option value="1">1%</option><option value="1.5">1.5%</option><option value="2">2%</option></select></label>
           <label class="mb-lebar">Catatan (opsional)<input id="mbCatatan" maxlength="200" placeholder="alasan entry"></label>
         </div>
+        <div class="mb-bukti" id="mbBukti"></div>
         <div class="mb-ringkas" id="mbRingkas"></div>
         <div class="mb-tb"><button class="btn" type="button" id="mbIsiSinyal">Isi dari sinyal terakhir</button><button class="btn mb-beli" type="button" id="mbBeli">Beli</button></div>
         <p class="ak-pesan" id="mbPesan"></p>
@@ -6109,5 +6110,24 @@ sambung();
 })();
 </script>
 <style>.mk-kotak{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border:1px solid var(--garis);border-radius:10px}.mk-baris{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}.mk-baris label{flex:1;min-width:200px}.mk-ket{font-size:12px;line-height:1.5}</style>
+<style>.mb-bukti{font-size:12px;line-height:1.5;margin-top:10px;padding:7px 10px;border-radius:10px;border-left:3px solid var(--garis);background:var(--bg2)}.mb-bukti.naik{border-left-color:var(--hijau)}.mb-bukti.kng{border-left-color:#d4a72c}.mb-bukti.turun{border-left-color:var(--merah)}</style>
+<script>
+// LABEL BUKTI PER SINYAL di Beli manual (2026-10-11, user memilih "Label bukti per sinyal"). Sumber: uji 10-08 lima sinyal vs masuk ACAK
+// di koin & bulan yang sama, exit sama, 7 irisan 2019-2026 (research/hasil_prioritas_sinyal_vs_acak.txt). Hanya keterangan — tidak memblokir.
+(() => { const $ = id => document.getElementById(id), el = $("mbBukti"), J = $("mbJenis"); if (!el || !J) return;
+  const B = {
+    L027: ["naik", "✅ Terbukti lebih baik dari masuk acak: 7 dari 7 irisan, rata +0.53R (selisih +0.68R). Kelemahan: nilainya banyak dari sedikit minggu crash; uji maju bot baru 0 trade."],
+    L030: ["kng", "🟡 Sedikit di atas acak: selisih positif 7/7 tapi kecil (rata +0.14R), signifikan hanya 2/7. Anggap belum terbukti."],
+    FW:   ["kng", "🟡 FW dengan MACD > 0 setara acak (+0.02R). FW MACD ≤ 0 DILEWATI bot karena hasil ujinya lebih buruk — cek MACD sebelum beli."],
+    EW:   ["kng", "🟡 Setara masuk acak (+0.01R vs acak). Untung/rugi lebih banyak ikut arah pasar daripada sinyalnya."],
+    TB:   ["turun", "🔴 Lebih BURUK dari masuk acak: −0.24R vs acak koin+bulan yang sama. Bot memakainya ukuran 2× sampai 31-12 (keputusanmu), tapi buktinya lemah."],
+    ST:   ["turun", "🔴 Tidak dipakai bot. Belum diuji melawan masuk acak koin+bulan — anggap belum terbukti."],
+    AT:   ["turun", "🔴 Tidak dipakai bot. Uji ketahanan: hasilnya ikut pasar (beta), bukan dari polanya — anggap belum terbukti."],
+    MAN:  ["", "⚪ Entry di luar sinyal: tidak ada data uji. Catat alasanmu di kolom Catatan supaya bisa dinilai nanti (±30 trade)."]
+  };
+  const gambar = () => { const b = B[J.value] || B.MAN; el.className = "mb-bukti " + b[0]; el.textContent = "Bukti uji " + J.value + ": " + b[1]; };
+  J.addEventListener("change", gambar); new MutationObserver(gambar).observe(J, { attributes: true, childList: true }); setInterval(() => { if (el.dataset.k !== J.value) { el.dataset.k = J.value; gambar(); } }, 800); gambar();
+})();
+</script>
 </body>
 </html>
