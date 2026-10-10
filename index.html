@@ -1173,7 +1173,10 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
         <button data-v="semua">Semua sinyal</button><button data-v="POLA 4H">POLA 4H</button><button data-v="AI 4H">AI 4H</button><button data-v="LAB 4H">🧪 LAB 4H</button>
       </div>
       <div class="seg" role="group" aria-label="Status" id="jnStatus">
-        <button data-v="semua">Semua</button><button data-v="jalan" title="Semua sinyal yang masih jalan (simulasi 1000 USDT per sinyal)">Jalan · semua</button><button data-v="jalanbot" title="Hanya sinyal yang posisinya sedang dipegang bot akun asli (butuh status bot terbaca)">Jalan · bot</button><button data-v="tutup">Tutup</button><button data-v="untung">Untung</button><button data-v="rugi">Rugi</button>
+        <button data-v="semua">Semua</button><button data-v="jalan">Jalan</button><button data-v="tutup">Tutup</button><button data-v="untung">Untung</button><button data-v="rugi">Rugi</button>
+      </div>
+      <div class="seg" role="group" aria-label="Pilihan bot" id="jnBot" title="Diambil bot = sinyal yang dimasuki bot akun asli (koin sama, waktu masuk < 12 jam dari sinyal; butuh status bot terbaca). Angka tetap simulasi 1000 USDT per sinyal supaya sebanding.">
+        <button data-v="semua">Semua sinyal</button><button data-v="bot">Diambil bot</button><button data-v="lain">Tidak diambil bot</button>
       </div>
       <select id="jnPeriode" aria-label="Periode"><option value="7">7 hari</option><option value="30">30 hari</option><option value="90">90 hari</option><option value="0">Semua waktu</option></select>
       <select id="jnUrut" aria-label="Urutkan"><option value="baru">Urut: terbaru</option><option value="usdtB">Urut: USDT terbesar</option><option value="usdtK">Urut: USDT terkecil</option><option value="r">Urut: R terbesar</option><option value="lama">Urut: tahan terlama</option></select>
@@ -3725,8 +3728,9 @@ function gambarJurnal() {
 }
 // ---------- pembantu jurnal ----------
 const KODE_POLA = { FW: "Falling Wedge", ST: "Symmetrical Triangle", PEN: "Bullish Pennant", IHS: "Inverse H&S", AT: "Ascending Triangle", TB: "Triple Bottom", CH: "Cup & Handle", EW: "Elliott Wave" };
-const JN_S = Object.assign({ sinyal: "semua", status: "semua", periode: "0", urut: "baru", cari: "", rinci: "bulan", grup: null,
+const JN_S = Object.assign({ sinyal: "semua", status: "semua", bot: "semua", periode: "0", urut: "baru", cari: "", rinci: "bulan", grup: null,
   pola: Object.fromEntries(Object.keys(KODE_POLA).map(k => [k, true])) }, baca("jnS", {}));
+if (JN_S.status === "jalanbot") { JN_S.status = "jalan"; JN_S.bot = "bot"; }   // pilihan lama "Jalan · bot" (10-10) -> Jalan + Diambil bot
 JN_S.pola = Object.assign(Object.fromEntries(Object.keys(KODE_POLA).map(k => [k, true])), JN_S.pola || {});   // pola baru ikut nyala bawaan
 if (baca("jnS", null) === null && jrPilih) { if (jrPilih === "buka") JN_S.status = "jalan"; else JN_S.sinyal = jrPilih; }   // bawa pilihan lama
 JN_S.grup = null; JN_S.cari = "";
@@ -3751,13 +3755,21 @@ function jnBaris(buku, ikutStAt) {
 }
 // JALAN · BOT (2026-10-10, user: pilihan "jalan yang diambil bot" vs "jalan semua sinyal" di Jurnal): sinyal jalan dianggap diambil bot
 // bila bot akun asli sedang memegang koin yang sama dan waktu masuknya berdekatan (< 12 jam) dengan waktu sinyal. Bot = satu posisi per koin.
-function jnDiBot(t) { let B = null; try { B = BT_S; } catch (e) {} const P = (B && B.posisi) || [], sym = String(t.koin || "").toUpperCase() + "USDT";
-  return P.some(p => p.sym === sym && Math.abs((p.t || 0) - (t.mT || 0)) < 12 * 3600e3); }
+// 2026-10-10 lanjutan (user "buat semua ada pilihan seperti tutup bot untung dan rugi bot"): jadi pilihan sendiri "Semua sinyal | Diambil bot | Tidak diambil bot"
+// yang berlaku untuk SEMUA status; posisi terbuka (p.t) DAN riwayat tutup bot (r.masukT) dicocokkan.
+// Tiap entry bot dipasangkan ke SATU sinyal terdekat (koin sama, < 12 jam) supaya dua sinyal berdekatan tidak sama-sama dihitung "diambil bot".
+function jnBotSet(rows) { let B = null; try { B = BT_S; } catch (e) {} const S = new Set(); if (!B) return S;
+  for (const e of [...(B.posisi || []).map(p => [p.sym, p.t]), ...(B.riwayat || []).map(r => [r.sym, r.masukT])]) { let best = null, jarak = 12 * 3600e3;
+    for (const t of rows) { if (/AI/.test(t.sinyal || "") || String(t.koin || "").toUpperCase() + "USDT" !== e[0]) continue; const d = Math.abs((e[1] || 0) - (t.mT || 0)); if (d < jarak) { jarak = d; best = t; } }
+    if (best) S.add(best); }
+  return S; }
 function jnSaring(a) {
+  const setBot = JN_S.bot !== "semua" ? jnBotSet(a) : null;
   const batas = +JN_S.periode ? Date.now() - +JN_S.periode * 864e5 : 0, cari = JN_S.cari.trim().toUpperCase(), polaAktif = jnPolaAktif();
   return a.filter(t => (JN_S.sinyal === "semua" || t.sinyal === JN_S.sinyal) && t.mT >= batas && (!cari || t.koin.toUpperCase().includes(cari)) &&
     (t.sinyal !== polaJn() || !t.jenis || polaAktif.has(t.jenis)) &&
-    (JN_S.status === "semua" || (JN_S.status === "jalan" ? t.terbuka : JN_S.status === "jalanbot" ? t.terbuka && jnDiBot(t) : JN_S.status === "tutup" ? !t.terbuka
+    (!setBot || (JN_S.bot === "bot") === setBot.has(t)) &&
+    (JN_S.status === "semua" || (JN_S.status === "jalan" ? t.terbuka : JN_S.status === "tutup" ? !t.terbuka
       : JN_S.status === "untung" ? !t.terbuka && t.us > 0 : !t.terbuka && t.us <= 0)));
 }
 // RR (2026-10-06, user: "agar aku tau setiap sinyal menghasilkan rr berapa"):
@@ -3848,7 +3860,7 @@ function jnPasangSeg(id, kunci) {
       document.querySelectorAll(`#${id} button`).forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false")); gambarJurnal(); });
   });
 }
-jnPasangSeg("jnSinyal", "sinyal"); jnPasangSeg("jnStatus", "status"); jnPasangSeg("jnRinciPilih", "rinci");
+jnPasangSeg("jnSinyal", "sinyal"); jnPasangSeg("jnStatus", "status"); jnPasangSeg("jnBot", "bot"); jnPasangSeg("jnRinciPilih", "rinci");
 if (TF_JN === "1D" && (JN_S.sinyal === "POLA 4H" || JN_S.sinyal === "AI 4H")) JN_S.sinyal = "semua";
 jnSegSinyal(); pasangTF("jnTF", "jnTF", () => gambarJurnal());
 $("jnPolaForm").innerHTML = Object.entries(KODE_POLA).map(([k, nm]) =>
@@ -3863,7 +3875,7 @@ $("jnPeriode").value = JN_S.periode; $("jnUrut").value = JN_S.urut;
 document.addEventListener("click", e => { if (!e.target.closest("#jnResetF")) return;
   JN_S.sinyal = "semua"; JN_S.status = "semua"; JN_S.periode = "0"; JN_S.cari = ""; JN_S.grup = null; simpan("jnS", JN_S);
   $("jnPeriode").value = "0"; $("jnCari").value = "";
-  for (const [id, k] of [["jnSinyal", "sinyal"], ["jnStatus", "status"]]) document.querySelectorAll("#" + id + " button").forEach(x => x.setAttribute("aria-pressed", x.dataset.v === JN_S[k] ? "true" : "false"));
+  for (const [id, k] of [["jnSinyal", "sinyal"], ["jnStatus", "status"], ["jnBot", "bot"]]) document.querySelectorAll("#" + id + " button").forEach(x => x.setAttribute("aria-pressed", x.dataset.v === JN_S[k] ? "true" : "false"));
   gambarJurnal(); });
 $("jnPeriode").addEventListener("change", () => { JN_S.periode = $("jnPeriode").value; JN_S.grup = null; simpan("jnS", JN_S); gambarJurnal(); });
 $("jnUrut").addEventListener("change", () => { JN_S.urut = $("jnUrut").value; simpan("jnS", JN_S); gambarJurnal(); });
