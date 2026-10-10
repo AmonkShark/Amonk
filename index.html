@@ -1272,7 +1272,7 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
       <div class="set-judul">📈 Trading manual <small>ukuran posisi</small></div><label for="akCara">Cara ukuran posisi<select id="akCara"><option value="bagi">Bagi saldo jadi N bagian</option><option value="risiko">Risiko % per trade</option></select></label>
       <label for="akBagi" id="lbBagi">Saldo dibagi jadi (bagian)<input id="akBagi" type="number" step="1" min="1" max="20" inputmode="numeric"></label>
       <label for="akRisiko" id="lbRisiko">Risiko per trade (%)<input id="akRisiko" type="number" step="0.1" min="0.1" max="5" inputmode="decimal"></label>
-      <div class="mk-kotak" style="grid-column:1/-1"><div class="mk-baris"><label for="akPorsi">Saldo manual = porsi dari seluruh USDT akun (sisanya saldo bot)<select id="akPorsi"><option value="100">100% manual · 0% bot</option><option value="70">70% manual · 30% bot</option><option value="50">50% manual · 50% bot</option><option value="30">30% manual · 70% bot</option></select></label><button class="btn" type="button" id="akBagi">Bagi saldo sekarang</button></div>
+      <div class="mk-kotak" style="grid-column:1/-1"><div class="mk-baris"><label for="akPorsi">Saldo manual = porsi dari seluruh USDT akun (sisanya saldo bot)<select id="akPorsi"><option value="100">100% manual · 0% bot</option><option value="70">70% manual · 30% bot</option><option value="50">50% manual · 50% bot</option><option value="30">30% manual · 70% bot</option></select></label><button class="btn" type="button" id="akBagiSaldo">Bagi saldo sekarang</button></div>
         <div id="akKantong" class="redup mk-ket">Belum dibagi. Tekan "Bagi saldo sekarang": saldo manual & saldo bot dipisah dan TIDAK digabung lagi sampai Anda tambah/kurangi.</div>
         <div class="tb"><button class="btn kecil" type="button" id="akManTambah">+ Tambah saldo manual</button><button class="btn kecil" type="button" id="akManKurang">− Kurangi saldo manual</button></div></div>
       <label for="akModal">Modal untuk ukuran (USDT)<input id="akModal" type="number" step="any" min="0" inputmode="decimal" placeholder="kosong = ikut porsi di atas"></label>
@@ -4274,7 +4274,7 @@ async function danaKantong(jalur, isi, ok) {
   try { await btPanggil("/atur", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(isi) }); await muatBot(); window.gambarKantong(); alert(ok); }
   catch (e) { alert("Gagal: " + e.message); }
 }
-$("akBagi").addEventListener("click", async () => { const p = +$("akPorsi").value; simpan("porsiManual", p);
+$("akBagiSaldo").addEventListener("click", async () => { const p = +$("akPorsi").value; simpan("porsiManual", p);
   if (!confirm(`Bagi seluruh USDT akun sekarang?\n\nManual ${p}% · Bot ${100 - p}%\n(total = USDT bebas + posisi & order bot + posisi & order manual)\n\nSesudah ini dua saldo TERPISAH: untung/rugi manual hanya mengubah saldo manual, untung/rugi bot hanya saldo bot. Setoran baru ke Binance tidak masuk ke mana pun sampai Anda tekan Tambah. Hitungan PnL bot mulai lagi dari nol (riwayat tetap ada).`)) return;
   danaKantong("/atur", { bagiSaldo: { porsiManual: p } }, "✔ Saldo dibagi."); });
 $("akManTambah").addEventListener("click", () => { const v = +String(prompt("Tambah saldo manual (USDT) — diambil dari USDT bebas yang belum menjadi jatah bot/manual:") || "").replace(",", "."); if (v > 0) danaKantong("/atur", { danaManual: { jumlah: v } }, "✔ Saldo manual +" + v); });
