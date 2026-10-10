@@ -1003,6 +1003,69 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
 </style>
 </head>
 <body>
+<!-- KUNCI PIN (2026-10-11, user: "setiap membuka aplikasi tolong buat pin untuk masuk agar orang tidak sembarang bisa membukanya").
+     PIN 4-6 angka, disimpan sebagai SHA-256 + garam di perangkat ini saja (localStorage "amonkPin"). Terkunci saat app dibuka, dan lagi bila app
+     ditinggal di latar > 5 menit. Salah 5x -> tunggu 30 detik. "Lupa PIN" = hapus PIN + HAPUS sandi bot & sandi aplikasi di perangkat ini, lalu buat PIN baru.
+     Batas: ini kunci per perangkat (orang di perangkat lain tidak terhalang PIN ini). -->
+<style>
+#pinKunci{position:fixed;inset:0;z-index:99999;background:#0B0E13;display:flex;align-items:center;justify-content:center;padding:24px;color:#E6E8EB;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+#pinKunci[hidden]{display:none!important}
+.pin-kotak{width:100%;max-width:320px;text-align:center}
+.pin-kotak h2{font-size:20px;margin:0 0 6px;font-weight:600}
+.pin-kotak p{font-size:13px;color:#9AA3AE;margin:0 0 16px;line-height:1.5}
+.pin-titik{display:flex;justify-content:center;gap:12px;margin:8px 0 18px}
+.pin-titik i{width:14px;height:14px;border-radius:50%;border:2px solid #3A4250;display:block}
+.pin-titik i.isi{background:#12A085;border-color:#12A085}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pin-pad button{font:500 22px system-ui;color:#E6E8EB;background:#161B22;border:1px solid #2A313C;border-radius:14px;padding:14px 0;cursor:pointer}
+.pin-pad button:active{background:#202733}
+.pin-pesan{min-height:20px;font-size:13px;color:#E05252;margin-top:12px}
+.pin-lupa{background:none;border:0;color:#7D8794;font-size:12px;margin-top:14px;text-decoration:underline;cursor:pointer}
+</style>
+<div id="pinKunci" role="dialog" aria-modal="true" aria-label="Kunci PIN"><div class="pin-kotak">
+  <h2 id="pinJudul">AMONK terkunci</h2><p id="pinKet">Masukkan PIN</p>
+  <div class="pin-titik" id="pinTitik"></div>
+  <div class="pin-pad" id="pinPad"></div>
+  <div class="pin-pesan" id="pinPesan"></div>
+  <button type="button" class="pin-lupa" id="pinLupa">Lupa PIN?</button>
+</div></div>
+<script>
+(() => {
+  const K = "amonkPin", PANJANG = 6, MIN = 4, TINGGAL = 5 * 60e3, el = id => document.getElementById(id);
+  const baca = () => { try { return JSON.parse(localStorage.getItem(K) || "null"); } catch (e) { return null; } };
+  const hash = async (pin, garam) => { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(garam + ":" + pin)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join(""); };
+  let isi = "", mode = "masuk", pinBaru = "", salah = 0, tungguSampai = 0, terbuka = false, latarT = 0;
+  const titik = () => { const n = Math.max(MIN, mode === "masuk" ? PANJANG : PANJANG); el("pinTitik").innerHTML = Array.from({ length: n }, (_, i) => `<i class="${i < isi.length ? "isi" : ""}"></i>`).join(""); };
+  const pesan = t => { el("pinPesan").textContent = t || ""; };
+  function aturMode(m) { mode = m; isi = ""; pesan("");
+    el("pinJudul").textContent = m === "buat" ? "Buat PIN AMONK" : m === "ulang" ? "Ulangi PIN" : "AMONK terkunci";
+    el("pinKet").textContent = m === "buat" ? "PIN 4–6 angka untuk membuka aplikasi di perangkat ini. Tekan ✓ bila kurang dari 6 angka." : m === "ulang" ? "Masukkan PIN yang sama sekali lagi." : "Masukkan PIN";
+    el("pinLupa").hidden = m !== "masuk"; titik(); }
+  function kunci() { terbuka = false; el("pinKunci").hidden = false; document.documentElement.style.overflow = "hidden"; aturMode(baca() ? "masuk" : "buat"); }
+  function buka() { terbuka = true; el("pinKunci").hidden = true; document.documentElement.style.overflow = ""; isi = ""; }
+  async function selesai() {
+    if (isi.length < MIN) { pesan("PIN minimal " + MIN + " angka"); return; }
+    if (mode === "buat") { pinBaru = isi; aturMode("ulang"); return; }
+    if (mode === "ulang") { if (isi !== pinBaru) { pinBaru = ""; aturMode("buat"); pesan("PIN tidak sama, ulangi"); return; }
+      const garam = [...crypto.getRandomValues(new Uint8Array(12))].map(x => x.toString(16).padStart(2, "0")).join("");
+      try { localStorage.setItem(K, JSON.stringify({ garam, h: await hash(isi, garam), panjang: isi.length })); } catch (e) {} buka(); return; }
+    if (Date.now() < tungguSampai) { pesan("Tunggu " + Math.ceil((tungguSampai - Date.now()) / 1000) + " detik"); isi = ""; titik(); return; }
+    const P = baca(); if (!P) { aturMode("buat"); return; }
+    if (await hash(isi, P.garam) === P.h) { salah = 0; buka(); return; }
+    salah++; isi = ""; titik(); if (salah >= 5) { tungguSampai = Date.now() + 30e3; salah = 0; pesan("Salah 5 kali — tunggu 30 detik"); } else pesan("PIN salah");
+  }
+  function tekan(k) { if (k === "⌫") isi = isi.slice(0, -1); else if (k === "✓") { selesai(); return; } else if (isi.length < PANJANG) isi += k;
+    titik(); const P = baca(); if (mode === "masuk" && P && isi.length === (P.panjang || PANJANG)) selesai(); }
+  el("pinPad").innerHTML = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "✓"].map(k => `<button type="button" data-k="${k}">${k}</button>`).join("");
+  el("pinPad").addEventListener("click", e => { const b = e.target.closest("[data-k]"); if (b) tekan(b.dataset.k); });
+  document.addEventListener("keydown", e => { if (terbuka) return; if (/^[0-9]$/.test(e.key)) tekan(e.key); else if (e.key === "Backspace") tekan("⌫"); else if (e.key === "Enter") tekan("✓"); });
+  el("pinLupa").addEventListener("click", () => { if (!confirm("Lupa PIN: PIN dihapus DAN sandi bot serta sandi aplikasi di perangkat ini ikut dihapus (isi lagi nanti). Lanjutkan?")) return;
+    try { for (const k of ["amonkPin", "amonkTerm.btSandi", "amonkTerm.akSandi"]) localStorage.removeItem(k); } catch (e) {} location.reload(); });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) latarT = Date.now(); else if (terbuka && latarT && Date.now() - latarT > TINGGAL) kunci(); });
+  window.gantiPinAmonk = () => { if (!confirm("Ganti PIN aplikasi di perangkat ini?")) return; try { localStorage.removeItem(K); } catch (e) {} kunci(); };
+  kunci();
+})();
+</script>
 <div class="wrap">
   <header>
     <h1>AMONK <b>MONITOR</b></h1>
@@ -1209,13 +1272,14 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
       <div class="set-judul">📈 Trading manual <small>ukuran posisi</small></div><label for="akCara">Cara ukuran posisi<select id="akCara"><option value="bagi">Bagi saldo jadi N bagian</option><option value="risiko">Risiko % per trade</option></select></label>
       <label for="akBagi" id="lbBagi">Saldo dibagi jadi (bagian)<input id="akBagi" type="number" step="1" min="1" max="20" inputmode="numeric"></label>
       <label for="akRisiko" id="lbRisiko">Risiko per trade (%)<input id="akRisiko" type="number" step="0.1" min="0.1" max="5" inputmode="decimal"></label>
-      <label for="akModal">Modal untuk ukuran (USDT)<input id="akModal" type="number" step="any" min="0" inputmode="decimal" placeholder="kosong = saldo Binance"></label>
+      <label for="akPorsi">Modal manual = porsi USDT bebas<select id="akPorsi"><option value="100">100% USDT bebas</option><option value="70">70% USDT bebas</option><option value="50">50% USDT bebas</option><option value="30">30% USDT bebas</option><option value="0">Isian di bawah / total saldo</option></select></label>
+      <label for="akModal">Modal untuk ukuran (USDT)<input id="akModal" type="number" step="any" min="0" inputmode="decimal" placeholder="kosong = ikut porsi di atas"></label>
       <div class="set-judul">🛡 Batas risiko &amp; jeda</div><label for="akBatasTrade">Batas rugi per trade (% saldo)<input id="akBatasTrade" type="number" step="0.1" min="0.1" max="20" inputmode="decimal"></label>
       <label for="akBatasSerentak">Batas rugi serentak (% saldo)<input id="akBatasSerentak" type="number" step="0.5" min="0.5" max="50" inputmode="decimal"></label>
       <label for="akJedaN">Jeda bila rugi berturut (kali)<input id="akJedaN" type="number" step="1" min="1" max="20" inputmode="numeric"></label>
       <label for="akJedaPct">Jeda bila rugi 7 hari (% saldo)<input id="akJedaPct" type="number" step="0.5" min="0.5" max="50" inputmode="decimal"></label>
       <div class="set-judul">👁 Tampilan akun &amp; trading manual <small>hanya di perangkat ini · langsung berlaku</small></div><div class="bt-tampil" id="akTampil"></div>
-      <div class="tb"><button class="btn" type="submit">Sambungkan</button><button class="btn" type="button" id="akLupa">Lupakan</button></div>
+      <div class="tb"><button class="btn" type="submit">Sambungkan</button><button class="btn" type="button" id="akLupa">Lupakan</button><button class="btn" type="button" onclick="window.gantiPinAmonk && window.gantiPinAmonk()">🔒 Ganti PIN</button></div>
     </form>
     <p class="ak-pesan" id="akPesan">Belum tersambung. Alamat &amp; sandi disimpan hanya di perangkat ini. Aplikasi hanya MEMBACA saldo — tidak bisa memasang order atau menarik dana.</p>
     <section class="mb-kartu" id="mbKartu" data-ak="beli">
@@ -1231,6 +1295,7 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
           <label id="mbLbTp1">TP1<span class="mb-baris"><input id="mbTp1" type="number" step="any" inputmode="decimal"><input id="mbTp1R" type="number" step="0.1" min="0.1" inputmode="decimal" title="TP1 dalam R (dihitung ulang dari harga isi sungguhan)"><span class="redup">R</span></span></label>
           <label id="mbLbTp2" hidden>TP2<input id="mbTp2" type="number" step="any" inputmode="decimal"></label>
           <label>Ukuran (USDT)<span class="mb-baris"><input id="mbNilai" type="number" step="any" min="0" inputmode="decimal"><button class="btn kecil" type="button" id="mbOto" title="Hitung ulang dari pengaturan ukuran posisi">↺ otomatis</button></span></label>
+          <label>Risiko per trade<select id="mbRisiko"><option value="">ikut pengaturan</option><option value="0.25">0.25%</option><option value="0.5">0.5%</option><option value="0.75">0.75% (sama bot)</option><option value="1">1%</option><option value="1.5">1.5%</option><option value="2">2%</option></select></label>
           <label class="mb-lebar">Catatan (opsional)<input id="mbCatatan" maxlength="200" placeholder="alasan entry"></label>
         </div>
         <div class="mb-ringkas" id="mbRingkas"></div>
@@ -2361,8 +2426,11 @@ function gambarHP(rs) {
 // risiko % modal. Modal = isian manual di tab Akun, atau total saldo Binance terakhir yang terbaca.
 // Dengan keluar 50/50 + SL ke entry, rugi maksimal tetap = seluruh posisi kena SL sebelum TP1.
 function risikoPct() { const r = +baca("risikoPct", 0.5); return r > 0 && r <= 5 ? r : 0.5; }
+// 2026-10-11 (user): modal manual = porsi 100/70/50/30% dari USDT BEBAS (menganggur) di Binance; isian "Modal untuk ukuran" tetap menang bila diisi.
+function porsiManual() { const p = +baca("porsiManual", 100); return [100, 70, 50, 30, 0].includes(p) ? p : 100; }
 function modalUkuran() {
   const m = +baca("modalManual", 0); if (m > 0) return { modal: m, sumber: "manual" };
+  { const p = porsiManual(), u = +baca("usdtBebas", 0); if (p > 0 && u > 0) return { modal: u * p / 100, sumber: p + "% USDT bebas" }; }
   const a = +baca("modalAkun", 0); return a > 0 ? { modal: a, sumber: "saldo Binance" } : null;
 }
 // CARA UKURAN (2026-09-22, user: "setiap aku trade selalu membagi modal menjadi 3"):
@@ -4136,6 +4204,7 @@ setTimeout(trmAlok, 200);
 let AK_CACHE = null;
 function gambarAkun(baris, akun) {
   setTimeout(periksaAlarm, 0);
+  { const u = baris.find(b => b.aset === "USDT"); if (u) simpan("usdtBebas", +u.bebas || 0); }   // dasar porsi modal manual
   AK_CACHE = { baris, akun };
   const f2 = v => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(2), kl = v => v == null ? "" : v >= 0 ? "naik" : "turun";
   const total = baris.reduce((a, b) => a + (b.nilai || 0), 0);
@@ -4188,6 +4257,8 @@ $("akBagi").addEventListener("change", () => { const v = Math.round(+$("akBagi")
 $("akModal").value = +baca("modalManual", 0) || "";
 $("akRisiko").addEventListener("change", () => { const v = +$("akRisiko").value; if (v > 0 && v <= 5) simpan("risikoPct", v); $("akRisiko").value = risikoPct(); gambar(); });
 $("akModal").addEventListener("change", () => { const v = +$("akModal").value; simpan("modalManual", v > 0 ? v : 0); gambar(); });
+$("akPorsi").value = String(porsiManual());
+$("akPorsi").addEventListener("change", () => { simpan("porsiManual", +$("akPorsi").value); gambar(); });
 // batas risiko & aturan jeda (2026-09-22)
 for (const [id, k, f] of [["akBatasTrade", "batasTrade", batasTrade], ["akBatasSerentak", "batasSerentak", batasSerentak], ["akJedaN", "jedaN", jedaN], ["akJedaPct", "jedaPct", jedaPct]]) {
   $(id).value = f();
@@ -5920,14 +5991,16 @@ sambung();
     const E = hargaEntry(), sl = angka("mbSl"), sisa = $("mbSisa").value, r1 = angka("mbTp1R");
     if (E && sl && E > sl && sisa !== "murni25" && !tp1Manual && r1) $("mbTp1").value = +(E + r1 * (E - sl)).toPrecision(6);
     if (E && sl && E > sl && sisa === "tp2" && !angka("mbTp2")) { const A = ATURAN[$("mbJenis").value] || {}; if (A.r2) $("mbTp2").value = +(E + A.r2 * (E - sl)).toPrecision(6); }
-    let u = null; if (E && sl && E > sl && typeof ukuran === "function") u = ukuran({ entry: E, sl });
-    if (u && u.M) { const batas = u.M.modal * batasTrade() / 100; if (u.rugi > batas) { const f = batas / u.rugi; u = { ...u, nilai: u.nilai * f, rugi: batas, rugiPct: batasTrade(), dipangkas: true }; } }
+    let u = null; const rPil = +$("mbRisiko").value;
+    if (E && sl && E > sl && rPil > 0) { const M0 = modalUkuran(); if (M0) { let nl = M0.modal * rPil / 100 / ((E - sl) / E), cap = false; if (nl > M0.modal) { nl = M0.modal; cap = true; } u = { nilai: nl, rugi: nl / E * (E - sl), M: M0, risikoPilih: rPil, dipangkas: cap }; } }
+    else if (E && sl && E > sl && typeof ukuran === "function") u = ukuran({ entry: E, sl });
+    if (u && u.M && !u.risikoPilih) { const batas = u.M.modal * batasTrade() / 100; if (u.rugi > batas) { const f = batas / u.rugi; u = { ...u, nilai: u.nilai * f, rugi: batas, rugiPct: batasTrade(), dipangkas: true }; } }
     if (u && !nilaiManual) $("mbNilai").value = (Math.floor(u.nilai * 100) / 100).toFixed(2);
     const nilai = angka("mbNilai"), rugi = E && sl && nilai ? nilai / E * (E - sl) : null, M = typeof modalUkuran === "function" ? modalUkuran() : null;
     const t1 = angka("mbTp1"), untung1 = E && t1 && nilai ? nilai / E / 2 * (t1 - E) : null;
     $("mbRingkas").innerHTML = !E ? "Isi koin" + ($("mbTipe").value === "limit" ? " & harga limit" : " (harga dari Terminal)") + " lalu SL."
       : !sl ? `Harga ${fHarga(E)} · isi SL.` : !(E > sl) ? `<b class="turun">SL harus di bawah harga ${fHarga(E)}</b>`
-      : `Entry ≈ <b>${fHarga(E)}</b> · SL ${fHarga(sl)} (${fPct((sl / E - 1) * 100, 1)})${sisa !== "murni25" && t1 ? ` · TP1 ${fHarga(t1)}` : ""}<br>Ukuran <b>${nilai ? nilai.toFixed(2) : "—"} USDT</b> · rugi bila SL <b class="turun">${rugi ? rugi.toFixed(2) : "—"} USDT</b>${M && rugi ? ` (${(rugi / M.modal * 100).toFixed(2)}% modal ${M.sumber})` : ""}${u && u.dipangkas ? " · dipangkas batas rugi " + batasTrade() + "%" : ""}${untung1 ? ` · untung bila TP1 ≈ +${untung1.toFixed(2)} USDT (separuh)` : ""}<br><span class="redup">${sisa === "murni25" ? "100% posisi, stop naik 25% di bawah puncak (lantai SL)" : sisa === "trailing15" ? "50% dijual di TP1, sisa SL ke entry lalu trailing 15% dari puncak" : "50% di TP1, sisa SL ke entry, keluar di TP2"} · ukuran dari ${typeof labelUkuran === "function" ? labelUkuran() : "pengaturan"}</span>`;
+      : `Entry ≈ <b>${fHarga(E)}</b> · SL ${fHarga(sl)} (${fPct((sl / E - 1) * 100, 1)})${sisa !== "murni25" && t1 ? ` · TP1 ${fHarga(t1)}` : ""}<br>Ukuran <b>${nilai ? nilai.toFixed(2) : "—"} USDT</b> · rugi bila SL <b class="turun">${rugi ? rugi.toFixed(2) : "—"} USDT</b>${M && rugi ? ` (${(rugi / M.modal * 100).toFixed(2)}% modal ${M.sumber})` : ""}${u && u.dipangkas ? " · dipangkas batas rugi " + batasTrade() + "%" : ""}${untung1 ? ` · untung bila TP1 ≈ +${untung1.toFixed(2)} USDT (separuh)` : ""}<br><span class="redup">${sisa === "murni25" ? "100% posisi, stop naik 25% di bawah puncak (lantai SL)" : sisa === "trailing15" ? "50% dijual di TP1, sisa SL ke entry lalu trailing 15% dari puncak" : "50% di TP1, sisa SL ke entry, keluar di TP2"} · ukuran dari ${rPil > 0 ? "risiko " + rPil + "% × modal " + (modalUkuran() || {}).sumber + (rPil > batasTrade() ? " (di atas batas rugi " + batasTrade() + "% pengaturan)" : "") : typeof labelUkuran === "function" ? labelUkuran() : "pengaturan"}</span>`;
   }
   function isiDariSinyal() { const k = koin(); if (!k) { pesan("Isi koin dulu.", true); return; }
     const S = sinyalTerbuka().filter(t => String(t.koin).toUpperCase() === k).sort((a, b) => (b.mT || 0) - (a.mT || 0))[0];
@@ -5954,20 +6027,38 @@ sambung();
   async function aksi(jalur, sym, teks) { if (!confirm(teks)) return; pesan("Mengirim…");
     try { const r = await btPanggil(jalur, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sym }) }); pesan("✓ " + (r.catatan || "selesai")); if (window.muatBotBilaAda) window.muatBotBilaAda(); }
     catch (e) { pesan("Gagal: " + e.message, true); } }
+  // 2026-10-11 (user: "buat sama seperti di bot ada tab posisi, order, riwayat dan lainnya"): tab Posisi · Order · Riwayat · Per pola · Catatan untuk trade MANUAL yang dikelola bot.
   window.gambarManualBot = s => {
+    if (s) window.__mbS = s; s = s || window.__mbS;
     const M = (s && s.manual) || null, el = $("mbDaftarPos"); if (!el) return;
-    if (!M) { el.innerHTML = `<p class="jr-ket redup">Posisi manual dari bot belum terbaca${s ? " (worker belum versi Buy manual)" : ""}.</p>`; return; }
-    const f2 = v => (v >= 0 ? "+" : "") + (+v).toFixed(2), kl = v => v >= 0 ? "naik" : "turun", baris = [];
-    for (const o of M.order || []) { const px = hargaKini(o.sym.replace(/USDT$/, ""));
-      baris.push(`<div class="mb-pos"><div><b>${esc(o.sym.replace(/USDT$/, ""))}</b> <span class="jn-label">${esc(o.kode)}</span> <span class="bn-chip biru">Limit beli</span><div class="redup">limit ${fHarga(o.harga)}${px ? " (" + fPct((o.harga / px - 1) * 100, 1) + " dari harga)" : ""} · ${o.nilai} USDT · SL ${fHarga(o.sl)}</div></div><button class="btn kecil" type="button" data-mb-batal="${esc(o.sym)}">Batal</button></div>`); }
-    for (const p of M.posisi || []) { const px = hargaKini(p.sym.replace(/USDT$/, "")), pnl = px ? (p.qtySisa || 0) * px + (p.jualUsdt || 0) - (p.beliUsdt || 0) : null;
-      const stop = Math.max(p.sl || 0, ...(p.oco || []).filter(o => !o.selesai).map(o => +o.sl || 0));
-      baris.push(`<div class="mb-pos"><div><b>${esc(p.sym.replace(/USDT$/, ""))}</b> <span class="jn-label">${esc(p.kode)}</span> <span class="redup">${p.tahap === "tp1" ? "TP1 ✓ · trailing" : p.tahap === "murni" ? "trailing 25%" : p.tahap === "TANPA-SL" ? "⛔ TANPA SL" : "menunggu TP1"}</span>
-        <div class="redup">isi ${fHarga(p.isi)} · ${Math.round(p.beliUsdt)} USDT · stop ${fHarga(stop)}${p.tp1 ? " · TP1 " + fHarga(p.tp1) : ""}</div></div>
-        <div class="mb-kanan">${pnl == null ? "" : `<b class="${kl(pnl)}">${f2(pnl)}</b>`}<button class="btn kecil" type="button" data-mb-tutup="${esc(p.sym)}">Tutup sekarang</button></div></div>`); }
-    const R = (M.riwayat || []).slice(0, 10), tot = (M.riwayat || []).reduce((a, r) => a + (+r.hasil || 0), 0);
-    el.innerHTML = (baris.length ? `<h4 class="bt-sub">Dikelola bot (manual)</h4>` + baris.join("") : `<p class="jr-ket redup">Belum ada posisi/order manual yang dikelola bot.</p>`) +
-      (R.length ? `<h4 class="bt-sub">Riwayat manual <small>${(M.riwayat || []).length} tutup · total <b class="${kl(tot)}">${f2(tot)} USDT</b></small></h4>` + R.map(r => `<div class="mb-pos"><div><b>${esc(r.sym.replace(/USDT$/, ""))}</b> <span class="jn-label">${esc(r.kode)}</span><div class="redup">${jamLokal(r.keluarT)} · ${esc(r.catatan || "")}</div></div><b class="${kl(r.hasil)}">${f2(r.hasil)}</b></div>`).join("") : "");
+    if (!M) { el.innerHTML = `<p class="jr-ket redup">Data manual dari bot belum terbaca${s ? " (worker belum versi Buy manual)" : " (isi sandi bot)"}.</p>`; return; }
+    const f2 = v => (v >= 0 ? "+" : "") + (+v).toFixed(2), kl = v => v >= 0 ? "naik" : "turun", P = M.posisi || [], O = M.order || [], R = M.riwayat || [];
+    const LOG = ((s && s.log) || []).filter(l => /^manual /.test(l.jenis || "")).slice(0, 30);
+    const TAB = [["posisi", "Posisi", P.length], ["order", "Order", O.length], ["riwayat", "Riwayat", R.length], ["pola", "Per pola", null], ["catatan", "Catatan", null]];
+    let tab = baca("mbTab", "posisi"); if (!TAB.some(t => t[0] === tab)) tab = "posisi";
+    const isi = [];
+    if (tab === "posisi") { if (!P.length) isi.push(`<div class="bn-kosong">Belum ada posisi manual yang dikelola bot</div>`);
+      for (const p of P) { const px = hargaKini(p.sym.replace(/USDT$/, "")), pnl = px ? (p.qtySisa || 0) * px + (p.jualUsdt || 0) - (p.beliUsdt || 0) : null;
+        const stop = Math.max(p.sl || 0, ...(p.oco || []).filter(o => !o.selesai).map(o => +o.sl || 0)), risk = (p.beliUsdt || 0) * (p.isi - p.sl) / p.isi;
+        isi.push(`<details class="bn-baris"><summary><div class="bn-kiri"><div class="bn-sym">${esc(p.sym.replace(/USDT$/, ""))}<small>/USDT</small> <span class="jn-label">${esc(p.kode)}</span></div><div class="bn-sub">${p.tahap === "tp1" ? "TP1 ✓ · trailing" : p.tahap === "murni" ? "trailing 25%" : p.tahap === "TANPA-SL" ? "⛔ TANPA SL" : "menunggu TP1"}</div></div>` +
+          `<div class="bn-kanan">${pnl == null ? "" : `<b class="${kl(pnl)}">${f2(pnl)}</b><span class="${kl(pnl)}">${risk > 0 ? f2(pnl / risk) + " R" : ""}</span>`}</div>` +
+          `<div class="bn-4"><div><i>Isi</i>${fHarga(p.isi)}</div><div><i>Kini</i>${px ? fHarga(px) : "—"}</div><div><i>Stop</i>${fHarga(stop)}</div><div><i>Ukuran</i>${Math.round(p.beliUsdt)} USDT</div></div></summary>` +
+          `<div class="bn-rinci">${esc(p.pola || "")} · masuk ${jamLokal(p.t)} · SL awal ${fHarga(p.sl)}${p.tp1 ? " · TP1 " + fHarga(p.tp1) : ""} · ${p.sisa === "murni25" ? "trailing 25%" : p.sisa === "tp2" ? "sisa TP2 " + fHarga(p.tp2) : "sisa trailing 15%"} · rugi bila SL ${risk.toFixed(2)} USDT${p.catatanUser ? "<br>Catatan: " + esc(p.catatanUser) : ""}<br><button class="btn kecil" type="button" data-mb-tutup="${esc(p.sym)}">Tutup sekarang (jual market)</button></div></details>`); } }
+    if (tab === "order") { if (!O.length) isi.push(`<div class="bn-kosong">Tidak ada order limit manual</div>`);
+      for (const o of O) { const px = hargaKini(o.sym.replace(/USDT$/, ""));
+        isi.push(`<div class="bn-baris bn-pola"><div class="bn-kiri"><div class="bn-sym">${esc(o.sym.replace(/USDT$/, ""))}<small>/USDT</small> <span class="jn-label">${esc(o.kode)}</span> <span class="bn-chip biru">Limit beli</span></div><div class="bn-sub">limit ${fHarga(o.harga)}${px ? " (" + fPct((o.harga / px - 1) * 100, 1) + " dari harga)" : ""} · ${o.nilai} USDT · SL ${fHarga(o.sl)} · ${jamLokal(o.t)}</div></div><div class="bn-kanan"><button class="btn kecil" type="button" data-mb-batal="${esc(o.sym)}">Batal</button></div></div>`); } }
+    if (tab === "riwayat") { if (!R.length) isi.push(`<div class="bn-kosong">Belum ada trade manual yang tutup</div>`);
+      for (const r of R.slice(0, 50)) { const risk = r.beliUsdt * (r.isi - r.sl) / r.isi;
+        isi.push(`<details class="bn-baris"><summary><div class="bn-kiri"><div class="bn-sym">${esc(r.sym.replace(/USDT$/, ""))}<small>/USDT</small> <span class="jn-label">${esc(r.kode)}</span></div><div class="bn-sub">${jamLokal(r.keluarT)} · dipegang ${((r.keluarT - r.masukT) / 3600e3).toFixed(1)} jam</div></div><div class="bn-kanan"><b class="${kl(r.hasil)}">${f2(r.hasil)}</b><span class="${kl(r.hasil)}">${f2(r.hasilPct)}%${risk > 0 ? " · " + f2(r.hasil / risk) + " R" : ""}</span></div></summary><div class="bn-rinci">Isi ${fHarga(r.isi)} · SL ${fHarga(r.sl)} · modal ${Math.round(r.beliUsdt)} → ${Math.round(r.jualUsdt)} USDT<br>${esc(r.catatan || "")}${r.catatanUser ? "<br>Catatan: " + esc(r.catatanUser) : ""}</div></details>`); } }
+    if (tab === "pola") { const g = {}; for (const r of R) { const z = g[r.kode || "?"] = g[r.kode || "?"] || { n: 0, w: 0, u: 0, rr: [] }; z.n++; if (r.hasil > 0) z.w++; z.u += +r.hasil || 0; const rk = r.beliUsdt * (r.isi - r.sl) / r.isi; if (rk > 0) z.rr.push(r.hasil / rk); }
+      const tot = R.reduce((a, r) => a + (+r.hasil || 0), 0);
+      isi.push(`<div class="bn-info">${R.length} trade manual tutup · total <b class="${kl(tot)}">${f2(tot)} USDT</b> · terpisah dari bot</div>`);
+      for (const [k, z] of Object.entries(g).sort((a, b) => b[1].u - a[1].u)) { const rr = z.rr.length ? z.rr.reduce((a, b) => a + b, 0) / z.rr.length : null;
+        isi.push(`<div class="bn-baris bn-pola"><div class="bn-kiri"><div class="bn-sym">${esc(k)}</div><div class="bn-sub">${z.n} tutup · WR ${Math.round(z.w / z.n * 100)}% · rata ${rr == null ? "—" : f2(rr) + " R"}</div></div><div class="bn-kanan"><b class="${kl(z.u)}">${f2(z.u)}</b><span class="redup">${f2(z.u / z.n)}/trade</span></div></div>`); }
+      if (!R.length) isi.push(`<div class="bn-kosong">Belum ada data</div>`); }
+    if (tab === "catatan") { if (!LOG.length) isi.push(`<div class="bn-kosong">Belum ada catatan manual</div>`);
+      for (const l of LOG) isi.push(`<div class="bt-log"><span class="bt-tag ${/gagal|galat|tanpa SL/.test(l.jenis) ? "merah" : /masuk|tutup/.test(l.jenis) ? "hijau" : "biru"}">${esc(l.jenis.replace(/^manual /, ""))}</span><span class="bt-jam">${jamLokal(l.t)}</span><span class="bt-isi">${[l.sym ? "<b>" + esc(l.sym.replace(/USDT$/, "")) + "</b>" : "", esc(l.alasan || l.galat || ""), l.hasil != null ? f2(l.hasil) + " USDT" : l.nilai != null ? l.nilai + " USDT" : ""].filter(Boolean).join(" · ")}</span></div>`); }
+    el.innerHTML = `<div class="bn-tabwadah"><div class="bn-tabs" role="tablist">${TAB.map(([k, nm, n]) => `<button type="button" role="tab" class="bn-tab${k === tab ? " aktif" : ""}" data-mb-tab="${k}" aria-selected="${k === tab}">${nm}${n != null ? ` <small>${n}</small>` : ""}</button>`).join("")}</div><div class="bn-isi">${isi.join("")}</div></div>`;
   };
   $("mbJenis").addEventListener("change", () => { terapkanAturan(true); hitung(); });
   $("mbTipe").addEventListener("change", () => { terapkanAturan(false); hitung(); });
@@ -5976,10 +6067,12 @@ sambung();
   $("mbTp1").addEventListener("input", () => { tp1Manual = true; hitung(); });
   $("mbNilai").addEventListener("input", () => { nilaiManual = true; hitung(); });
   $("mbOto").addEventListener("click", () => { nilaiManual = false; hitung(); });
+  $("mbRisiko").value = String(baca("mbRisiko", "") || ""); $("mbRisiko").addEventListener("change", () => { simpan("mbRisiko", $("mbRisiko").value); nilaiManual = false; hitung(); });
   $("mbKoin").addEventListener("focus", isiDaftar);
   $("mbIsiSinyal").addEventListener("click", isiDariSinyal);
   $("mbBeli").addEventListener("click", kirimBeli);
-  $("mbDaftarPos").addEventListener("click", e => { const b = e.target.closest("[data-mb-batal]"), t = e.target.closest("[data-mb-tutup]");
+  $("mbDaftarPos").addEventListener("click", e => { const tb = e.target.closest("[data-mb-tab]"); if (tb) { simpan("mbTab", tb.dataset.mbTab); window.gambarManualBot(); return; }
+    const b = e.target.closest("[data-mb-batal]"), t = e.target.closest("[data-mb-tutup]");
     if (b) aksi("/manual/batal", b.dataset.mbBatal, `Batalkan order limit manual ${b.dataset.mbBatal}?`);
     if (t) aksi("/manual/tutup", t.dataset.mbTutup, `TUTUP posisi manual ${t.dataset.mbTutup} sekarang (jual market, SL/TP dibatalkan)?`); });
   { let buka = !!baca("mbBuka", true); const set = () => { $("mbIsi").hidden = !buka; $("mbLipat").textContent = buka ? "Sembunyikan" : "Tampilkan"; $("mbLipat").setAttribute("aria-expanded", String(buka)); };
