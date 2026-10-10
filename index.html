@@ -4669,6 +4669,7 @@ function gambarBot(s) {
     (asli && s.kunciGalat ? `<p class="jr-ket turun">⛔ ${String(s.kunciGalat).replace(/[<>&]/g, "")}.</p>` : "") +
     (s.aktif ? "" : `<p class="jr-ket kng">Mode kering: bot hanya mencatat rencana, tidak membeli. Isi BOT_AKTIF = ya di Cloudflare untuk mengaktifkan.</p>`) +
     `<div class="bn-besar bn-uang">${maks ? d2(maks) : "seluruh saldo"}</div><div class="bn-rp bn-uang">${maks ? rp(maks) : ""}${MO.awal > 0 ? ` · awal ${usd(MO.awal)}` : ""}${MO.penyesuaian ? ` · ${MO.penyesuaian < 0 ? "ditarik" : "ditambah"} ${usd(Math.abs(MO.penyesuaian))}` : ""}</div>` +
+    (MO.dipotong > 0.5 ? `<p class="jr-ket kng">Modal bot mengikuti saldo nyata: ${usd(MO.dipotong)} dari modal buku ${usd(MO.buku)} sedang dipakai trade manual / sudah ditarik dari Binance. Kembali naik (paling tinggi ke modal buku) saat uangnya kembali. Diperbarui ± tiap 5 menit.</p>` : "") +
     `<div class="bn-grid" data-bt="angka">` +
       `<div><span>PnL ${MO.sejak ? "sejak " + tglLokal(MO.sejak) : "bot"}</span><b class="${kl(MO.laba)} bn-uang">${f2(MO.laba)}${MO.awal > 0 ? ` <small>(${f2(MO.laba / MO.awal * 100)}%)</small>` : ""}</b></div>` +
       `<div><span>PnL hari ini (tutup)</span><b class="${kl(hariIni)} bn-uang">${f2(hariIni)}</b></div>` +
