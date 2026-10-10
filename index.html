@@ -5073,13 +5073,26 @@ function gambarPita(s) {
   set("pitaBot", PG.jeda ? "DIJEDA" : masalah ? "PERIKSA" : s.aktif ? (asli ? "AKTIF · asli" : "AKTIF · testnet") : "KERING",
     PG.jeda ? "kng" : masalah ? "turun" : s.aktif ? "naik" : "kng", PG.jeda ? "jeda" : masalah ? "off" : s.aktif ? "on" : "jeda");
   set("pitaVps", !asli ? "tidak dipakai" : s.perantaraMati ? "MATI" : "sehat", s.perantaraMati ? "turun" : "", !asli ? "" : s.perantaraMati ? "off" : "on");
-  set("pitaModal", M.kini ? Math.round(M.kini).toLocaleString("en-US") + " USDT" : "—");
-  { const MK = s.manual && s.manual.modal, MR = (s.manual && s.manual.riwayat) || [], t0 = new Date(); t0.setHours(0, 0, 0, 0);
-    const hm = MR.filter(r => (r.keluarT || 0) >= t0.getTime()).reduce((a, r) => a + (+r.hasil || 0), 0), np = ((s.manual && s.manual.posisi) || []).length;
-    set("pitaManual", MK ? `${Math.round(MK.kini).toLocaleString("en-US")} USDT · hari ini ${hm >= 0 ? "+" : ""}${hm.toFixed(2)} · ${np} posisi` : "belum dibagi", MK ? (hm > 0 ? "naik" : hm < 0 ? "turun" : "") : "redup"); }
-  const tengahMalam = new Date(); tengahMalam.setHours(0, 0, 0, 0);
-  const hari = R.filter(r => (r.keluarT || 0) >= tengahMalam.getTime()).reduce((a, r) => a + (+r.hasil || 0), 0);
-  set("pitaHari", (hari >= 0 ? "+" : "") + hari.toFixed(2) + " USDT", hari > 0 ? "naik" : hari < 0 ? "turun" : "");
+  // 2026-10-11 (user): bar atas = saldo + Rupiah + SISA (belum dipakai entry) + hasil trade tutup, untuk bot & manual.
+  // Saldo = awal (saat Bagi saldo) + hasil semua trade TUTUP + tambah/kurangi -> otomatis berubah tiap trade tutup (dihitung worker).
+  const rpT = (v, tanda) => { if (!KURS.idr || v == null || !isFinite(v) || Math.abs(v) < 0.005) return ""; const a = Math.abs(v) * KURS.idr, t = a >= 1e9 ? (a / 1e9).toFixed(2).replace(".", ",") + "M" : a >= 1e6 ? (a / 1e6).toFixed(1).replace(".", ",") + "jt" : a >= 1e3 ? Math.round(a / 1e3) + "rb" : Math.round(a) + "";
+    return ` <span class="rp rp-pita">${v < 0 ? "−" : tanda && v > 0 ? "+" : "≈"}Rp ${t}</span>`; };
+  const u0 = v => Math.round(v).toLocaleString("en-US"), u2 = v => (v >= 0 ? "+" : "") + (+v).toFixed(2);
+  const isi = (id, html, kls, judul) => { const el = $(id); if (!el) return; const b = el.querySelector("b"); b.innerHTML = html; b.className = kls || ""; if (judul) el.title = judul; };
+  const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+  { const pakaiBot = (+s.terpakai || 0) + ((s.ew || {}).order || []).reduce((a, o) => a + (+o.nilai || 0), 0) + ((s.fib || {}).order || []).reduce((a, o) => a + (+o.nilai || 0), 0);
+    const sisaB = Math.max(0, (+M.kini || 0) - pakaiBot), hasilB = +M.laba || 0;
+    isi("pitaModal", M.kini ? `${u0(M.kini)} USDT${rpT(M.kini)} · sisa ${u0(sisaB)}${rpT(sisaB)} · hasil ${u2(hasilB)}${rpT(hasilB, 1)}` : "—", "",
+      M.kini ? `Saldo bot ${(+M.kini).toFixed(2)} USDT = awal ${(+M.awal || 0).toFixed(2)} + hasil trade tutup ${u2(hasilB)}${M.penyesuaian ? " + tambah/kurang " + u2(M.penyesuaian) : ""}
+Dipakai posisi/order ${pakaiBot.toFixed(2)} · sisa ${sisaB.toFixed(2)} USDT` : ""); }
+  { const MK = s.manual && s.manual.modal, MR = (s.manual && s.manual.riwayat) || [];
+    const hm = MR.filter(r => (r.keluarT || 0) >= t0.getTime()).reduce((a, r) => a + (+r.hasil || 0), 0), np = ((s.manual && s.manual.posisi) || []).length + ((s.manual && s.manual.order) || []).length;
+    isi("pitaManual", MK ? `${u0(MK.kini)} USDT${rpT(MK.kini)} · sisa ${u0(MK.bebas)}${rpT(MK.bebas)} · hasil ${u2(MK.laba)}${rpT(MK.laba, 1)} · hari ini ${u2(hm)} · ${np} posisi` : "belum dibagi",
+      MK ? (hm > 0 ? "naik" : hm < 0 ? "turun" : "") : "redup",
+      MK ? `Saldo manual ${MK.kini.toFixed(2)} USDT = awal ${MK.awal.toFixed(2)} + hasil trade tutup ${u2(MK.laba)}${MK.penyesuaian ? " + tambah/kurang " + u2(MK.penyesuaian) : ""}
+Dipakai posisi/order ${MK.terpakai.toFixed(2)} · sisa ${MK.bebas.toFixed(2)} USDT` : ""); }
+  const hari = R.filter(r => (r.keluarT || 0) >= t0.getTime()).reduce((a, r) => a + (+r.hasil || 0), 0);
+  isi("pitaHari", u2(hari) + " USDT" + rpT(hari, 1), hari > 0 ? "naik" : hari < 0 ? "turun" : "");
   set("pitaPosisi", `${(s.posisi || []).length} / ${PG.maksPosisi || "?"}${((s.ew || {}).order || []).length ? " · " + ((s.ew || {}).order || []).length + " order" : ""}`);
 }
 async function muatPita() {
@@ -6206,5 +6219,6 @@ sambung();
   document.addEventListener("click", e => { if (e.target.closest("#tbAkun")) setTimeout(() => window.gambarBanding(), 300); });
 })();
 </script>
+<style>#pita .rp-pita{display:inline!important;text-transform:none!important;letter-spacing:0!important;font:400 .78em var(--f-ui);color:var(--label);white-space:nowrap;margin:0!important}#pita #pitaManual b,#pita #pitaModal b{white-space:nowrap}</style>
 </body>
 </html>
