@@ -4639,14 +4639,14 @@ let BT_S = null;                               // status bot terakhir (dipakai l
 // Hasil satu trade bot dalam R: hasil USDT ÷ rugi bila kena SL awal (ukuran × jarak isi→SL). null kalau SL tak sah.
 function rBot(r) { if (!(r && r.isi > r.sl && r.sl > 0 && r.beliUsdt > 0)) return null; const risk = r.beliUsdt * (r.isi - r.sl) / r.isi; return risk > 0 ? r.hasil / risk : null; }
 // JALUR POSISI (2026-09-23): bilah SL → entry → TP1 → TP2 dengan titik harga kini (harga pasar hidup).
-function jalurPosisi(p, px) {
+function jalurPosisi(p, px, lb2 = "TP2") {   // lb2: label ujung kanan (10-11: posisi manual trailing tanpa TP2 -> "trailing")
   const sl = +p.sl, e = +(p.isi || p.entry), t2 = +p.tp2, t1 = +p.tp1 || null;
   if (!(sl > 0 && t2 > e && e > sl)) return "";
   const pos = v => Math.max(0, Math.min(100, (v - sl) / (t2 - sl) * 100));
   const tk = (v, lb) => `<span class="tk" style="left:${pos(v)}%"></span><span class="lb" style="left:${Math.max(4, Math.min(96, pos(v)))}%">${lb}</span>`;
   return `<div class="bt-jalur" title="SL ${fHarga(sl)} · entry ${fHarga(e)}${t1 ? " · TP1 " + fHarga(t1) : ""} · TP2 ${fHarga(t2)}${px ? " · kini " + fHarga(px) : ""}">` +
     `<div class="rel"><i style="width:${pos(e)}%;background:rgba(239,83,80,.45)"></i><i style="flex:1;background:rgba(38,166,154,.45)"></i></div>` +
-    tk(sl, "SL") + tk(e, "entry") + (t1 ? tk(t1, "TP1") : "") + tk(t2, "TP2") +
+    tk(sl, "SL") + tk(e, "entry") + (t1 ? tk(t1, "TP1") : "") + tk(t2, lb2) +
     (px ? `<span class="kini" style="left:${pos(px)}%"></span>` : "") + `</div>`;
 }
 // KURVA MODAL BOT (2026-09-23): modal awal → tiap trade tutup (dan tarik/tambah dana) sejak modal awal disimpan.
@@ -6102,7 +6102,7 @@ sambung();
         const bisaTp = (p.oco || []).some(o => !o.selesai && (o.kaki === "TP1" || (o.kaki === "TP2" && p.sisa === "tp2" && !p.trailP)));
         isi.push(`<details class="bn-baris"><summary><div class="bn-kiri"><div class="bn-sym">${esc(p.sym.replace(/USDT$/, ""))}<small>/USDT</small> <span class="jn-label sinyal">${esc(p.kode)}</span></div><div class="bn-sub">${tahap}${naik && stopKini >= p.isi ? " · SL di entry" : ""}</div></div>` +
           `<div class="bn-kanan">${pnl == null ? `<span class="chip jalan">Jalan</span>` : `<b class="${kl(pnl)} bn-uang">${f2(pnl)}</b><span class="${kl(pnl)}">${risk ? f2(pnl / risk) + " R" : ""}</span>`}</div>` +
-          `<div class="bn-4"><div><i>Isi</i>${fHarga(p.isi)}</div><div><i>Kini</i>${px ? fHarga(px) : "—"}</div><div><i>Stop</i>${fHarga(naik ? stopKini : p.sl)}</div><div><i>Ukuran</i><span class="bn-uang">${Math.round(p.beliUsdt)} USDT</span></div></div>` + (typeof jalurPosisi === "function" ? jalurPosisi(p, px) : "") + `</summary>` +
+          `<div class="bn-4"><div><i>Isi</i>${fHarga(p.isi)}</div><div><i>Kini</i>${px ? fHarga(px) : "—"}</div><div><i>Stop</i>${fHarga(naik ? stopKini : p.sl)}</div><div><i>Ukuran</i><span class="bn-uang">${Math.round(p.beliUsdt)} USDT</span></div></div>` + (typeof jalurPosisi === "function" ? (p.tp2 > p.isi ? jalurPosisi(p, px) : jalurPosisi({ ...p, tp2: Math.max(p.tp1 > p.isi ? p.isi + 2 * (p.tp1 - p.isi) : p.isi + 3 * (p.isi - p.sl), (px || 0) * 1.03, (p.trailPuncak || 0) * 1.03) }, px, "trailing")) : "") + `</summary>` +
           `<div class="bn-rinci">${esc(p.pola || "")} · masuk ${jamLokal(p.t)}<br>SL awal ${fHarga(p.sl)}${px ? " (" + fPct((p.sl / px - 1) * 100, 1) + " dari harga)" : ""}${naik ? " · stop kini " + fHarga(stopKini) : ""}${p.tp1 ? " · TP1 " + fHarga(p.tp1) : ""} · ${p.murni ? "trailing 25% murni" : p.trailP ? "sisa trailing 15%" : "TP2 " + fHarga(p.tp2)}${risk ? " · rugi bila SL " + risk.toFixed(2) + " USDT" : ""}${p.catatanUser ? "<br>Catatan: " + esc(p.catatanUser) : ""}` +
           `<br><span class="tb"><button class="btn kecil" type="button" data-mb-ubah="sl" data-sym="${esc(p.sym)}">Ubah SL</button>${bisaTp ? `<button class="btn kecil" type="button" data-mb-ubah="tp" data-sym="${esc(p.sym)}">Ubah TP</button>` : ""}<button class="btn kecil" type="button" data-mb-tutup="${esc(p.sym)}">Tutup sekarang (jual market)</button></span></div></details>`); } }
     if (tab === "order") { if (!O.length) isi.push(`<div class="bn-kosong">Tidak ada order limit manual</div>`);
