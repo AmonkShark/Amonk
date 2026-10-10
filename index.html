@@ -1272,7 +1272,9 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
       <div class="set-judul">📈 Trading manual <small>ukuran posisi</small></div><label for="akCara">Cara ukuran posisi<select id="akCara"><option value="bagi">Bagi saldo jadi N bagian</option><option value="risiko">Risiko % per trade</option></select></label>
       <label for="akBagi" id="lbBagi">Saldo dibagi jadi (bagian)<input id="akBagi" type="number" step="1" min="1" max="20" inputmode="numeric"></label>
       <label for="akRisiko" id="lbRisiko">Risiko per trade (%)<input id="akRisiko" type="number" step="0.1" min="0.1" max="5" inputmode="decimal"></label>
-      <label for="akPorsi">Modal manual = porsi USDT bebas<select id="akPorsi"><option value="100">100% USDT bebas</option><option value="70">70% USDT bebas</option><option value="50">50% USDT bebas</option><option value="30">30% USDT bebas</option><option value="0">Isian di bawah / total saldo</option></select></label>
+      <div class="mk-kotak" style="grid-column:1/-1"><div class="mk-baris"><label for="akPorsi">Saldo manual = porsi dari seluruh USDT akun (sisanya saldo bot)<select id="akPorsi"><option value="100">100% manual · 0% bot</option><option value="70">70% manual · 30% bot</option><option value="50">50% manual · 50% bot</option><option value="30">30% manual · 70% bot</option></select></label><button class="btn" type="button" id="akBagi">Bagi saldo sekarang</button></div>
+        <div id="akKantong" class="redup mk-ket">Belum dibagi. Tekan "Bagi saldo sekarang": saldo manual & saldo bot dipisah dan TIDAK digabung lagi sampai Anda tambah/kurangi.</div>
+        <div class="tb"><button class="btn kecil" type="button" id="akManTambah">+ Tambah saldo manual</button><button class="btn kecil" type="button" id="akManKurang">− Kurangi saldo manual</button></div></div>
       <label for="akModal">Modal untuk ukuran (USDT)<input id="akModal" type="number" step="any" min="0" inputmode="decimal" placeholder="kosong = ikut porsi di atas"></label>
       <div class="set-judul">🛡 Batas risiko &amp; jeda</div><label for="akBatasTrade">Batas rugi per trade (% saldo)<input id="akBatasTrade" type="number" step="0.1" min="0.1" max="20" inputmode="decimal"></label>
       <label for="akBatasSerentak">Batas rugi serentak (% saldo)<input id="akBatasSerentak" type="number" step="0.5" min="0.5" max="50" inputmode="decimal"></label>
@@ -1327,7 +1329,7 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
       <div class="set-judul">💰 Modal &amp; posisi bot</div><label for="btModal">Modal bot (USDT)<span style="display:flex;gap:4px;align-items:stretch"><input id="btModal" type="number" step="any" min="0" inputmode="decimal" placeholder="0 = seluruh saldo testnet" style="flex:1;min-width:0"><button class="btn" type="button" id="btModalMaks" title="Pakai SELURUH saldo USDT akun sebagai modal bot, otomatis mengikuti order yang berjalan/selesai">Maks saldo</button></span></label>
       <label for="btPosisi">Maks entry bersamaan (saldo dibagi ini)<input id="btPosisi" type="number" step="1" min="1" max="20" inputmode="numeric"></label>
       <label for="btBatas">Batas rugi bot per trade (% modal · 100 = tidak dipangkas)<input id="btBatas" type="number" step="any" min="0.1" max="100" inputmode="decimal"></label>
-      <div class="bt-dana" style="grid-column:1/-1"><span class="redup" id="btDanaKet"></span></div>
+      <div class="bt-dana" style="grid-column:1/-1"><span class="redup" id="btDanaKet"></span><div class="tb" style="margin-top:6px"><button class="btn kecil" type="button" id="btTambahDana">+ Tambah saldo bot</button><button class="btn kecil" type="button" id="btKurangDana">− Kurangi saldo bot</button></div></div>
       <div class="set-judul">🛑 Jeda otomatis (circuit breaker)</div><label for="btBrHari">Jeda bila rugi 24 jam (% modal)<input id="btBrHari" type="number" step="any" min="0.1" max="50" inputmode="decimal"></label>
       <label for="btBrMinggu">Jeda bila rugi 7 hari (% modal)<input id="btBrMinggu" type="number" step="any" min="0.1" max="90" inputmode="decimal"></label>
       <label for="btBrBerturut">Jeda bila rugi berturut (kali)<input id="btBrBerturut" type="number" step="1" min="1" max="30" inputmode="decimal"></label>
@@ -2429,6 +2431,7 @@ function risikoPct() { const r = +baca("risikoPct", 0.5); return r > 0 && r <= 5
 // 2026-10-11 (user): modal manual = porsi 100/70/50/30% dari USDT BEBAS (menganggur) di Binance; isian "Modal untuk ukuran" tetap menang bila diisi.
 function porsiManual() { const p = +baca("porsiManual", 100); return [100, 70, 50, 30, 0].includes(p) ? p : 100; }
 function modalUkuran() {
+  { const K = (typeof BT_S !== "undefined" && BT_S) && BT_S.manual && BT_S.manual.modal; if (K && K.kini > 0) return { modal: K.kini, sumber: "saldo manual" }; }
   const m = +baca("modalManual", 0); if (m > 0) return { modal: m, sumber: "manual" };
   { const p = porsiManual(), u = +baca("usdtBebas", 0); if (p > 0 && u > 0) return { modal: u * p / 100, sumber: p + "% USDT bebas" }; }
   const a = +baca("modalAkun", 0); return a > 0 ? { modal: a, sumber: "saldo Binance" } : null;
@@ -4257,8 +4260,25 @@ $("akBagi").addEventListener("change", () => { const v = Math.round(+$("akBagi")
 $("akModal").value = +baca("modalManual", 0) || "";
 $("akRisiko").addEventListener("change", () => { const v = +$("akRisiko").value; if (v > 0 && v <= 5) simpan("risikoPct", v); $("akRisiko").value = risikoPct(); gambar(); });
 $("akModal").addEventListener("change", () => { const v = +$("akModal").value; simpan("modalManual", v > 0 ? v : 0); gambar(); });
-$("akPorsi").value = String(porsiManual());
-$("akPorsi").addEventListener("change", () => { simpan("porsiManual", +$("akPorsi").value); gambar(); });
+$("akPorsi").value = String(porsiManual() || 100);
+$("akPorsi").addEventListener("change", () => { simpan("porsiManual", +$("akPorsi").value); });
+// KANTONG MANUAL vs BOT (2026-10-11, user: "pilihan mengambil usdt 100/70/50/30% sebagai saldo manual dan sisanya saldo bot, jangan digabung lagi
+// hingga aku tambah saldo bot atau aku kurangi"). Disimpan di worker bot (atur.manualKantong) supaya bot & Beli manual memakai angka yang sama.
+function kantongManual() { return ((typeof BT_S !== "undefined" && BT_S) && BT_S.manual && BT_S.manual.modal) || null; }
+window.gambarKantong = () => { const K = kantongManual(), el = $("akKantong"); if (!el) return; const M = (typeof BT_S !== "undefined" && BT_S) && BT_S.modal;
+  if (!K) return;
+  el.innerHTML = `<b>Saldo manual ${K.kini.toFixed(2)} USDT</b> (${K.porsi}% saat dibagi ${new Date(K.sejak).toLocaleDateString("id-ID")}) · terpakai ${K.terpakai.toFixed(2)} · bebas <b>${K.bebas.toFixed(2)}</b> · hasil manual ${K.laba >= 0 ? "+" : ""}${K.laba.toFixed(2)}${K.penyesuaian ? " · tambah/kurang " + (K.penyesuaian > 0 ? "+" : "") + K.penyesuaian.toFixed(2) : ""}<br>Saldo bot ${M ? (+M.kini).toFixed(2) : "?"} USDT · dua saldo ini terpisah.`; };
+async function danaKantong(jalur, isi, ok) {
+  if (typeof btCfg !== "function" || !btCfg().sandi) { alert("Isi sandi bot dulu (tab Bot → Pengaturan bot)."); return; }
+  if (!(typeof BT_S !== "undefined" && BT_S && BT_S.manual && "modal" in BT_S.manual)) { alert("Worker bot belum versi \"2026-10-11 kantong-manual\" (sekarang: " + ((typeof BT_S !== "undefined" && BT_S && BT_S.versi) || "?") + "). Tempel worker baru dulu."); return; }
+  try { await btPanggil("/atur", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(isi) }); await muatBot(); window.gambarKantong(); alert(ok); }
+  catch (e) { alert("Gagal: " + e.message); }
+}
+$("akBagi").addEventListener("click", async () => { const p = +$("akPorsi").value; simpan("porsiManual", p);
+  if (!confirm(`Bagi seluruh USDT akun sekarang?\n\nManual ${p}% · Bot ${100 - p}%\n(total = USDT bebas + posisi & order bot + posisi & order manual)\n\nSesudah ini dua saldo TERPISAH: untung/rugi manual hanya mengubah saldo manual, untung/rugi bot hanya saldo bot. Setoran baru ke Binance tidak masuk ke mana pun sampai Anda tekan Tambah. Hitungan PnL bot mulai lagi dari nol (riwayat tetap ada).`)) return;
+  danaKantong("/atur", { bagiSaldo: { porsiManual: p } }, "✔ Saldo dibagi."); });
+$("akManTambah").addEventListener("click", () => { const v = +String(prompt("Tambah saldo manual (USDT) — diambil dari USDT bebas yang belum menjadi jatah bot/manual:") || "").replace(",", "."); if (v > 0) danaKantong("/atur", { danaManual: { jumlah: v } }, "✔ Saldo manual +" + v); });
+$("akManKurang").addEventListener("click", () => { const v = +String(prompt("Kurangi saldo manual (USDT) — mis. untuk ditarik atau dipindah ke bot:") || "").replace(",", "."); if (v > 0) danaKantong("/atur", { danaManual: { jumlah: -v } }, "✔ Saldo manual −" + v); });
 // batas risiko & aturan jeda (2026-09-22)
 for (const [id, k, f] of [["akBatasTrade", "batasTrade", batasTrade], ["akBatasSerentak", "batasSerentak", batasSerentak], ["akJedaN", "jedaN", jedaN], ["akJedaPct", "jedaPct", jedaPct]]) {
   $(id).value = f();
@@ -4669,7 +4689,6 @@ function gambarBot(s) {
     (asli && s.kunciGalat ? `<p class="jr-ket turun">⛔ ${String(s.kunciGalat).replace(/[<>&]/g, "")}.</p>` : "") +
     (s.aktif ? "" : `<p class="jr-ket kng">Mode kering: bot hanya mencatat rencana, tidak membeli. Isi BOT_AKTIF = ya di Cloudflare untuk mengaktifkan.</p>`) +
     `<div class="bn-besar bn-uang">${maks ? d2(maks) : "seluruh saldo"}</div><div class="bn-rp bn-uang">${maks ? rp(maks) : ""}${MO.awal > 0 ? ` · awal ${usd(MO.awal)}` : ""}${MO.penyesuaian ? ` · ${MO.penyesuaian < 0 ? "ditarik" : "ditambah"} ${usd(Math.abs(MO.penyesuaian))}` : ""}</div>` +
-    (MO.dipotong > 0.5 ? `<p class="jr-ket kng">Modal bot mengikuti saldo nyata: ${usd(MO.dipotong)} dari modal buku ${usd(MO.buku)} sedang dipakai trade manual / sudah ditarik dari Binance. Kembali naik (paling tinggi ke modal buku) saat uangnya kembali. Diperbarui ± tiap 5 menit.</p>` : "") +
     `<div class="bn-grid" data-bt="angka">` +
       `<div><span>PnL ${MO.sejak ? "sejak " + tglLokal(MO.sejak) : "bot"}</span><b class="${kl(MO.laba)} bn-uang">${f2(MO.laba)}${MO.awal > 0 ? ` <small>(${f2(MO.laba / MO.awal * 100)}%)</small>` : ""}</b></div>` +
       `<div><span>PnL hari ini (tutup)</span><b class="${kl(hariIni)} bn-uang">${f2(hariIni)}</b></div>` +
@@ -4764,6 +4783,7 @@ function gambarBot(s) {
         l.jenis === "pengaturan" ? `pola ${l.pola || "—"} · koin ${l.koin || "semua"}` : ""].filter(Boolean).join(" · ")}</span></div>`).join("") + `<div class="bn-info redup">jam ${ZONA || "lokal"}</div>`);
   }
   if (window.gambarManualBot) window.gambarManualBot(s);
+  if (window.gambarKantong) window.gambarKantong();
   $("btList").innerHTML = `<div class="bn-tabwadah">` +
     `<div class="bn-tabs" role="tablist">${TAB.map(([k, nm, n]) => `<button type="button" role="tab" class="bn-tab${k === tab ? " aktif" : ""}" data-bt="${k}" data-tab="${k}" aria-selected="${k === tab}">${nm}${n != null ? ` <small>${n}</small>` : ""}</button>`).join("")}</div>` +
     (tab === "riwayat" || tab === "perPola" ? `<div class="bn-periode">${[["modal", MO.sejak ? "Sejak modal " + tglLokal(MO.sejak).slice(0, 5) : "Sejak modal"], ["uji", "Masa uji 08-10"], ["semua", "Semua"]].map(([k, nm]) => `<button type="button" class="bn-per${k === PER ? " aktif" : ""}" data-per="${k}">${nm}</button>`).join("")}</div>` : "") +
@@ -4854,6 +4874,10 @@ async function saldoBebasBinance() {
   if (!t.kunciBekerja) throw new Error(t.galat || "kunci Binance tidak bekerja");
   return bawah2(t.usdtBebas);
 }
+$("btTambahDana").addEventListener("click", async () => { const v = +String(prompt("Tambah saldo bot (USDT) — diambil dari USDT bebas yang belum menjadi jatah bot/manual:") || "").replace(",", "."); if (!(v > 0)) return;
+  try { await btPanggil("/atur", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ penyesuaian: { jumlah: v } }) }); await muatBot(); btPesan("✔ Saldo bot +" + v + " USDT"); } catch (e) { btPesan("Gagal: " + e.message, true); } });
+$("btKurangDana").addEventListener("click", async () => { const v = +String(prompt("Kurangi saldo bot (USDT) — mis. untuk ditarik atau dipindah ke manual:") || "").replace(",", "."); if (!(v > 0)) return;
+  try { await btPanggil("/atur", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ penyesuaian: { jumlah: -v } }) }); await muatBot(); btPesan("✔ Saldo bot −" + v + " USDT"); } catch (e) { btPesan("Gagal: " + e.message, true); } });
 $("btModalMaks").addEventListener("click", async () => {
   // 2026-10-03 (user: "saldo bot hanya dihitung ketika aku klik saldo max, biar hanya itu saja yang dipakai"):
   // tombol MAKS = KUNCI modal bot di saldo USDT akun SAAT INI (bebas + yang sedang dipakai bot). Tidak lagi mengikuti saldo
@@ -4863,7 +4887,8 @@ $("btModalMaks").addEventListener("click", async () => {
     btPesan("Membaca saldo Binance…"); const bebas = await saldoBebasBinance(); await muatBot();
     // 10-03 perbaikan: USDT yang terkunci di order limit Elliott bot ikut dihitung (tadinya terlewat -> modal terkunci kurang 884)
     const antri = ((BT_S && BT_S.ew && BT_S.ew.order) || []).reduce((a, o) => a + (+o.nilai || 0), 0);
-    const pakai = BT_S && BT_S.terpakai > 0 ? +BT_S.terpakai : 0, v = bawah2(bebas + pakai + antri);
+    const KM = BT_S && BT_S.manual && BT_S.manual.modal, jatahM = KM ? +KM.bebas || 0 : 0;   // 10-11: USDT bebas jatah manual tidak diambil bot
+    const pakai = BT_S && BT_S.terpakai > 0 ? +BT_S.terpakai : 0, v = bawah2(bebas - jatahM + pakai + antri);
     if (!(v > 0)) throw new Error("saldo USDT terbaca 0");
     if (!confirm("Kunci modal bot di " + Math.round(v).toLocaleString("en-US") + " USDT?\n(" + Math.round(bebas) + " USDT bebas + " + Math.round(pakai) + " USDT di posisi bot + " + Math.round(antri) + " USDT di order limit Elliott)\n\nSesudah ini modal bot TETAP di angka itu dan hanya berubah oleh hasil trade bot. USDT yang Anda tambahkan nanti TIDAK dipakai bot sampai tombol ini ditekan lagi. Hitungan laba bot mulai lagi dari nol (riwayat trade tetap ada).")) { btPesan(""); return; }
     btPesan("Menyimpan…");
@@ -6059,6 +6084,7 @@ sambung();
       if (!R.length) isi.push(`<div class="bn-kosong">Belum ada data</div>`); }
     if (tab === "catatan") { if (!LOG.length) isi.push(`<div class="bn-kosong">Belum ada catatan manual</div>`);
       for (const l of LOG) isi.push(`<div class="bt-log"><span class="bt-tag ${/gagal|galat|tanpa SL/.test(l.jenis) ? "merah" : /masuk|tutup/.test(l.jenis) ? "hijau" : "biru"}">${esc(l.jenis.replace(/^manual /, ""))}</span><span class="bt-jam">${jamLokal(l.t)}</span><span class="bt-isi">${[l.sym ? "<b>" + esc(l.sym.replace(/USDT$/, "")) + "</b>" : "", esc(l.alasan || l.galat || ""), l.hasil != null ? f2(l.hasil) + " USDT" : l.nilai != null ? l.nilai + " USDT" : ""].filter(Boolean).join(" · ")}</span></div>`); }
+    const KM = M.modal; isi.unshift(KM ? `<div class="bn-info">Saldo manual <b>${KM.kini.toFixed(2)}</b> USDT · bebas <b>${KM.bebas.toFixed(2)}</b> · terpakai ${KM.terpakai.toFixed(2)}</div>` : `<div class="bn-info">Saldo manual belum dibagi dari saldo bot — atur di Pengaturan akun (porsi 100/70/50/30%).</div>`);
     el.innerHTML = `<div class="bn-tabwadah"><div class="bn-tabs" role="tablist">${TAB.map(([k, nm, n]) => `<button type="button" role="tab" class="bn-tab${k === tab ? " aktif" : ""}" data-mb-tab="${k}" aria-selected="${k === tab}">${nm}${n != null ? ` <small>${n}</small>` : ""}</button>`).join("")}</div><div class="bn-isi">${isi.join("")}</div></div>`;
   };
   $("mbJenis").addEventListener("change", () => { terapkanAturan(true); hitung(); });
@@ -6082,5 +6108,6 @@ sambung();
   setInterval(() => { if (halAktif === "Akun" && !document.hidden) hitung(); }, 15000);
 })();
 </script>
+<style>.mk-kotak{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border:1px solid var(--garis);border-radius:10px}.mk-baris{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}.mk-baris label{flex:1;min-width:200px}.mk-ket{font-size:12px;line-height:1.5}</style>
 </body>
 </html>
