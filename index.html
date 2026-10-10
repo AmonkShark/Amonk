@@ -1029,7 +1029,8 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
     <button role="tab" id="tbTerminal" data-hal="Terminal" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v14H4z"/><path d="M8 15l3-4 3 3 3-5"/></svg><span>Terminal</span></button>
     <button role="tab" id="tbRiwayat" data-hal="Riwayat" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Riwayat</span></button>
     <button role="tab" id="tbJurnal" data-hal="Jurnal" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5z"/><path d="M8 10h8M8 14h8"/></svg><span>Jurnal</span></button>
-    <button role="tab" id="tbAkun" data-hal="Akun" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M15 15h3"/></svg><span>Akun</span></button>
+    <button role="tab" id="tbAkun" data-hal="Akun" aria-selected="false" title="Akun Manual: saldo, order, pengaturan & jurnal trading manual"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M15 15h3"/></svg><span>Manual</span></button>
+    <button role="tab" id="tbBot" data-hal="Bot" aria-selected="false" title="Akun Bot: bot trading otomatis + kesehatan sistem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="14" height="11" rx="2"/><path d="M12 4v4M9 13h.01M15 13h.01M9 16h6"/></svg><span>Bot</span></button>
     <button role="tab" id="tbTim" data-hal="Tim" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M3 20c0-3 2.5-5 5-5s5 2 5 5M11 20c0-3 2.5-5 5-5s5 2 5 5"/></svg><span>Tim</span></button>
     <button role="tab" id="tbInfo" data-hal="Info" hidden aria-selected="false" style="display:none"><span>Info</span></button>
   </nav>
@@ -1201,7 +1202,6 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
   </div>
 
   <div class="hal" id="halAkun" hidden>
-    <section class="sehat" id="akSehat" data-ak="sehat" aria-label="Kesehatan sistem"></section>
     <div class="ak-bar"><button class="btn" type="button" id="akToggle" aria-expanded="true" aria-controls="akForm">⚙ Sembunyikan pengaturan</button><span class="ak-pesan" id="akPesanBar"></span></div>
     <form class="ak-set" id="akForm" autocomplete="off">
       <div class="set-judul">🔗 Koneksi Binance <small>hanya baca</small></div><label for="akUrl">Alamat perantara (Cloudflare Worker)<input id="akUrl" type="url" placeholder="https://amonk-binance.NAMAMU.workers.dev" inputmode="url"></label>
@@ -1224,7 +1224,15 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
     <div class="jr-list" id="akList" data-ak="aset"></div>
     <div class="jn-kepala" id="akOrderJudul" data-ak="order" hidden><h3>Order terbuka <small class="redup" id="akOrderN"></small></h3><button class="btn" type="button" id="akOrderToggle" aria-controls="akOrder" aria-expanded="true">Sembunyikan</button></div>
     <div class="jr-list" id="akOrder" data-ak="order"></div>
-    <div class="jn-kepala"><h3>Bot trading otomatis <small class="redup" id="btJaringan">TESTNET · saldo latihan</small></h3><span class="tb"><button class="btn" type="button" id="btPnl" data-bt="pnlBot" title="Kalender PNL akun bot per tanggal">📅 PNL Bot</button><button class="btn" type="button" id="btPnlM" data-bt="pnlManual" title="Kalender PNL trading manual (trade tutup sejak 01/08)">📅 PNL Manual</button><button class="btn" type="button" id="btJeda" data-bt="jeda" title="Hentikan bot membeli; posisi terbuka tetap dijaga SL/TP">⏸ Jeda bot</button><button class="btn" type="button" id="btTes" data-bt="tes" title="Cek jalur aplikasi → bot → perantara → Binance dengan kunci bot">🔌 Uji sambungan</button><button class="btn" type="button" id="btMuat" data-bt="perbarui">Perbarui</button><button class="btn" type="button" id="btGigi" title="Buka / tutup pengaturan bot (termasuk pilihan tampilan)" aria-controls="btForm">⚙</button></span></div>
+    <div class="jn-kepala" data-ak="jurnal"><h3>Jurnal trade nyata</h3><span class="tb"><button class="btn" type="button" id="btPnlM" data-bt="pnlManual" title="Kalender PNL trading manual (trade tutup sejak 01/08)">📅 PNL Manual</button><button class="btn" type="button" id="jnMuat">Muat dari Binance</button></span></div>
+    <p class="ak-pesan" id="jnPesan" data-ak="jurnal">Membaca riwayat beli/jual Binance-mu (500 trade terakhir per koin), menyusunnya jadi trade, lalu mencocokkan dengan sinyal pola 4H. Butuh ±1–2 menit.</p>
+    <div class="jr-ring" id="jnRing" data-ak="jurnal"></div>
+    <details class="jn-lipat" id="jnLipat" data-ak="jurnalDaftar"><summary><span id="jnLipatJudul">Daftar per trade</span></summary><div class="jr-list" id="jnList"></div></details>
+  </div>
+
+  <div class="hal" id="halBot" hidden>
+    <section class="sehat" id="akSehat" data-ak="sehat" aria-label="Kesehatan sistem"></section>
+    <div class="jn-kepala"><h3>Bot trading otomatis <small class="redup" id="btJaringan">TESTNET · saldo latihan</small></h3><span class="tb"><button class="btn" type="button" id="btPnl" data-bt="pnlBot" title="Kalender PNL akun bot per tanggal">📅 PNL Bot</button><button class="btn" type="button" id="btJeda" data-bt="jeda" title="Hentikan bot membeli; posisi terbuka tetap dijaga SL/TP">⏸ Jeda bot</button><button class="btn" type="button" id="btTes" data-bt="tes" title="Cek jalur aplikasi → bot → perantara → Binance dengan kunci bot">🔌 Uji sambungan</button><button class="btn" type="button" id="btMuat" data-bt="perbarui">Perbarui</button><button class="btn" type="button" id="btGigi" title="Buka / tutup pengaturan bot (termasuk pilihan tampilan)" aria-controls="btForm">⚙</button></span></div>
     <div class="ak-bar" data-bt="bar"><button class="btn" type="button" id="btToggle" aria-expanded="true" aria-controls="btForm">⚙ Sembunyikan pengaturan bot</button><span class="ak-pesan" id="btPesanBar"></span></div>
     <p class="ak-pesan kng" id="btKunci" hidden>🔒 Mode lihat — perangkat ini belum memasukkan sandi bot, jadi pengaturan hanya bisa dilihat. Isi <b>Sandi bot</b> lalu tekan <b>Buka kunci</b> untuk mengubah.</p>
     <form class="ak-set" id="btForm" autocomplete="off">
@@ -1255,10 +1263,6 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
     <p class="ak-pesan" id="btPesan" data-bt="penjelasan">Pengaturan ini disimpan DI BOT, jadi tetap berlaku walau aplikasi tertutup. Modal bot = modal awal + hasil semua trade bot yang sudah tutup (untung menambah, rugi mengurangi). Ukuran tiap posisi = modal bot ÷ maks entry, lalu dipangkas kalau rugi bila kena SL melewati batas rugi bot. SL SELALU dari sinyal; batas rugi hanya mengubah ukuran. Total posisi terbuka tidak pernah melewati modal bot. Mengganti angka modal awal = mulai hitungan baru.</p>
     <div class="jr-ring" id="btRing"></div>
     <div class="jr-list" id="btList"></div>
-    <div class="jn-kepala" data-ak="jurnal"><h3>Jurnal trade nyata</h3><button class="btn" type="button" id="jnMuat">Muat dari Binance</button></div>
-    <p class="ak-pesan" id="jnPesan" data-ak="jurnal">Membaca riwayat beli/jual Binance-mu (500 trade terakhir per koin), menyusunnya jadi trade, lalu mencocokkan dengan sinyal pola 4H. Butuh ±1–2 menit.</p>
-    <div class="jr-ring" id="jnRing" data-ak="jurnal"></div>
-    <details class="jn-lipat" id="jnLipat" data-ak="jurnalDaftar"><summary><span id="jnLipatJudul">Daftar per trade</span></summary><div class="jr-list" id="jnList"></div></details>
   </div>
 
   <div class="hal" id="halTim" hidden>
@@ -2690,12 +2694,13 @@ $("hpList").addEventListener("click", e => {
 // PENGATURAN TAMPILAN (2026-09-25, user: "lebih simpel, ada pengaturan menyembunyikan tab, HP hanya info penting").
 // Disimpan di perangkat (localStorage "tampilan"). Bawaan di HP = SIMPEL (tab Terminal, Riwayat, Akun; bilah status Bot, Laba, Posisi);
 // tombol ⚙ di header selalu ada untuk mengubah / mengembalikan tampilan lengkap.
-const TP_TAB = [["Terminal", "Terminal"], ["Riwayat", "Riwayat"], ["Jurnal", "Jurnal"], ["Akun", "Akun"]];   // Info dibuang 2026-09-26 (penjelasan kini di tiap kartu ⓘ)
+const TP_TAB = [["Terminal", "Terminal"], ["Riwayat", "Riwayat"], ["Jurnal", "Jurnal"], ["Akun", "Akun"], ["Bot", "Bot"]];   // 2026-10-11: Akun = Akun Manual, Bot = Akun Bot   // Info dibuang 2026-09-26 (penjelasan kini di tiap kartu ⓘ)
 const TP_PITA = [["pitaBot", "Status bot"], ["pitaHari", "Laba hari ini"], ["pitaPosisi", "Posisi"], ["pitaModal", "Modal bot"], ["pitaHarga", "Harga hidup"], ["pitaVps", "Perantara VPS"]];
-const TP_LENGKAP = { tab: { Terminal: true, Riwayat: true, Jurnal: true, Akun: true, Info: false }, pita: { pitaBot: true, pitaHari: true, pitaPosisi: true, pitaModal: true, pitaHarga: true, pitaVps: true }, pitaAda: true };
-const TP_SIMPEL = { tab: { Terminal: true, Riwayat: true, Jurnal: false, Akun: true, Info: false }, pita: { pitaBot: true, pitaHari: true, pitaPosisi: true, pitaModal: false, pitaHarga: false, pitaVps: false }, pitaAda: true };
+const TP_LENGKAP = { tab: { Terminal: true, Riwayat: true, Jurnal: true, Akun: true, Bot: true, Info: false }, pita: { pitaBot: true, pitaHari: true, pitaPosisi: true, pitaModal: true, pitaHarga: true, pitaVps: true }, pitaAda: true };
+const TP_SIMPEL = { tab: { Terminal: true, Riwayat: true, Jurnal: false, Akun: true, Bot: true, Info: false }, pita: { pitaBot: true, pitaHari: true, pitaPosisi: true, pitaModal: false, pitaHarga: false, pitaVps: false }, pitaAda: true };
 let TAMPIL = (() => { const s = baca("tampilan", null); if (s && s.tab && s.pita) return s;
   return JSON.parse(JSON.stringify(window.innerWidth <= 760 ? TP_SIMPEL : TP_LENGKAP)); })();
+if (TAMPIL.tab && TAMPIL.tab.Bot === undefined) TAMPIL.tab.Bot = true;   // tab Akun Bot baru 2026-10-11: tampil di pengaturan lama
 function terapkanTampilan() {
   for (const [h, id] of TP_TAB) { const b = $("tb" + id); if (b) b.hidden = !TAMPIL.tab[h]; }
   document.body.classList.toggle("privasi", !!TAMPIL.privasi);
@@ -2819,7 +2824,7 @@ window.notifMati = async () => {
   window.rpPasang = () => { clearTimeout(tm); tm = setTimeout(() => {
     document.querySelectorAll(".rp-auto").forEach(e => e.remove());
     if (TAMPIL.rp === false) return;
-    for (const id of ["halTerminal", "halRiwayat", "halJurnal", "halAkun", "pita", "popupBadan"]) { const e = document.getElementById(id); if (e && !e.hidden) { proses(e); prosesAngka(e); } } mo.takeRecords(); }, 80); };
+    for (const id of ["halTerminal", "halRiwayat", "halJurnal", "halAkun", "halBot", "pita", "popupBadan"]) { const e = document.getElementById(id); if (e && !e.hidden) { proses(e); prosesAngka(e); } } mo.takeRecords(); }, 80); };
   const mo = new MutationObserver(() => window.rpPasang());
   mo.observe(document.body, { childList: true, subtree: true });
   setInterval(window.rpPasang, 5000);
@@ -2835,7 +2840,7 @@ window.jnEkspor = function () {
 };
 
 setTimeout(terapkanTampilan, 0);
-setTimeout(() => { const h = decodeURIComponent(location.hash.slice(1)); if (["Terminal", "Riwayat", "Jurnal", "Akun"].includes(h) && TAMPIL.tab[h]) pindahHal(h); }, 50);   // pintasan ikon aplikasi (#Akun dst)   // sesudah seluruh skrip dimuat (halAktif/pindahHal didefinisikan lebih bawah)
+setTimeout(() => { const h = decodeURIComponent(location.hash.slice(1)); if (["Terminal", "Riwayat", "Jurnal", "Akun", "Bot"].includes(h) && TAMPIL.tab[h]) pindahHal(h); }, 50);   // pintasan ikon aplikasi (#Akun dst)   // sesudah seluruh skrip dimuat (halAktif/pindahHal didefinisikan lebih bawah)
 
 // TEMA (2026-09-22): "gelap" | "terang" | null (ikut sistem). Tombol berputar sistem→terang→gelap.
 const IK_SURYA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
@@ -2942,13 +2947,13 @@ function pindahHal(h) {
   const beda = halAktif !== h;
   halAktif = h; simpan("hal", h);
   if (beda) { window.scrollTo(0, 0); if (document.scrollingElement) document.scrollingElement.scrollTop = 0; setTimeout(() => window.scrollTo(0, 0), 0); }   // permintaan user 2026-09-26: tab baru selalu mulai dari atas
-  for (const x of ["Terminal", "Riwayat", "Jurnal", "Akun", "Tim", "Info"]) { $("hal" + x).hidden = x !== h; $("tb" + x).setAttribute("aria-selected", x === h ? "true" : "false"); }
+  for (const x of ["Terminal", "Riwayat", "Jurnal", "Akun", "Bot", "Tim", "Info"]) { $("hal" + x).hidden = x !== h; $("tb" + x).setAttribute("aria-selected", x === h ? "true" : "false"); }
   if (h === "Jurnal") { if (!JR) muatJurnal(); else gambarJurnal(); if (window.muatVsBot) window.muatVsBot(); }
   if (h === "Akun" && window.muatAkun) window.muatAkun();
-  if (h === "Akun" && window.muatBotBilaAda) window.muatBotBilaAda();
+  if ((h === "Akun" || h === "Bot") && window.muatBotBilaAda) window.muatBotBilaAda();   // Akun Manual juga butuh status bot (baris "Bot: isi", saring koin bot)
   if (h === "Riwayat" && window.gambarRiwayat) window.gambarRiwayat();
   if (h === "Tim" && window.muatTim) window.muatTim();
-  if (h === "Akun" && window.muatSehat) window.muatSehat();
+  if (h === "Bot" && window.muatSehat) window.muatSehat();
   if (h === "Tim" && $("tbTim")) $("tbTim").classList.remove("ada-baru");
   if (h === "Terminal") { gambar(); if (window.paskanOtomatis) window.paskanOtomatis(); }
 }
@@ -3912,7 +3917,7 @@ const AK_BAGIAN = [
 ];
 const SARING_AK = { asetBotKoin: "bot", asetManual: "manual", asetStabil: "stabil", asetDebu: "debu" };
 function tampilSembunyiAk() { const v = baca("akTampilSembunyi", []); return new Set(Array.isArray(v) ? v : []); }
-function terapkanTampilAk() { const S = tampilSembunyiAk(), h = $("halAkun"); if (!h) return;
+function terapkanTampilAk() { const S = tampilSembunyiAk(), h = document; if (!$("halAkun")) return;
   for (const el of $("akRing").children) el.dataset.ak = el.classList.contains("ak-hero") ? "hero" : el.classList.contains("donat") ? "donat" : "risiko";
   h.querySelectorAll(".ak-aset .ak-pola").forEach(el => el.dataset.ak = "asetPola"); h.querySelectorAll(".ak-aset .ak-botbaris").forEach(el => el.dataset.ak = "asetBot");
   h.querySelectorAll(".ak-aset .ha .rp").forEach(el => el.dataset.ak = "asetRp");
@@ -4401,7 +4406,7 @@ const BT_BAGIAN = [
   ["Tab di bawah", [["posisi", "Tab Posisi"], ["ew", "Tab Order (limit Elliott)"], ["riwayat", "Tab Riwayat"], ["perPola", "Tab Per pola"], ["catatan", "Tab Catatan bot"]]],
 ];
 function tampilSembunyiBot() { const v = baca("btTampilSembunyi", []); return new Set(Array.isArray(v) ? v : []); }
-function terapkanTampilBot() { const S = tampilSembunyiBot(), h = $("halAkun"); if (!h) return;
+function terapkanTampilBot() { const S = tampilSembunyiBot(), h = document; if (!$("halBot")) return;
   h.querySelectorAll("[data-bt]").forEach(el => el.classList.toggle("bt-sembunyi", S.has(el.dataset.bt)));
   const g = $("btGigi"); if (g) g.classList.toggle("aktif", !$("btForm").hidden); }
 function gambarTampilBot() { const S = tampilSembunyiBot(), el = $("btTampil"); if (!el) return;
@@ -4491,7 +4496,7 @@ let BT_S = null;                               // status bot terakhir (dipakai l
   document.addEventListener("click", e => { if (!e.target.closest) return;
     if (e.target.closest(".sehat-kepala")) { tutupMem = !tutup(); try { localStorage.setItem("sehatTutup", tutupMem ? "1" : "0"); } catch (er) {} gambar(); return; }
     const b = e.target.closest(".sehat-b"); if (b) b.classList.toggle("buka"); });
-  setInterval(() => { const h = document.getElementById("halAkun"); if (h && !h.hidden && !document.hidden) muat(); }, 120000);
+  setInterval(() => { const h = document.getElementById("halBot"); if (h && !h.hidden && !document.hidden) muat(); }, 120000);
 })();
 // Hasil satu trade bot dalam R: hasil USDT ÷ rugi bila kena SL awal (ukuran × jarak isi→SL). null kalau SL tak sah.
 function rBot(r) { if (!(r && r.isi > r.sl && r.sl > 0 && r.beliUsdt > 0)) return null; const risk = r.beliUsdt * (r.isi - r.sl) / r.isi; return risk > 0 ? r.hasil / risk : null; }
@@ -4722,7 +4727,7 @@ function periksaAlarm() {
   el.innerHTML = A.map(([k, m]) => '<div class="al-i ' + k + '">' + (k === "turun" ? "⛔" : "⚠") + " " + m + "</div>").join("") + '<button type="button" class="al-tutup" title="Sembunyikan 1 jam">✕</button>';
 }
 document.addEventListener("click", e => { const el = $("alarm"); if (!el || !e.target.closest("#alarm")) return;
-  if (e.target.closest(".al-tutup")) { alarmTunda = { k: el.dataset.k, sampai: Date.now() + 3600e3 }; simpan("alarmTunda", alarmTunda); el.hidden = true; } else pindahHal("Akun"); });
+  if (e.target.closest(".al-tutup")) { alarmTunda = { k: el.dataset.k, sampai: Date.now() + 3600e3 }; simpan("alarmTunda", alarmTunda); el.hidden = true; } else pindahHal("Bot"); });
 setInterval(periksaAlarm, 15000);
 async function muatBot() {
   try { btPesan("Membaca bot…"); const s = await btPanggil("/status"); gambarBot(s);
@@ -4937,10 +4942,10 @@ async function muatPita() {
 setInterval(() => { const d = $("dot"), el = $("pitaHarga"); if (!d || !el) return;
   el.querySelector(".lampu").className = "lampu " + (d.classList.contains("on") ? "on" : d.classList.contains("off") ? "off" : "");
   el.querySelector("b").textContent = d.classList.contains("on") ? "hidup" : d.classList.contains("off") ? "putus" : "menyambung"; }, 3000);
-$("pitaBot").addEventListener("click", () => pindahHal("Akun"));
-setInterval(() => { if (halAktif === "Akun") { if (btCfg().url) muatBot(); } else muatPita(); }, 60e3);
+$("pitaBot").addEventListener("click", () => pindahHal("Bot"));
+setInterval(() => { if (halAktif === "Bot") { if (btCfg().url) muatBot(); } else muatPita(); }, 60e3);
 setTimeout(muatPita, 1500);
-setTimeout(() => { if (halAktif === "Akun" && btCfg().sandi) muatBot(); }, 1500);
+setTimeout(() => { if (halAktif === "Bot" && btCfg().sandi) muatBot(); }, 1500);
 if (JN) setTimeout(gambarJurnalNyata, 0);
 
 
@@ -5762,7 +5767,7 @@ setInterval(() => { if (halAktif === "Riwayat") window.gambarRiwayat(); }, 5000)
     const r = e.target.closest(".pm-pop"); if (r) detail(r.dataset.k);
   });
 })();
-pindahHal(["Terminal", "Riwayat", "Jurnal", "Akun", "Info"].includes(halAktif) ? halAktif : "Terminal");
+pindahHal(["Terminal", "Riwayat", "Jurnal", "Akun", "Bot", "Info"].includes(halAktif) ? halAktif : "Terminal");
 // PWA (2026-09-23): service worker hanya di alamat online (https), supaya aplikasi bisa dipasang di layar utama
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 
