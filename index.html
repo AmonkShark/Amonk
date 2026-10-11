@@ -1404,6 +1404,7 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
           <label id="mbLbHarga" hidden>Harga limit<input id="mbHarga" type="number" step="any" inputmode="decimal"></label>
           <label>Stop loss (SL)<input id="mbSl" type="number" step="any" inputmode="decimal"></label>
           <div class="mb-lebar mb-saran" id="mbSaranSl"></div>
+          <div class="mb-lebar mb-saran" id="mbBuku"></div>
           <label>Sisa posisi<select id="mbSisa"><option value="murni25">100% trailing 25% (seperti TB)</option><option value="trailing15">50% di TP1, sisa trailing 15%</option><option value="tp2">50% di TP1, sisa di TP2</option></select></label>
           <label id="mbLbTp1">TP1<span class="mb-baris"><input id="mbTp1" type="number" step="any" inputmode="decimal"><input id="mbTp1R" type="number" step="0.1" min="0.1" inputmode="decimal" title="TP1 dalam R (dihitung ulang dari harga isi sungguhan)"><span class="redup">R</span></span></label>
           <label id="mbLbTp2" hidden>TP2<input id="mbTp2" type="number" step="any" inputmode="decimal"></label>
@@ -6279,7 +6280,28 @@ sambung();
     if (!E || !(a > 0)) { el.innerHTML = `<span class="redup">Saran SL (ATR 4H): ${!E ? "menunggu harga" + ($("mbTipe").value === "limit" ? " limit" : "") : "lilin 4H tidak terbaca"}</span>`; return; }
     el.innerHTML = `<span>Saran SL dari ATR 4H (${fHarga(a)}):</span>` + [1.5, 2, 2.5].map(m => { const s = E - m * a; return s > 0 ? `<button type="button" class="btn kecil" data-sl="${+s.toPrecision(6)}">${m}× ATR · ${fHarga(s)} (${fPct((s / E - 1) * 100, 1)})</button>` : ""; }).join("") +
       `<span class="redup">jarak ATR lebih baik dari SL tepat di bawah kotak/titik terendah (uji 298.000 entry); kotak tidak menahan harga lebih baik dari harga sembarang</span>`; }, 400); }
+  // 2026-10-12 (user: "dimana orang paling banyak menaruh limit entry maupun limit tp", pilih "Dinding order book di app"):
+  // buku order Binance spot (5000 level tiap sisi), rentang tercakup (maks ±8%) dibagi 10 lapisan; 2 dinding beli & 2 dinding jual terbesar.
+  // Tampilan saja: order bisa ditarik kapan saja (spoofing) dan uji 09 (order book) tidak menemukan daya ramal.
+  const BUKU = {}; let bukuT = null;
+  function bukuOrder() { clearTimeout(bukuT); bukuT = setTimeout(async () => { const k = koin(), el = $("mbBuku"); if (!k) { el.innerHTML = ""; return; }
+    if (baca("mbBukuMati", false)) { el.innerHTML = `<button type="button" class="btn kecil" data-buku="nyala">Tampilkan dinding order Binance</button>`; return; }
+    let B = BUKU[k]; if (!B || Date.now() - B.t > 60e3) { let j = null; try { j = await getJ(`/api/v3/depth?symbol=${k}USDT&limit=5000`); } catch (e) {} if (k !== koin()) return;
+      if (!j || !Array.isArray(j.bids) || !j.bids.length) { el.innerHTML = `<span class="redup">Dinding order: buku order tidak terbaca</span>`; return; } B = BUKU[k] = { j, t: Date.now() }; }
+    const bid = +B.j.bids[0][0], ask = +B.j.asks[0][0], mid = (bid + ask) / 2;
+    // rentang yang tercakup buku order (koin besar: < 1%), dibagi 10 lapisan; lapisan pertama (menempel harga) diabaikan
+    const jang = Math.min(0.08, (mid - +B.j.bids[B.j.bids.length - 1][0]) / mid, (+B.j.asks[B.j.asks.length - 1][0] - mid) / mid), LB = Math.max(jang / 10, 1e-4);
+    const kelompok = (rows, arah) => { const m = new Map(); for (const [p0, q0] of rows) { const p = +p0, q = +q0, d = (p / mid - 1) * arah; if (d > jang) break;
+        const b = Math.floor(Math.max(0, d) / LB); if (b < 1) continue; const x = m.get(b) || { usdt: 0, lo: Infinity, hi: 0 }; x.usdt += p * q; x.lo = Math.min(x.lo, p); x.hi = Math.max(x.hi, p); m.set(b, x); }
+      const L = [...m.values()], rata = L.reduce((s, x) => s + x.usdt, 0) / Math.max(1, L.length); return { top: L.sort((a, b) => b.usdt - a.usdt).slice(0, 2), rata }; };
+    const fU = u => u >= 1e6 ? (u / 1e6).toFixed(2) + " jt" : u >= 1e3 ? (u / 1e3).toFixed(1) + " rb" : u.toFixed(0);
+    const tulis = (x, R, beli) => `<span class="${beli ? "naik" : "turun"}" title="${fU(x.usdt)} USDT antre di ${fHarga(x.lo)}–${fHarga(x.hi)} (${(x.usdt / R.rata).toFixed(1)}× rata-rata lapisan)">${beli ? "beli" : "jual"} ${fHarga(beli ? x.hi : x.lo)} (${fPct(((beli ? x.hi : x.lo) / mid - 1) * 100, 1)}) · ${fU(x.usdt)} USDT</span>`;
+    const Bd = kelompok(B.j.bids, -1), As = kelompok(B.j.asks, 1);
+    el.innerHTML = `<span>Dinding order Binance (±${(jang * 100).toFixed(jang < 0.01 ? 2 : 1)}% yang terlihat):</span>` + As.top.map(x => tulis(x, As, false)).join(" · ") + ` | ` + Bd.top.map(x => tulis(x, Bd, true)).join(" · ") +
+      `<span class="redup">antrean limit terbesar sekarang; bisa ditarik kapan saja, tampilan saja</span><button type="button" class="btn kecil" data-buku="mati">sembunyikan</button>`; }, 500); }
+  $("mbBuku").addEventListener("click", e => { const b = e.target.closest("[data-buku]"); if (!b) return; simpan("mbBukuMati", b.dataset.buku === "mati"); bukuOrder(); });
   for (const id of ["mbKoin", "mbHarga"]) $(id).addEventListener("input", saranSl);
+  $("mbKoin").addEventListener("input", bukuOrder);
   $("mbTipe").addEventListener("change", saranSl);
   $("mbSaranSl").addEventListener("click", e => { const b = e.target.closest("[data-sl]"); if (!b) return; $("mbSl").value = b.dataset.sl; nilaiManual = false; hitung(); });
   $("mbIsiSinyal").addEventListener("click", isiDariSinyal);
