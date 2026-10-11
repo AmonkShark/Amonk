@@ -1068,7 +1068,11 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
     catch (e) { alert("Face ID tidak diaktifkan: " + e.message); }
   };
   window.matikanFaceId = () => { try { localStorage.removeItem(FK); } catch (e) {} alert("Face ID dimatikan — buka dengan PIN."); };
-  function kunci() { terbuka = false; el("pinKunci").hidden = false; document.documentElement.style.overflow = "hidden"; aturMode(baca() ? "masuk" : "buat");
+  // 11-10 (user memilih "kunci bawaan iPhone"): kunci AMONK bisa DIMATIKAN (localStorage amonkKunciMati=1) bila ikon sudah dikunci Face ID oleh iPhone.
+  const kunciMati = () => { try { return localStorage.getItem("amonkKunciMati") === "1"; } catch (e) { return false; } };
+  window.aturKunciAmonk = mati => { try { mati ? localStorage.setItem("amonkKunciMati", "1") : localStorage.removeItem("amonkKunciMati"); } catch (e) {} if (!mati) kunci(); };
+  window.kunciAmonkMati = kunciMati;
+  function kunci() { if (kunciMati()) { buka(); return; } terbuka = false; el("pinKunci").hidden = false; document.documentElement.style.overflow = "hidden"; aturMode(baca() ? "masuk" : "buat");
     const f = baca() && faceAda(); el("pinFace").hidden = !f;
     if (f) setTimeout(() => { if (!terbuka && document.visibilityState === "visible") bukaFace(true); }, 350); }   // 10-11: tunggu layar benar-benar tampil   // langsung coba Face ID; Safari bisa menolak tanpa ketukan -> tombol
   function buka() { terbuka = true; el("pinKunci").hidden = true; document.documentElement.style.overflow = ""; isi = ""; }
@@ -6723,7 +6727,7 @@ sambung();
     const r = (n, nilai, aksi) => `<button class="bz-baris" type="button" data-st="${aksi}"><span class="tg"><b>${n}</b></span><span class="kn"><small>${nilai || ""}</small></span><span class="chev">›</span></button>`;
     $("stDaftar").innerHTML =
       `<div class="bz-grup">Umum</div><div class="bz-daftar">${r("Tampilan tab & bagian", "", "tampilan")}${r("Mode tema", "ganti terang / gelap", "tema")}${r("Samarkan angka", TAMPIL.privasi ? "nyala" : "mati", "privasi")}${r("Rupiah di samping USDT", TAMPIL.rp === false ? "mati" : "nyala", "rp")}</div>` +
-      `<div class="bz-grup">Keamanan</div><div class="bz-daftar">${r("Ganti PIN", pin ? "aktif" : "belum", "pin")}${r("Face ID", face ? "aktif" : "mati", face ? "faceMati" : "faceNyala")}</div>` +
+      `<div class="bz-grup">Keamanan</div><div class="bz-daftar">${r("Kunci AMONK (PIN / Face ID)", window.kunciAmonkMati && window.kunciAmonkMati() ? "MATI — pakai kunci iPhone" : "nyala", "kunciAmonk")}${r("Ganti PIN", pin ? "aktif" : "belum", "pin")}${r("Face ID", face ? "aktif" : "mati", face ? "faceMati" : "faceNyala")}</div>` +
       `<div class="bz-grup">Akun & trading manual</div><div class="bz-daftar">${r("Koneksi Binance · saldo manual · risiko · batas · tampilan", "", "akun")}</div>` +
       `<div class="bz-grup">Bot</div><div class="bz-daftar">${r("Koneksi bot · modal · posisi · jeda otomatis · koin & pola", "", "bot")}</div>` +
       `<div class="bz-grup">Lainnya</div><div class="bz-daftar">${r("Muat ulang aplikasi", "", "muat")}</div>`; }
@@ -6741,6 +6745,10 @@ sambung();
     else if (a === "tema") { $("tema") && $("tema").click(); setTimeout(gambarSetelan, 50); }
     else if (a === "privasi") { tampilanUbah("opsi", "privasi", !TAMPIL.privasi); gambarSetelan(); }
     else if (a === "rp") { tampilanUbah("opsi", "rp", TAMPIL.rp === false); gambarSetelan(); }
+    else if (a === "kunciAmonk") { const mati = window.kunciAmonkMati && window.kunciAmonkMati();
+      if (mati) { window.aturKunciAmonk(false); }
+      else if (confirm("Matikan kunci PIN/Face ID AMONK? Lakukan HANYA bila ikon AMONK di layar utama sudah dikunci iPhone (tekan lama ikon → Wajibkan Face ID) dan sudah kamu coba berhasil. Kalau tidak, siapa pun yang memegang HP-mu bisa membuka AMONK.")) window.aturKunciAmonk(true);
+      gambarSetelan(); }
     else if (a === "pin") window.gantiPinAmonk && window.gantiPinAmonk();
     else if (a === "faceNyala") Promise.resolve(window.aktifkanFaceId && window.aktifkanFaceId()).then(gambarSetelan);
     else if (a === "faceMati") { window.matikanFaceId && window.matikanFaceId(); gambarSetelan(); }
