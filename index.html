@@ -1042,14 +1042,16 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
   const pesan = t => { el("pinPesan").textContent = t || ""; };
   function aturMode(m) { mode = m; isi = ""; pesan("");
     el("pinJudul").textContent = m === "buat" ? "Buat PIN AMONK" : m === "ulang" ? "Ulangi PIN" : "AMONK terkunci";
-    el("pinKet").textContent = m === "buat" ? "PIN 4–6 angka untuk membuka aplikasi di perangkat ini. Tekan ✓ bila kurang dari 6 angka." : m === "ulang" ? "Masukkan PIN yang sama sekali lagi." : "Masukkan PIN";
+    el("pinKet").textContent = m === "buat" ? "PIN 4–6 angka untuk membuka aplikasi di perangkat ini. Tekan ✓ bila kurang dari 6 angka." : m === "ulang" ? "Masukkan PIN yang sama sekali lagi." : (faceAda() ? "Sentuh layar untuk Face ID · atau masukkan PIN" : "Masukkan PIN");
     el("pinLupa").hidden = m !== "masuk"; titik(); }
   // FACE ID (2026-10-11): WebAuthn "platform authenticator" = Face ID / Touch ID / sidik jari perangkat. Kunci rahasianya tetap di chip HP;
   // aplikasi hanya menyimpan ID kredensial (localStorage "amonkFaceId"). Seperti PIN, ini kunci PER PERANGKAT, bukan pengaman server.
   const FK = "amonkFaceId", b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf))), unb64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
   const faceAda = () => { try { return !!localStorage.getItem(FK); } catch (e) { return false; } };
   async function faceTersedia() { try { return !!(window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()); } catch (e) { return false; } }
+  let faceJalan = false;
   async function bukaFace(diam) {
+    if (faceJalan || terbuka) return; faceJalan = true; setTimeout(() => { faceJalan = false; }, 1500);
     let id = null; try { id = localStorage.getItem(FK); } catch (e) {} if (!id) return;
     try { await navigator.credentials.get({ publicKey: { challenge: crypto.getRandomValues(new Uint8Array(32)), allowCredentials: [{ type: "public-key", id: unb64(id) }], userVerification: "required", timeout: 60000 } });
       salah = 0; buka(); }
@@ -1067,7 +1069,8 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
   };
   window.matikanFaceId = () => { try { localStorage.removeItem(FK); } catch (e) {} alert("Face ID dimatikan — buka dengan PIN."); };
   function kunci() { terbuka = false; el("pinKunci").hidden = false; document.documentElement.style.overflow = "hidden"; aturMode(baca() ? "masuk" : "buat");
-    const f = baca() && faceAda(); el("pinFace").hidden = !f; if (f) bukaFace(true); }   // langsung coba Face ID; Safari bisa menolak tanpa ketukan -> tombol
+    const f = baca() && faceAda(); el("pinFace").hidden = !f;
+    if (f) setTimeout(() => { if (!terbuka && document.visibilityState === "visible") bukaFace(true); }, 350); }   // 10-11: tunggu layar benar-benar tampil   // langsung coba Face ID; Safari bisa menolak tanpa ketukan -> tombol
   function buka() { terbuka = true; el("pinKunci").hidden = true; document.documentElement.style.overflow = ""; isi = ""; }
   async function selesai() {
     if (isi.length < MIN) { pesan("PIN minimal " + MIN + " angka"); return; }
@@ -1084,6 +1087,10 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
     titik(); const P = baca(); if (mode === "masuk" && P && isi.length === (P.panjang || PANJANG)) selesai(); }
   el("pinPad").innerHTML = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "✓"].map(k => `<button type="button" data-k="${k}">${k}</button>`).join("");
   el("pinFace").addEventListener("click", () => bukaFace(false));
+  // 10-11 (user: "tidak perlu klik apapun"): Safari iPhone menolak Face ID tanpa sentuhan -> SENTUHAN DI MANA SAJA di layar kunci memicu Face ID.
+  el("pinKunci").addEventListener("pointerdown", e => { if (!terbuka && mode === "masuk" && faceAda() && !e.target.closest("#pinPad,#pinLupa,#pinFace")) bukaFace(false); });
+  window.addEventListener("pageshow", () => { if (!terbuka && mode === "masuk" && faceAda()) setTimeout(() => bukaFace(true), 300); });
+  window.addEventListener("focus", () => { if (!terbuka && mode === "masuk" && faceAda()) setTimeout(() => bukaFace(true), 200); });
   el("pinPad").addEventListener("click", e => { const b = e.target.closest("[data-k]"); if (b) tekan(b.dataset.k); });
   document.addEventListener("keydown", e => { if (terbuka) return; if (/^[0-9]$/.test(e.key)) tekan(e.key); else if (e.key === "Backspace") tekan("⌫"); else if (e.key === "Enter") tekan("✓"); });
   el("pinLupa").addEventListener("click", () => { if (!confirm("Lupa PIN: PIN dihapus DAN sandi bot serta sandi aplikasi di perangkat ini ikut dihapus (isi lagi nanti). Lanjutkan?")) return;
@@ -6441,10 +6448,11 @@ sambung();
     if (f) { el.style.backgroundImage = `url("${f}")`; el.textContent = ""; } else { el.style.backgroundImage = ""; el.textContent = n.trim().charAt(0).toUpperCase() || "A"; } }
   // ---------- BERANDA ----------
   window.gambarBeranda = () => { if (!$("halBeranda")) return; pasangAvatar($("bzAv"));
-    const tot = totalNilai(), R = riwayat("semua"), hTutup = jumlah(R, hari0()), br = berjalan("semua");
+    const tot = totalNilai(), R = riwayat("semua"), br = berjalan("semua"), akOk = AKP && AKP.ok && AKP.hariIni != null, hTutup = akOk ? AKP.hariIni : jumlah(R, hari0());
+    if (!AKP && window.akunPnl) window.akunPnl();
     $("bzNilai").innerHTML = `<span class="lb">Perkiraan total nilai (IDR) <button class="bz-ikon" type="button" id="bzMata" aria-label="Samarkan" style="padding:0">${samar() ? "🙈" : "👁"}</button></span>
       <span class="besar">${sm(tot ? rp(tot) : "—")}</span><span class="usdt">${sm(tot ? "≈ " + u2(tot) + " USDT" : "sambungkan Binance di Pengaturan")}</span>
-      <button class="bz-pnl" type="button" data-bz-ke="Pnl"><u>PnL hari ini</u> <b class="${kl(hTutup)}">${sm(rp(hTutup, 1) + " (" + u2(hTutup, 1) + " USDT)")}</b>${br != null ? ` <span class="redup">· berjalan <b class="${kl(br)}">${sm(u2(br, 1))}</b></span>` : ""} ›</button>`;
+      <button class="bz-pnl" type="button" data-bz-ke="Pnl"><u>PnL hari ini</u> <b class="${kl(hTutup)}">${sm(rp(hTutup, 1) + " (" + u2(hTutup, 1) + " USDT)")}</b>${!akOk && br != null ? ` <span class="redup">· berjalan <b class="${kl(br)}">${sm(u2(br, 1))}</b></span>` : ""} ›</button>`;
     const s = S(), M = s && s.modal, K = s && s.manual && s.manual.modal, btc = typeof data !== "undefined" && data.BTC;
     const btc24 = btc && btc.harga && btc.open24 ? (btc.harga / btc.open24 - 1) * 100 : null;
     const nPB = s ? (s.posisi || []).length : 0, nPM = s && s.manual ? (s.manual.posisi || []).length : 0;
@@ -6463,7 +6471,7 @@ sambung();
       bar.innerHTML = SUB.map(([k, n]) => `<button type="button" data-bz-ke="${k}" class="${k === hal ? "aktif" : ""}">${n}</button>`).join("") + `<button type="button" class="kanan" data-bz-ke="Setelan:${hal === "Bot" ? "bot" : "akun"}">⚙ Pengaturan</button>`;
       h.insertBefore(bar, h.firstChild); } }
   window.gambarAset = () => { if (!$("halAset")) return;
-    const tot = totalNilai(), s = S(), M = s && s.modal, K = s && s.manual && s.manual.modal, R = riwayat("semua"), hT = jumlah(R, hari0());
+    const tot = totalNilai(), s = S(), M = s && s.modal, K = s && s.manual && s.manual.modal, R = riwayat("semua"), hT = AKP && AKP.ok && AKP.hariIni != null ? AKP.hariIni : jumlah(R, hari0());
     $("asNilai").innerHTML = `<span class="lb">Perkiraan total nilai</span><span class="besar">${sm(tot ? rp(tot) : "—")}</span><span class="usdt">${sm(tot ? "≈ " + u2(tot) + " USDT" : "")}</span>
       <button class="bz-pnl" type="button" data-bz-ke="Pnl"><u>PnL hari ini</u> <b class="${kl(hT)}">${sm(rp(hT, 1) + " (" + u2(hT, 1) + ")")}</b> ›</button>`;
     const vb = M && M.kini || 0, vm = K && K.kini || 0, lain = tot ? Math.max(0, tot - vb - vm) : 0, sm0 = vb + vm + lain || 1;
@@ -6489,36 +6497,80 @@ sambung();
     return `<text x="0" y="${+y(hi) + 4}" font-size="10" fill="var(--label)">${fmt(hi)}</text><text x="0" y="${+y(lo) + 4}" font-size="10" fill="var(--label)">${fmt(lo)}</text>` +
       (lo < 0 && hi > 0 ? `<line x1="34" x2="${W - 6}" y1="${y(0)}" y2="${y(0)}" stroke="var(--garis)" stroke-dasharray="3 3"/>` : "") +
       `<text x="34" y="${H - 4}" font-size="10" fill="var(--label)">${l}</text><text x="${W - 6}" y="${H - 4}" font-size="10" fill="var(--label)" text-anchor="end">${r}</text>`; }
+  // ---- PnL AKUN GAYA BINANCE ----
+  // Nilai harian = totalAssetOfBtc snapshot SPOT Binance (23:59:59 UTC) × harga tutup BTC hari itu. PnL hari D = nilai D − nilai D-1 − arus dana D
+  // (setor & tarik dompet Spot, transfer Funding<->Spot; koin non-stabil dinilai harga tutup hari itu). Binance hanya memberi 30 hari snapshot,
+  // jadi riwayat digabung & disimpan di perangkat (snapAkun / arusAkun) supaya 90 hari terisi seiring waktu.
+  const tglU = t => new Date(t).toISOString().slice(0, 10), STAB = new Set(["USDT", "USDC", "FDUSD", "BUSD", "DAI", "TUSD", "USDP"]);
+  const hargaHariCache = {};
+  async function hargaKoinHari(koin, d) { const k = koin + d; if (k in hargaHariCache) return hargaHariCache[k];
+    try { const r = await fetch(`https://data-api.binance.vision/api/v3/klines?symbol=${koin}USDT&interval=1d&startTime=${Date.parse(d + "T00:00:00Z")}&limit=1`); const j = await r.json(); hargaHariCache[k] = Array.isArray(j) && j[0] ? +j[0][4] : null; }
+    catch (e) { hargaHariCache[k] = null; } return hargaHariCache[k]; }
+  let AKP = null, AKPt = 0, AKPjalan = null;
+  window.akunPnl = async paksa => {
+    if (!paksa && AKP && Date.now() - AKPt < 10 * 60e3) return AKP;
+    if (AKPjalan) return AKPjalan;
+    if (typeof akCfg !== "function" || !akCfg().url || typeof panggil !== "function") return null;
+    AKPjalan = (async () => {
+      let j; try { j = await panggil("/snapshot"); } catch (e) { return AKP; }
+      if (!j || !Array.isArray(j.hari)) return AKP;
+      const BK = await btcHarian(), tutupBtc = d => { const x = BK.find(k => tglU(k[0]) === d); return x ? x[1] : null; };
+      const NA = baca("snapAkun", {}) || {}, AR = baca("arusAkun", {}) || {};
+      for (const h of j.hari) { const d = tglU(h.t), c = tutupBtc(d); if (c && h.btc > 0) NA[d] = +(h.btc * c).toFixed(2); }
+      const arusHari = {}, arusNilai = async a => { const d = tglU(a.t), p = STAB.has(a.koin) ? 1 : a.koin === "BTC" ? tutupBtc(d) : await hargaKoinHari(a.koin, d); return p == null ? null : a.n * p; };
+      const awal30 = tglU(Date.now() - 30 * 864e5);
+      for (const a of j.arus || []) { const v = await arusNilai(a); if (v == null) continue; const d = tglU(a.t); arusHari[d] = (arusHari[d] || 0) + v; }
+      for (const d of Object.keys(AR)) if (d >= awal30) delete AR[d];            // 30 hari terakhir: data Binance terbaru menggantikan
+      for (const d in arusHari) AR[d] = +arusHari[d].toFixed(2);
+      for (const X of [NA, AR]) { const k = Object.keys(X).sort(); while (k.length > 400) delete X[k.shift()]; }
+      simpan("snapAkun", NA); simpan("arusAkun", AR);
+      const hl = Object.keys(NA).sort(), pnl = {};
+      for (let i = 1; i < hl.length; i++) { const d = hl[i], p = hl[i - 1]; if (Date.parse(d) - Date.parse(p) !== 864e5) continue; pnl[d] = +(NA[d] - NA[p] - (AR[d] || 0)).toFixed(2); }
+      // hari ini (UTC): nilai sekarang − snapshot terakhir − arus sesudah snapshot itu
+      const last = hl[hl.length - 1], now = totalNilai(), dNow = tglU(Date.now()); let hariIni = null;
+      if (last && now && dNow > last) { let ar = 0; for (const a of (j.arus || []).filter(a => a.t > Date.parse(last + "T23:59:59Z"))) { const v = await arusNilai(a); if (v != null) ar += v; }
+        hariIni = +(now - NA[last] - ar).toFixed(2); pnl[dNow] = hariIni; }
+      AKP = { ok: hl.length >= 2, nilai: Object.assign({}, NA, now ? { [dNow]: now } : {}), pnl, hariIni, galat: j.galat || [], dari: hl[0], sampai: last }; AKPt = Date.now();
+      setTimeout(() => { if (halAktif === "Beranda") window.gambarBeranda(); if (halAktif === "Aset") window.gambarAset(); }, 0);
+      return AKP; })();
+    try { return await AKPjalan; } finally { AKPjalan = null; } };
   window.gambarPnl = async () => { if (!$("halPnl")) return;
-    const [a, b] = rentang(), R = riwayat(pnSumber), tot = totalNilai(), hT = jumlah(R, hari0()), h7 = jumlah(R, hari0() - 6 * 864e5), kum = jumlah(R, a, b);
+    const [a, b] = rentang(), R = riwayat(pnSumber), tot = totalNilai();
+    const AK = pnSumber === "semua" ? await window.akunPnl() : null, pakaiAkun = !!(AK && AK.ok);
+    const vH = t => pakaiAkun ? (AK.pnl[tglU(t + 12 * 3600e3)] || 0) : jumlah(R, t, t + 864e5);
+    const sumH = (dari, sampai) => { let n = 0; for (let t = hari0(dari); t < sampai; t += 864e5) n += vH(t); return n; };
+    const hT = pakaiAkun ? (AK.hariIni || 0) : jumlah(R, hari0()), h7 = sumH(hari0() - 6 * 864e5, Date.now() + 1), kum = sumH(a, b);
     const s = S(), M = s && s.modal, K = s && s.manual && s.manual.modal;
     const nilaiSumber = pnSumber === "bot" ? (M && M.kini) : pnSumber === "manual" ? (K && K.kini) : tot;
     const basis = nilaiSumber ? nilaiSumber - kum : null, pct = (v, bs) => bs > 0 ? (v / bs * 100) : null, fp = v => v == null ? "" : (v > 0 ? "+" : "") + v.toFixed(2) + "%";
     $("pnNilai").innerHTML = `<span class="lb">Nilai ${pnSumber === "bot" ? "saldo bot" : pnSumber === "manual" ? "saldo manual" : "aset total"} (IDR)</span><span class="besar">${sm(nilaiSumber ? rp(nilaiSumber) : "—")}</span><span class="usdt">${sm(nilaiSumber ? "≈ " + u2(nilaiSumber) + " USDT" : "")}</span>`;
     const sel = (j, v, bs) => `<div><span>${j}</span><b class="${kl(v)}">${sm(fp(pct(v, bs)) || "—")}</b><small class="${kl(v)}">${sm(rp(v, 1))}</small></div>`;
-    $("pnTiga").innerHTML = sel("PnL hari ini", hT, nilaiSumber ? nilaiSumber - hT : null) + sel("PnL 7 hari", h7, nilaiSumber ? nilaiSumber - h7 : null) + sel(pnPer === "k" ? "PnL kustom" : "PnL " + pnPer + " hari", kum, basis);
+    $("pnTiga").innerHTML = sel("PnL hari ini", hT, nilaiSumber ? nilaiSumber - hT : null) + sel("PnL 7 hari", h7, nilaiSumber ? nilaiSumber - h7 : null) + (() => { const semuaV = pakaiAkun ? Object.values(AK.pnl).reduce((x, y) => x + y, 0) : R.reduce((x, r) => x + r.h, 0), sejak = pakaiAkun ? AK.dari : (R.length ? tgl(Math.min(...R.map(r => r.t))) : null);
+      return sel("PnL kumulatif" + (sejak ? " (sejak " + sejak.slice(5) + ")" : ""), semuaV, nilaiSumber ? nilaiSumber - semuaV : null); })();
     // hari-hari dalam rentang
     const hari = []; for (let t = hari0(a); t < b; t += 864e5) hari.push(t);
-    const per = hari.map(t => jumlah(R, t, t + 864e5)); let c = 0; const kumSeri = per.map(v => (c += v));
+    const per = hari.map(vH); let c = 0; const kumSeri = per.map(v => (c += v));
     const kPct = kumSeri.map(v => basis > 0 ? v / basis * 100 : null);
     const BK = await btcHarian(), p0 = (BK.filter(x => x[0] <= hari[0]).pop() || BK[0] || [0, 0])[1];
     const bPct = hari.map(t => { const x = BK.filter(k => k[0] <= t).pop(); return p0 && x ? (x[1] / p0 - 1) * 100 : null; });
     const W = 340, H = 150, l = tgl(hari[0]).slice(5), r = tgl(hari[hari.length - 1]).slice(5);
     // 1) nilai aset (catatan perangkat)
-    const NH = baca("nilaiHarian", {}) || {}, nv = hari.map(t => NH[tgl(t)] != null ? NH[tgl(t)] : null), nAda = nv.filter(v => v != null);
-    $("pnGrafNilai").innerHTML = `<h4>Nilai aset</h4><p class="ket">${nAda.length >= 2 ? "dicatat di perangkat ini tiap app membaca saldo Binance" : "Grafik muncul sesudah app mencatat saldo ≥ 2 hari berbeda (dicatat di perangkat ini mulai hari ini)."}</p>` +
+    const NH = Object.assign({}, baca("nilaiHarian", {}) || {}), kunciN = t => pakaiAkun ? tglU(t + 12 * 3600e3) : tgl(t);
+    if (pakaiAkun) Object.assign(NH, AK.nilai);
+    const nv = hari.map(t => NH[kunciN(t)] != null ? NH[kunciN(t)] : null), nAda = nv.filter(v => v != null);
+    $("pnGrafNilai").innerHTML = `<h4>Nilai aset</h4><p class="ket">${pakaiAkun ? "foto saldo Spot harian dari Binance (23:59 UTC) · hari ini = saldo sekarang" : nAda.length >= 2 ? "dicatat di perangkat ini tiap app membaca saldo Binance" : "Grafik muncul sesudah app mencatat saldo ≥ 2 hari berbeda (dicatat di perangkat ini mulai hari ini)."}</p>` +
       (nAda.length >= 2 && !samar() ? `<svg viewBox="0 0 ${W} ${H}">${sumbu(W, H, Math.min(...nAda), Math.max(...nAda), v => Math.round(v).toLocaleString("en-US"), l, r)}${garis(nv, "#F0B90B", W, H, Math.min(...nAda), Math.max(...nAda))}</svg>` : "");
     // 2) PnL kumulatif % vs BTC
     const semua = kPct.concat(bPct).filter(v => v != null), lo = Math.min(0, ...semua), hi = Math.max(0, ...semua);
-    $("pnGrafKum").innerHTML = `<h4>PnL kumulatif</h4><p class="ket"><b class="${kl(kum)}">${sm(fp(pct(kum, basis)) || "—")}</b> PnL (trade tutup) · <b style="color:#42A5F5">${fp(bPct.filter(v => v != null).pop())}</b> tren BTC</p>` +
+    $("pnGrafKum").innerHTML = `<h4>PnL kumulatif</h4><p class="ket"><b class="${kl(kum)}">${sm(fp(pct(kum, basis)) || "—")}</b> ${pakaiAkun ? "PnL akun (seperti Binance)" : "PnL (trade tutup)"} · <b style="color:#42A5F5">${fp(bPct.filter(v => v != null).pop())}</b> tren BTC</p>` +
       (samar() ? "" : `<svg viewBox="0 0 ${W} ${H}">${sumbu(W, H, lo, hi, v => v.toFixed(1) + "%", l, r)}${garis(bPct, "#42A5F5", W, H, lo, hi)}${garis(kPct, "#F0B90B", W, H, lo, hi)}</svg>`);
     // 3) PnL harian (batang)
     const mx = Math.max(1, ...per.map(Math.abs)), n = per.length, bw = Math.max(2, (W - 40) / n - 2), y0 = (H - 18) / 2 + 4;
     const nT = R.filter(x => x.t >= a && x.t < b), w = nT.filter(x => x.h > 0).length;
     const modeH = baca("pnModeHari", "kal") === "batang" ? "batang" : "kal";
     const tombol = `<span class="pn-mode"><button type="button" data-pn-mode="batang" class="${modeH === "batang" ? "aktif" : ""}" aria-label="Grafik batang">📊</button><button type="button" data-pn-mode="kal" class="${modeH === "kal" ? "aktif" : ""}" aria-label="Kalender">📅</button></span>`;
-    if (modeH === "kal") { $("pnGrafHari").innerHTML = kalenderPnl(R, tombol); return; }
-    $("pnGrafHari").innerHTML = `<div class="pn-kep"><h4>PnL harian</h4>${tombol}</div><p class="ket">${nT.length} trade tutup · menang ${w} · kalah ${nT.length - w}${pnSumber === "semua" ? " · bot + manual" : ""} · posisi berjalan tidak dihitung</p>` +
+    if (modeH === "kal") { $("pnGrafHari").innerHTML = kalenderPnl(R, tombol, pakaiAkun ? AK.pnl : null); return; }
+    $("pnGrafHari").innerHTML = `<div class="pn-kep"><h4>PnL harian</h4>${tombol}</div><p class="ket">${pakaiAkun ? "perubahan nilai akun Spot per hari (UTC), sudah dikurangi setor/tarik/transfer · termasuk posisi berjalan" : nT.length + " trade tutup · menang " + w + " · kalah " + (nT.length - w) + (pnSumber === "semua" ? " · bot + manual" : "") + " · posisi berjalan tidak dihitung"}</p>` +
       (samar() ? "" : `<svg viewBox="0 0 ${W} ${H}"><line x1="34" x2="${W - 6}" y1="${y0}" y2="${y0}" stroke="var(--garis)"/>` +
         per.map((v, i) => { const h = Math.abs(v) / mx * (H / 2 - 16), x = 34 + i * ((W - 40) / n); return v ? `<rect x="${x.toFixed(1)}" y="${(v > 0 ? y0 - h : y0).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(1, h).toFixed(1)}" fill="${v > 0 ? "var(--hijau)" : "var(--merah)"}"><title>${tgl(hari[i])}: ${u2(v, 1)} USDT</title></rect>` : ""; }).join("") +
         `<text x="0" y="14" font-size="10" fill="var(--label)">+${mx.toFixed(0)}</text><text x="0" y="${H - 20}" font-size="10" fill="var(--label)">−${mx.toFixed(0)}</text><text x="34" y="${H - 4}" font-size="10" fill="var(--label)">${l}</text><text x="${W - 6}" y="${H - 4}" font-size="10" fill="var(--label)" text-anchor="end">${r}</text></svg>`);
@@ -6527,22 +6579,22 @@ sambung();
   let pnBulan = null, pnHari = null;
   const rpRingkas = v => { const k = kurs(); if (!k) return u2(v, 1); const a = Math.abs(v) * k, t = a >= 1e9 ? (a / 1e9).toFixed(1).replace(".", ",") + "M" : a >= 1e7 ? Math.round(a / 1e6) + "jt" : a >= 1e6 ? (a / 1e6).toFixed(1).replace(".", ",") + "jt" : a >= 1e3 ? Math.round(a / 1e3) + "rb" : Math.round(a) + "";
     return (v < 0 ? "−" : "+") + t; };
-  function kalenderPnl(R, tombol) {
+  function kalenderPnl(R, tombol, peta) {
     const kini = new Date(); if (!pnBulan) pnBulan = kini.getFullYear() + "-" + String(kini.getMonth() + 1).padStart(2, "0");
     const [y, m] = pnBulan.split("-").map(Number), awal = new Date(y, m - 1, 1), nHari = new Date(y, m, 0).getDate(), geser = awal.getDay();
     if (!pnHari || pnHari.slice(0, 7) !== pnBulan) pnHari = (kini.getFullYear() === y && kini.getMonth() === m - 1) ? tgl(kini) : pnBulan + "-01";
     const sel = []; for (let i = 0; i < geser; i++) sel.push(`<span class="kl-sel kosong"></span>`);
     let totBln = 0, nBln = 0;
-    for (let d = 1; d <= nHari; d++) { const t0 = new Date(y, m - 1, d).getTime(), Rh = R.filter(x => x.t >= t0 && x.t < t0 + 864e5), v = Rh.reduce((a, x) => a + x.h, 0), id = tgl(t0);
+    for (let d = 1; d <= nHari; d++) { const t0 = new Date(y, m - 1, d).getTime(), id = tgl(t0), Rh = peta ? (peta[id] != null ? [{ h: peta[id] }] : []) : R.filter(x => x.t >= t0 && x.t < t0 + 864e5), v = Rh.reduce((a, x) => a + x.h, 0);
       totBln += v; nBln += Rh.length;
       sel.push(`<button type="button" class="kl-sel ${Rh.length ? (v >= 0 ? "untung" : "rugi") : ""} ${id === pnHari ? "pilih" : ""} ${t0 > Date.now() ? "depan" : ""}" data-pn-hari="${id}"><b>${d}</b>${Rh.length ? `<small>${samar() ? "••" : rpRingkas(v)}</small>` : ""}</button>`); }
-    const tp = new Date(pnHari + "T00:00:00").getTime(), Rp = R.filter(x => x.t >= tp && x.t < tp + 864e5), vp = Rp.reduce((a, x) => a + x.h, 0);
+    const tp = new Date(pnHari + "T00:00:00").getTime(), Rp = peta ? (peta[pnHari] != null ? [{ h: peta[pnHari] }] : []) : R.filter(x => x.t >= tp && x.t < tp + 864e5), vp = Rp.reduce((a, x) => a + x.h, 0);
     const bisaMaju = new Date(y, m, 1).getTime() <= Date.now();
-    return `<div class="pn-kep"><h4>PnL harian</h4>${tombol}</div><p class="ket">${pnHari} · ${Rp.length} trade tutup${pnSumber === "semua" ? " (bot + manual)" : ""}</p>` +
+    return `<div class="pn-kep"><h4>PnL harian</h4>${tombol}</div><p class="ket">${pnHari} · ${peta ? "PnL akun hari itu (UTC)" : Rp.length + " trade tutup" + (pnSumber === "semua" ? " (bot + manual)" : "")}</p>` +
       `<div class="kl-besar ${vp > 0 ? "naik" : vp < 0 ? "turun" : ""}">${samar() ? "••••••" : (Rp.length ? rp(vp, 1) : "Rp 0")}<small>${samar() || !Rp.length ? "" : " (" + u2(vp, 1) + " USDT)"}</small></div>` +
       `<div class="kl-bln"><button type="button" data-pn-bulan="-1" aria-label="Bulan sebelumnya">◀</button><b>${pnBulan}</b><button type="button" data-pn-bulan="1" aria-label="Bulan berikutnya" ${bisaMaju ? "" : "disabled"}>▶</button></div>` +
       `<div class="kl-grid">${["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"].map(h => `<span class="kl-hd">${h}</span>`).join("")}${sel.join("")}</div>` +
-      `<p class="ket" style="margin-top:8px">Bulan ${pnBulan}: <b class="${totBln > 0 ? "naik" : totBln < 0 ? "turun" : ""}">${samar() ? "••" : rp(totBln, 1)}</b> dari ${nBln} trade tutup · posisi berjalan tidak dihitung</p>`;
+      `<p class="ket" style="margin-top:8px">Bulan ${pnBulan}: <b class="${totBln > 0 ? "naik" : totBln < 0 ? "turun" : ""}">${samar() ? "••" : rp(totBln, 1)}</b> ${peta ? "· PnL akun (perubahan nilai − arus dana)" : "dari " + nBln + " trade tutup · posisi berjalan tidak dihitung"}</p>`;
   }
   $("pnGrafHari").addEventListener("click", e => { const md = e.target.closest("[data-pn-mode]"), hb = e.target.closest("[data-pn-bulan]"), hh = e.target.closest("[data-pn-hari]");
     if (md) { simpan("pnModeHari", md.dataset.pnMode); window.gambarPnl(); return; }
