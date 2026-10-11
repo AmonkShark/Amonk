@@ -6442,7 +6442,8 @@ sambung();
 .bz-label.hijau{color:var(--hijau)}
 #halAkun>.ak-bar,#halBot>.ak-bar[data-bt="bar"],#btGigi{display:none!important}
 .tab #tbAkun,.tab #tbBot{display:none!important}
-@media (max-width:760px){body.bz-penuh .wrap>header,body.bz-penuh #pita{display:none!important}}
+/* 11-10 (user, video: Beranda/Aset "berpindah posisi" vs Terminal/Jurnal): di HP judul & bar status disembunyikan di SEMUA tab supaya bagian atas sama (gaya Binance) */
+@media (max-width:760px){.wrap>header,#pita{display:none!important}}
 @media (min-width:900px){
   .bz-beranda{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start}
   .bz-cepat{grid-template-columns:repeat(6,minmax(0,90px))}
