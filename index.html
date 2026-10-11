@@ -6443,7 +6443,11 @@ sambung();
 #halAkun>.ak-bar,#halBot>.ak-bar[data-bt="bar"],#btGigi{display:none!important}
 .tab #tbAkun,.tab #tbBot{display:none!important}
 /* 11-10 (user, video: Beranda/Aset "berpindah posisi" vs Terminal/Jurnal): di HP judul & bar status disembunyikan di SEMUA tab supaya bagian atas sama (gaya Binance) */
-@media (max-width:760px){.wrap>header,#pita{display:none!important}}
+@media (max-width:760px){.wrap>header,#pita{display:none!important}
+  /* 11-10 (user, video: menu BAWAH bergeser ±60px di Beranda/Aset): halaman pendek (tidak bisa digulir) membuat Safari iPhone menaruh menu
+     bawah lebih tinggi daripada di halaman panjang (Terminal/Jurnal). Semua halaman dibuat minimal setinggi layar penuh -> perilaku sama. */
+  .hal:not([hidden]){min-height:calc(100vh + 1px)}
+  @supports (height:100lvh){.hal:not([hidden]){min-height:calc(100lvh + 1px)}}}
 @media (min-width:900px){
   .bz-beranda{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start}
   .bz-cepat{grid-template-columns:repeat(6,minmax(0,90px))}
