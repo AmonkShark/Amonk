@@ -6368,7 +6368,7 @@ sambung();
 .bz-k .jd{font:13px var(--f-ui);color:var(--label)}
 .bz-k .ang{font:600 20px var(--f-num)}
 .bz-k .sub{font:12px var(--f-num)}
-.bz-sub{display:flex;gap:18px;border-bottom:1px solid var(--garis);margin:0 0 12px;overflow-x:auto;scrollbar-width:none}
+.bz-sub{display:flex;gap:18px;border-bottom:1px solid var(--garis);margin:0 0 12px;overflow-x:auto;scrollbar-width:none;position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--pitaT,0px));background:var(--bg);z-index:18}   /* 11-10 (user): tab Ringkasan|Bot|Manual ikut saat digulir */
 .bz-sub button{background:none;border:0;border-bottom:2px solid transparent;color:var(--label);font:600 15px var(--f-ui);padding:8px 2px;cursor:pointer;white-space:nowrap}
 .bz-sub button.aktif{color:var(--teks);border-bottom-color:var(--kuning,#F0B90B)}
 .bz-sub .kanan{margin-left:auto;font-weight:400;font-size:13px}
