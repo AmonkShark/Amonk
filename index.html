@@ -6376,6 +6376,21 @@ sambung();
 .bz-graf h4{margin:0 0 2px;font:600 15px var(--f-ui)}
 .bz-graf .ket{font:12px var(--f-ui);color:var(--label);margin:0 0 8px}
 .bz-graf svg{width:100%;height:auto;display:block}
+.pn-kep{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pn-mode{display:inline-flex;background:var(--bg2);border-radius:10px;padding:3px;gap:2px}
+.pn-mode button{background:none;border:0;border-radius:8px;padding:4px 10px;cursor:pointer;font-size:15px;opacity:.55}
+.pn-mode button.aktif{background:var(--bg1);opacity:1}
+.kl-besar{font:700 26px var(--f-num);margin:2px 0 10px}.kl-besar small{font:400 13px var(--f-num);color:var(--label)}
+.kl-bln{display:flex;align-items:center;justify-content:center;gap:18px;margin:4px 0 10px;font:600 16px var(--f-num)}
+.kl-bln button{background:none;border:0;color:var(--teks);cursor:pointer;font-size:13px;padding:4px 8px}.kl-bln button:disabled{opacity:.25;cursor:default}
+.kl-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.kl-hd{text-align:center;font:12px var(--f-ui);color:var(--label);padding-bottom:4px}
+.kl-sel{aspect-ratio:1/0.95;max-width:100%;border:0;border-radius:10px;background:none;color:var(--teks);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;padding:2px;min-width:0}
+.kl-sel b{font:600 14px var(--f-num)}.kl-sel small{font:500 10px var(--f-ui);letter-spacing:-.02em;white-space:nowrap;max-width:100%}
+.kl-sel.untung{background:color-mix(in srgb,var(--hijau) 16%,transparent)}.kl-sel.untung small{color:var(--hijau)}
+.kl-sel.rugi{background:color-mix(in srgb,var(--merah) 16%,transparent)}.kl-sel.rugi small{color:var(--merah)}
+.kl-sel.pilih{outline:2px solid var(--teks);outline-offset:-2px}.kl-sel.depan{opacity:.45;cursor:default}.kl-sel.kosong{visibility:hidden;cursor:default}.bz-kustom[hidden]{display:none!important}
+@media (min-width:900px){.kl-sel small{font-size:12px}.kl-sel b{font-size:15px}}
 .bz-kustom{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font:12px var(--f-ui);color:var(--label)}
 .bz-kustom input{font:13px var(--f-num);color:var(--teks);background:var(--bg2);border:1px solid var(--garis);border-radius:8px;padding:5px 8px}
 .bz-grup{font:13px var(--f-ui);color:var(--label);margin:10px 2px 4px}
@@ -6500,11 +6515,39 @@ sambung();
     // 3) PnL harian (batang)
     const mx = Math.max(1, ...per.map(Math.abs)), n = per.length, bw = Math.max(2, (W - 40) / n - 2), y0 = (H - 18) / 2 + 4;
     const nT = R.filter(x => x.t >= a && x.t < b), w = nT.filter(x => x.h > 0).length;
-    $("pnGrafHari").innerHTML = `<h4>PnL harian</h4><p class="ket">${nT.length} trade tutup · menang ${w} · kalah ${nT.length - w}${pnSumber === "semua" ? " · bot + manual" : ""} · posisi berjalan tidak dihitung</p>` +
+    const modeH = baca("pnModeHari", "kal") === "batang" ? "batang" : "kal";
+    const tombol = `<span class="pn-mode"><button type="button" data-pn-mode="batang" class="${modeH === "batang" ? "aktif" : ""}" aria-label="Grafik batang">📊</button><button type="button" data-pn-mode="kal" class="${modeH === "kal" ? "aktif" : ""}" aria-label="Kalender">📅</button></span>`;
+    if (modeH === "kal") { $("pnGrafHari").innerHTML = kalenderPnl(R, tombol); return; }
+    $("pnGrafHari").innerHTML = `<div class="pn-kep"><h4>PnL harian</h4>${tombol}</div><p class="ket">${nT.length} trade tutup · menang ${w} · kalah ${nT.length - w}${pnSumber === "semua" ? " · bot + manual" : ""} · posisi berjalan tidak dihitung</p>` +
       (samar() ? "" : `<svg viewBox="0 0 ${W} ${H}"><line x1="34" x2="${W - 6}" y1="${y0}" y2="${y0}" stroke="var(--garis)"/>` +
         per.map((v, i) => { const h = Math.abs(v) / mx * (H / 2 - 16), x = 34 + i * ((W - 40) / n); return v ? `<rect x="${x.toFixed(1)}" y="${(v > 0 ? y0 - h : y0).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(1, h).toFixed(1)}" fill="${v > 0 ? "var(--hijau)" : "var(--merah)"}"><title>${tgl(hari[i])}: ${u2(v, 1)} USDT</title></rect>` : ""; }).join("") +
         `<text x="0" y="14" font-size="10" fill="var(--label)">+${mx.toFixed(0)}</text><text x="0" y="${H - 20}" font-size="10" fill="var(--label)">−${mx.toFixed(0)}</text><text x="34" y="${H - 4}" font-size="10" fill="var(--label)">${l}</text><text x="${W - 6}" y="${H - 4}" font-size="10" fill="var(--label)" text-anchor="end">${r}</text></svg>`);
   };
+  // ---- KALENDER PnL per tanggal: sel = jumlah hasil trade TUTUP hari itu (Rp); ketuk tanggal = angka besar di atas ----
+  let pnBulan = null, pnHari = null;
+  const rpRingkas = v => { const k = kurs(); if (!k) return u2(v, 1); const a = Math.abs(v) * k, t = a >= 1e9 ? (a / 1e9).toFixed(1).replace(".", ",") + "M" : a >= 1e7 ? Math.round(a / 1e6) + "jt" : a >= 1e6 ? (a / 1e6).toFixed(1).replace(".", ",") + "jt" : a >= 1e3 ? Math.round(a / 1e3) + "rb" : Math.round(a) + "";
+    return (v < 0 ? "−" : "+") + t; };
+  function kalenderPnl(R, tombol) {
+    const kini = new Date(); if (!pnBulan) pnBulan = kini.getFullYear() + "-" + String(kini.getMonth() + 1).padStart(2, "0");
+    const [y, m] = pnBulan.split("-").map(Number), awal = new Date(y, m - 1, 1), nHari = new Date(y, m, 0).getDate(), geser = awal.getDay();
+    if (!pnHari || pnHari.slice(0, 7) !== pnBulan) pnHari = (kini.getFullYear() === y && kini.getMonth() === m - 1) ? tgl(kini) : pnBulan + "-01";
+    const sel = []; for (let i = 0; i < geser; i++) sel.push(`<span class="kl-sel kosong"></span>`);
+    let totBln = 0, nBln = 0;
+    for (let d = 1; d <= nHari; d++) { const t0 = new Date(y, m - 1, d).getTime(), Rh = R.filter(x => x.t >= t0 && x.t < t0 + 864e5), v = Rh.reduce((a, x) => a + x.h, 0), id = tgl(t0);
+      totBln += v; nBln += Rh.length;
+      sel.push(`<button type="button" class="kl-sel ${Rh.length ? (v >= 0 ? "untung" : "rugi") : ""} ${id === pnHari ? "pilih" : ""} ${t0 > Date.now() ? "depan" : ""}" data-pn-hari="${id}"><b>${d}</b>${Rh.length ? `<small>${samar() ? "••" : rpRingkas(v)}</small>` : ""}</button>`); }
+    const tp = new Date(pnHari + "T00:00:00").getTime(), Rp = R.filter(x => x.t >= tp && x.t < tp + 864e5), vp = Rp.reduce((a, x) => a + x.h, 0);
+    const bisaMaju = new Date(y, m, 1).getTime() <= Date.now();
+    return `<div class="pn-kep"><h4>PnL harian</h4>${tombol}</div><p class="ket">${pnHari} · ${Rp.length} trade tutup${pnSumber === "semua" ? " (bot + manual)" : ""}</p>` +
+      `<div class="kl-besar ${vp > 0 ? "naik" : vp < 0 ? "turun" : ""}">${samar() ? "••••••" : (Rp.length ? rp(vp, 1) : "Rp 0")}<small>${samar() || !Rp.length ? "" : " (" + u2(vp, 1) + " USDT)"}</small></div>` +
+      `<div class="kl-bln"><button type="button" data-pn-bulan="-1" aria-label="Bulan sebelumnya">◀</button><b>${pnBulan}</b><button type="button" data-pn-bulan="1" aria-label="Bulan berikutnya" ${bisaMaju ? "" : "disabled"}>▶</button></div>` +
+      `<div class="kl-grid">${["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"].map(h => `<span class="kl-hd">${h}</span>`).join("")}${sel.join("")}</div>` +
+      `<p class="ket" style="margin-top:8px">Bulan ${pnBulan}: <b class="${totBln > 0 ? "naik" : totBln < 0 ? "turun" : ""}">${samar() ? "••" : rp(totBln, 1)}</b> dari ${nBln} trade tutup · posisi berjalan tidak dihitung</p>`;
+  }
+  $("pnGrafHari").addEventListener("click", e => { const md = e.target.closest("[data-pn-mode]"), hb = e.target.closest("[data-pn-bulan]"), hh = e.target.closest("[data-pn-hari]");
+    if (md) { simpan("pnModeHari", md.dataset.pnMode); window.gambarPnl(); return; }
+    if (hb && !hb.disabled) { const [y, m] = (pnBulan || tgl(Date.now()).slice(0, 7)).split("-").map(Number), d = new Date(y, m - 1 + +hb.dataset.pnBulan, 1); pnBulan = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); pnHari = null; window.gambarPnl(); return; }
+    if (hh) { pnHari = hh.dataset.pnHari; window.gambarPnl(); } });
   $("pnPeriode").addEventListener("click", e => { const t = e.target.closest("[data-v]"); if (!t) return; pnPer = t.dataset.v; simpan("pnPer", pnPer);
     $("pnPeriode").querySelectorAll("button").forEach(x => x.classList.toggle("aktif", x === t)); $("pnKustom").hidden = pnPer !== "k";
     if (pnPer === "k" && !$("pnDari").value) { $("pnDari").value = tgl(hari0() - 29 * 864e5); $("pnSampai").value = tgl(Date.now()); } window.gambarPnl(); });
