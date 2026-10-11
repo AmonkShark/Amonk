@@ -6418,6 +6418,11 @@ sambung();
 #bzKartuPasar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 @media (max-width:520px){#bzKartuPasar{grid-template-columns:repeat(2,minmax(0,1fr))}#bzKartuPasar>.bz-k:last-child{grid-column:1/-1}}
 .pn-lapis{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.82);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px}
+.bz-info{background:none;border:0;color:var(--label);font-size:14px;padding:0 2px;cursor:pointer;vertical-align:middle}
+.fg-kotak{background:var(--bg1);color:var(--teks);border:1px solid var(--garis);border-radius:16px;padding:16px 18px;max-width:420px;width:100%;display:flex;flex-direction:column;gap:8px;font:13.5px/1.5 var(--f-ui)}
+.fg-kotak h3{margin:0;font:600 16px var(--f-ui)}.pn-lapis .fg-kotak p{margin:0;color:var(--teks);text-align:left;font:13.5px/1.5 var(--f-ui)}
+.fg-b{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:3px 6px;border-radius:8px}.fg-b i{width:10px;height:10px;border-radius:3px;flex:0 0 10px}.fg-b b{font-family:var(--f-num);min-width:52px}
+.fg-b.kini{background:var(--bg2);outline:1px solid var(--garis)}.fg-awas{color:var(--label)!important;font-size:12.5px}
 .pn-lapis img{max-width:min(92vw,420px);max-height:72vh;border-radius:16px}
 .pn-lapis p{color:#fff;font:13px var(--f-ui);margin:0;text-align:center}
 .bz-kustom{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font:12px var(--f-ui);color:var(--label)}
@@ -6499,7 +6504,18 @@ sambung();
     const gauge = v => { const a = Math.PI * (1 - v / 100), x = 32 + 26 * Math.cos(a), y = 34 - 26 * Math.sin(a);
       return `<svg viewBox="0 0 64 38"><path d="M6 34 A26 26 0 0 1 58 34" fill="none" stroke="var(--garis)" stroke-width="6" stroke-linecap="round"/><path d="M6 34 A26 26 0 0 1 ${x.toFixed(1)} ${y.toFixed(1)}" fill="none" stroke="${v < 25 ? "#EF5350" : v < 45 ? "#FF9800" : v < 56 ? "#F0B90B" : v < 75 ? "#8BC34A" : "#26A69A"}" stroke-width="6" stroke-linecap="round"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="#fff"/></svg>`; };
     el.innerHTML = kk("Naik terbesar", naik) + kk("Turun terbesar", turun !== naik ? turun : null) +
-      (FG ? `<div class="bz-k" role="img" aria-label="Fear and Greed ${FG.v}"><span class="jd">Fear & Greed</span><span class="fg">${gauge(FG.v)}<span><span class="ang">${FG.v}</span><br><span class="sub redup">${FG_ID[FG.kls] || FG.kls}${FG.kemarin != null ? " · kemarin " + FG.kemarin : ""}</span></span></span></div>` : ""); }
+      (FG ? `<div class="bz-k" role="img" aria-label="Fear and Greed ${FG.v}"><span class="jd">Fear & Greed <button type="button" class="bz-info" data-fg-info aria-label="Apa itu Fear & Greed">ⓘ</button></span><span class="fg">${gauge(FG.v)}<span><span class="ang">${FG.v}</span><br><span class="sub redup">${FG_ID[FG.kls] || FG.kls}${FG.kemarin != null ? " · kemarin " + FG.kemarin : ""}</span></span></span></div>` : ""); }
+  // ⓘ Fear & Greed (user 2026-10-11: "apa maksudnya fear and greed? taruh tanda ! dan beri penjelasan")
+  document.addEventListener("click", e => { if (!e.target.closest("[data-fg-info]")) return; e.preventDefault(); e.stopPropagation();
+    const lp = document.createElement("div"); lp.className = "pn-lapis"; lp.setAttribute("role", "dialog");
+    const v = FG ? FG.v : null, bar = (lo, hi, nm, w) => `<div class="fg-b${v != null && v >= lo && v <= hi ? " kini" : ""}"><i style="background:${w}"></i><b>${lo}–${hi}</b><span>${nm}</span></div>`;
+    lp.innerHTML = `<div class="fg-kotak"><h3>Fear & Greed (Takut & Serakah)</h3>
+      <p>Angka <b>0–100</b> yang menggambarkan <b>suasana hati pasar kripto</b> hari ini. Sumber: alternative.me — gabungan naik-turun harga, volume, obrolan media sosial, dominasi BTC dan tren pencarian Google.</p>
+      ${bar(0, 24, "Sangat takut — banyak yang panik menjual", "#EF5350")}${bar(25, 44, "Takut", "#FF9800")}${bar(45, 55, "Netral", "#F0B90B")}${bar(56, 75, "Serakah — banyak yang bersemangat membeli", "#8BC34A")}${bar(76, 100, "Sangat serakah — pasar biasanya euforia", "#26A69A")}
+      <p>${v != null ? `Sekarang <b>${v}</b> (${FG_ID[FG.kls] || FG.kls})${FG.kemarin != null ? `, kemarin ${FG.kemarin}` : ""}. Diperbarui sekali sehari.` : "Data belum terbaca."}</p>
+      <p class="fg-awas">⚠ Hanya info suasana, <b>bukan sinyal beli/jual</b>. Belum pernah diuji di proyek ini apakah angka ini bisa meramal harga.</p>
+      <button type="button" class="btn" data-fg-tutup>Tutup</button></div>`;
+    lp.addEventListener("click", ev => { if (ev.target === lp || ev.target.closest("[data-fg-tutup]")) lp.remove(); }); document.body.appendChild(lp); }, true);
   // ---------- ALARM HARGA ----------
   window.gambarAlarm = () => { const el = $("alDaftar"); if (!el) return; const A = (S() && S().alarm) || null;
     if (!A) { el.innerHTML = `<h4>Alarm aktif</h4><p class="ket" style="padding:12px 14px">Data bot belum terbaca${S() && !("alarm" in S()) ? " — worker bot belum versi \"2026-10-11 alarm-harga\"" : ""}.</p>`; return; }
