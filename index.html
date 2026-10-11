@@ -6600,6 +6600,11 @@ sambung();
       for (const a of j.arus || []) { const v = await arusNilai(a); if (v == null) continue; const d = tglU(a.t); arusHari[d] = (arusHari[d] || 0) + v; }
       for (const d of Object.keys(AR)) if (d >= awal30) delete AR[d];            // 30 hari terakhir: data Binance terbaru menggantikan
       for (const d in arusHari) AR[d] = +arusHari[d].toFixed(2);
+      // 11-10: PENGAMAN FOTO SALDO RUSAK — snapshot Binance 2026-10-10 hanya berisi 4 koin (tanpa USDT ±4.900) -> nilai 625 vs 5.392 sehari
+      // sebelumnya -> "PnL hari ini +4.782" palsu. Hari yang nilainya turun > 40% dari hari sebelumnya TANPA penarikan dana yang menjelaskannya
+      // dianggap rusak & dibuang (juga dari simpanan perangkat). Hari sesudahnya dibandingkan dengan foto sah terakhir.
+      { const hs = Object.keys(NA).sort(); let sah = null;
+        for (const d of hs) { if (sah != null && NA[d] < NA[sah] * 0.6 && (AR[d] || 0) > -(NA[sah] - NA[d]) * 0.5) { delete NA[d]; continue; } sah = d; } }
       for (const X of [NA, AR]) { const k = Object.keys(X).sort(); while (k.length > 400) delete X[k.shift()]; }
       simpan("snapAkun", NA); simpan("arusAkun", AR);
       const hl = Object.keys(NA).sort(), pnl = {};
