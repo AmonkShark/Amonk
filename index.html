@@ -1147,7 +1147,7 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
         <div class="bz-nilai" id="bzNilai"></div>
         <div class="bz-cepat" id="bzCepat"></div>
       </div>
-      <div class="bz-kartu" id="bzKartu"></div>
+      <div class="bz"><div class="bz-kartu" id="bzKartu"></div><div id="bzKartuPasar"></div></div>
     </div>
   </div>
 </div>
@@ -1160,7 +1160,7 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
 </div>
 <div class="hal" id="halPnl" hidden>
   <div class="bz">
-    <div class="bz-kepala"><button class="bz-ikon" type="button" data-bz-kembali aria-label="Kembali">←</button><h2>PnL</h2>
+    <div class="bz-kepala"><button class="bz-ikon" type="button" data-bz-kembali aria-label="Kembali">←</button><h2>PnL</h2><button class="bz-ikon" type="button" id="pnBagi" aria-label="Bagikan kartu PnL" title="Bagikan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg></button>
       <div class="bz-chip" id="pnSumber"><button type="button" data-v="semua" class="aktif">Semua</button><button type="button" data-v="bot">Bot</button><button type="button" data-v="manual">Manual</button></div></div>
     <div class="bz-nilai" id="pnNilai"></div>
     <div class="bz-tiga" id="pnTiga"></div>
@@ -1169,6 +1169,20 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
     <div class="bz-graf" id="pnGrafNilai"></div>
     <div class="bz-graf" id="pnGrafKum"></div>
     <div class="bz-graf" id="pnGrafHari"></div>
+  </div>
+</div>
+<div class="hal" id="halAlarm" hidden>
+  <div class="bz">
+    <div class="bz-kepala"><button class="bz-ikon" type="button" data-bz-kembali aria-label="Kembali">←</button><h2>Peringatan harga</h2></div>
+    <form class="bz-graf" id="alForm" autocomplete="off" style="display:grid;gap:8px">
+      <label class="al-l">Koin<input id="alKoin" list="mbDaftar" placeholder="mis. BTC" required></label>
+      <label class="al-l">Harga<input id="alHarga" type="number" step="any" min="0" inputmode="decimal" required></label>
+      <div class="bz-chip" id="alCepat"></div>
+      <label class="al-l">Catatan (opsional)<input id="alCatatan" maxlength="80" placeholder="mis. tembus resisten"></label>
+      <button class="btn mb-beli" type="submit">🔔 Pasang alarm</button>
+      <p class="ket" id="alPesan" style="margin:0">Harga di atas harga sekarang = alarm NAIK, di bawah = alarm TURUN. Dikirim sekali ke Telegram pribadi & notifikasi HP (dicek ±5 menit), lalu terhapus.</p>
+    </form>
+    <div class="bz-daftar" id="alDaftar"></div>
   </div>
 </div>
 <div class="hal" id="halProfil" hidden>
@@ -2917,7 +2931,7 @@ function terapkanTampilan() {
   for (const [id] of TP_PITA) { const e = $(id); if (e) e.hidden = !TAMPIL.pita[id]; }
   $("pita").hidden = !TAMPIL.pitaAda || TP_PITA.every(([id]) => !TAMPIL.pita[id]);
   const terlihat = TP_TAB.map(([h]) => h).filter(h => TAMPIL.tab[h]);
-  if (terlihat.length && !terlihat.includes(halAktif) && !["Akun", "Bot", "Tim", "Pnl", "Profil", "Setelan"].includes(halAktif)) pindahHal(terlihat[0]);
+  if (terlihat.length && !terlihat.includes(halAktif) && !["Akun", "Bot", "Tim", "Pnl", "Profil", "Setelan", "Alarm"].includes(halAktif)) pindahHal(terlihat[0]);
 }
 function tampilanUbah(jenis, kunci, nilai) {
   if (jenis === "tab") { const sisa = TP_TAB.filter(([h]) => h !== kunci && TAMPIL.tab[h]).length; if (!nilai && !sisa) { bukaPengaturanTampilan(); return; } TAMPIL.tab[kunci] = nilai; }
@@ -3158,7 +3172,7 @@ function pindahHal(h) {
   halAktif = h; simpan("hal", h);
   if (beda) { window.scrollTo(0, 0); if (document.scrollingElement) document.scrollingElement.scrollTop = 0; setTimeout(() => window.scrollTo(0, 0), 0); }   // permintaan user 2026-09-26: tab baru selalu mulai dari atas
   const dari = halAktif === h ? null : (window.__halSebelum || null); window.__halSebelum = h;
-  for (const x of ["Beranda", "Terminal", "Riwayat", "Jurnal", "Aset", "Akun", "Bot", "Tim", "Info", "Pnl", "Profil", "Setelan"]) { const p = $("hal" + x); if (p) p.hidden = x !== h; const t = $("tb" + x); if (t) t.setAttribute("aria-selected", x === h ? "true" : "false"); }
+  for (const x of ["Beranda", "Terminal", "Riwayat", "Jurnal", "Aset", "Akun", "Bot", "Tim", "Info", "Pnl", "Profil", "Setelan", "Alarm"]) { const p = $("hal" + x); if (p) p.hidden = x !== h; const t = $("tb" + x); if (t) t.setAttribute("aria-selected", x === h ? "true" : "false"); }
   if (window.bzMasuk) window.bzMasuk(h, dari);
   if (h === "Jurnal") { if (!JR) muatJurnal(); else gambarJurnal(); if (window.muatVsBot) window.muatVsBot(); }
   if (h === "Akun" && window.muatAkun) window.muatAkun();
@@ -6341,7 +6355,7 @@ sambung();
 .bz-pnl{display:inline-flex;align-items:center;gap:6px;font:13px var(--f-ui);color:var(--label);background:none;border:0;padding:2px 0;cursor:pointer;text-align:left}
 .bz-pnl u{text-decoration:underline dotted;text-underline-offset:3px}
 .bz-pnl b{font-family:var(--f-num)}
-.bz-cepat{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.bz-cepat{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
 .bz-cepat button{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;color:var(--teks);font:12px var(--f-ui);cursor:pointer;padding:0}
 .bz-cepat button i{width:48px;height:48px;border-radius:14px;background:var(--bg2);display:grid;place-items:center;font-style:normal;font-size:20px}
 .bz-kartu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
@@ -6398,6 +6412,14 @@ sambung();
 .kl-sel.rugi{background:color-mix(in srgb,var(--merah) 16%,transparent)}.kl-sel.rugi small{color:var(--merah)}
 .kl-sel.pilih{outline:2px solid var(--teks);outline-offset:-2px}.kl-sel.depan{opacity:.45;cursor:default}.kl-sel.kosong{visibility:hidden;cursor:default}.bz-kustom[hidden]{display:none!important}
 @media (min-width:900px){.kl-sel small{font-size:12px}.kl-sel b{font-size:15px}}
+.al-l{display:flex;flex-direction:column;gap:4px;font:12px var(--f-ui);color:var(--label)}
+.al-l input{font:14px var(--f-num);color:var(--teks);background:var(--bg2);border:1px solid var(--garis);border-radius:10px;padding:9px 10px}
+.bz-k .fg{display:flex;align-items:center;gap:10px}.bz-k .fg svg{width:64px;height:38px;flex:0 0 64px}
+#bzKartuPasar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:520px){#bzKartuPasar{grid-template-columns:repeat(2,minmax(0,1fr))}#bzKartuPasar>.bz-k:last-child{grid-column:1/-1}}
+.pn-lapis{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.82);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px}
+.pn-lapis img{max-width:min(92vw,420px);max-height:72vh;border-radius:16px}
+.pn-lapis p{color:#fff;font:13px var(--f-ui);margin:0;text-align:center}
 .bz-kustom{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font:12px var(--f-ui);color:var(--label)}
 .bz-kustom input{font:13px var(--f-num);color:var(--teks);background:var(--bg2);border:1px solid var(--garis);border-radius:8px;padding:5px 8px}
 .bz-grup{font:13px var(--f-ui);color:var(--label);margin:10px 2px 4px}
@@ -6413,7 +6435,7 @@ sambung();
 @media (max-width:760px){body.bz-penuh .wrap>header,body.bz-penuh #pita{display:none!important}}
 @media (min-width:900px){
   .bz-beranda{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start}
-  .bz-cepat{grid-template-columns:repeat(5,minmax(0,90px))}
+  .bz-cepat{grid-template-columns:repeat(6,minmax(0,90px))}
   .bz-kartu{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 </style>
@@ -6461,9 +6483,40 @@ sambung();
       `<button class="bz-k" type="button" data-bz-ke="Aset"><span class="jd">Posisi terbuka</span><span class="ang">${nPB + nPM}</span><span class="sub redup">bot ${nPB} · manual ${nPM}</span></button>` +
       `<button class="bz-k" type="button" data-bz-ke="Bot"><span class="jd">Saldo bot</span><span class="ang">${sm(M && M.kini ? u2(M.kini) : "—")}</span><span class="sub ${kl(M && M.laba)}">${sm(M ? "hasil " + u2(M.laba, 1) : "")}</span></button>` +
       `<button class="bz-k" type="button" data-bz-ke="Akun"><span class="jd">Saldo manual</span><span class="ang">${sm(K ? u2(K.kini) : "belum dibagi")}</span><span class="sub redup">${sm(K ? "sisa " + u2(K.bebas) : "")}</span></button>`;
-    if (!$("bzCepat").childElementCount) $("bzCepat").innerHTML = [["🛒", "Beli manual", "beli"], ["🤖", "Bot", "Bot"], ["📈", "PnL", "Pnl"], ["📒", "Jurnal", "Jurnal"], ["👥", "Tim", "Tim"]]
+    gambarKartuPasar();
+    if (!$("bzCepat").childElementCount) $("bzCepat").innerHTML = [["🛒", "Beli manual", "beli"], ["🤖", "Bot", "Bot"], ["📈", "PnL", "Pnl"], ["🔔", "Alarm", "Alarm"], ["📒", "Jurnal", "Jurnal"], ["👥", "Tim", "Tim"]]
       .map(([i, n, k]) => `<button type="button" data-bz-ke="${k}"><i>${i}</i>${n}</button>`).join("");
   };
+  // ---------- KARTU PASAR (naik/turun terbesar koin watchlist 24 jam + Fear & Greed) ----------
+  let FG = null, FGt = 0;
+  async function muatFG() { if (FG && Date.now() - FGt < 30 * 60e3) return; FGt = Date.now();
+    try { const r = await fetch("https://api.alternative.me/fng/?limit=2"); const j = await r.json(); const d = (j.data || [])[0]; if (d) { FG = { v: +d.value, kls: d.value_classification, kemarin: j.data[1] ? +j.data[1].value : null }; gambarKartuPasar(); } } catch (e) {} }
+  const FG_ID = { "Extreme Fear": "Sangat takut", "Fear": "Takut", "Neutral": "Netral", "Greed": "Serakah", "Extreme Greed": "Sangat serakah" };
+  function gambarKartuPasar() { const el = $("bzKartuPasar"); if (!el) return; muatFG();
+    const L = typeof data === "undefined" ? [] : Object.entries(data).filter(([k, d]) => d && d.harga && d.open24 && (d.q || 0) >= 1e6 && !d.basi && !d.gagal && d.ok !== false && k !== "USDC" && k !== "FDUSD").map(([k, d]) => ({ k, h: d.harga, c: (d.harga / d.open24 - 1) * 100 }));
+    L.sort((a, b) => b.c - a.c); const naik = L[0], turun = L[L.length - 1];
+    const kk = (j, x) => x ? `<button class="bz-k" type="button" data-bz-ke="Terminal"><span class="jd">${j} · ${x.k}</span><span class="ang">${x.h < 1 ? x.h.toPrecision(4) : x.h.toLocaleString("en-US", { maximumFractionDigits: 4 })}</span><span class="sub ${kl(x.c)}">${x.c >= 0 ? "▲ " : "▼ "}${Math.abs(x.c).toFixed(2)}% 24j</span></button>` : "";
+    const gauge = v => { const a = Math.PI * (1 - v / 100), x = 32 + 26 * Math.cos(a), y = 34 - 26 * Math.sin(a);
+      return `<svg viewBox="0 0 64 38"><path d="M6 34 A26 26 0 0 1 58 34" fill="none" stroke="var(--garis)" stroke-width="6" stroke-linecap="round"/><path d="M6 34 A26 26 0 0 1 ${x.toFixed(1)} ${y.toFixed(1)}" fill="none" stroke="${v < 25 ? "#EF5350" : v < 45 ? "#FF9800" : v < 56 ? "#F0B90B" : v < 75 ? "#8BC34A" : "#26A69A"}" stroke-width="6" stroke-linecap="round"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="#fff"/></svg>`; };
+    el.innerHTML = kk("Naik terbesar", naik) + kk("Turun terbesar", turun !== naik ? turun : null) +
+      (FG ? `<div class="bz-k" role="img" aria-label="Fear and Greed ${FG.v}"><span class="jd">Fear & Greed</span><span class="fg">${gauge(FG.v)}<span><span class="ang">${FG.v}</span><br><span class="sub redup">${FG_ID[FG.kls] || FG.kls}${FG.kemarin != null ? " · kemarin " + FG.kemarin : ""}</span></span></span></div>` : ""); }
+  // ---------- ALARM HARGA ----------
+  window.gambarAlarm = () => { const el = $("alDaftar"); if (!el) return; const A = (S() && S().alarm) || null;
+    if (!A) { el.innerHTML = `<h4>Alarm aktif</h4><p class="ket" style="padding:12px 14px">Data bot belum terbaca${S() && !("alarm" in S()) ? " — worker bot belum versi \"2026-10-11 alarm-harga\"" : ""}.</p>`; return; }
+    el.innerHTML = `<h4>Alarm aktif (${A.length}/30)</h4>` + (A.length ? A.map(a => { const k = a.sym.replace(/USDT$/, ""), px = hargaK(a.sym), j = px ? (a.harga / px - 1) * 100 : null;
+      return `<div class="bz-baris"><span class="ik">${a.arah === "atas" ? "▲" : "▼"}</span><span class="tg"><b>${esc(k)} ${a.arah === "atas" ? "naik ke" : "turun ke"} ${a.harga}</b><small>${px ? "sekarang " + px + " · " + (j >= 0 ? "+" : "") + j.toFixed(2) + "% lagi" : ""}${a.catatan ? " · " + esc(a.catatan) : ""}</small></span><button class="btn kecil" type="button" data-al-hapus="${a.id}">Hapus</button></div>`; }).join("") : `<p class="ket" style="padding:12px 14px">Belum ada alarm.</p>`); };
+  const isiCepat = () => { const k = String($("alKoin").value || "").trim().toUpperCase().replace(/USDT$/, ""), px = hargaK(k);
+    $("alCepat").innerHTML = px ? [-10, -5, -2, 2, 5, 10].map(p => `<button type="button" data-al-p="${p}">${p > 0 ? "+" : ""}${p}%</button>`).join("") + `<span class="ket" style="align-self:center">sekarang ${px}</span>` : ""; };
+  $("alKoin").addEventListener("input", isiCepat); $("alKoin").addEventListener("change", () => { isiCepat(); const px = hargaK($("alKoin").value.trim().toUpperCase()); if (px && !$("alHarga").value) $("alHarga").value = px; });
+  $("alCepat").addEventListener("click", e => { const b = e.target.closest("[data-al-p]"); if (!b) return; const px = hargaK($("alKoin").value.trim().toUpperCase()); if (px) $("alHarga").value = +(px * (1 + b.dataset.alP / 100)).toPrecision(6); });
+  $("alForm").addEventListener("submit", async e => { e.preventDefault(); const pesan = $("alPesan");
+    if (typeof btCfg !== "function" || !btCfg().sandi) { pesan.textContent = "Isi sandi bot dulu (Pengaturan → Bot)."; return; }
+    try { pesan.textContent = "Memasang…"; const r = await btPanggil("/alarm/tambah", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sym: $("alKoin").value, harga: +$("alHarga").value, catatan: $("alCatatan").value }) });
+      pesan.textContent = "✔ Alarm " + r.alarm.sym.replace(/USDT$/, "") + " " + (r.alarm.arah === "atas" ? "naik ke " : "turun ke ") + r.alarm.harga + " terpasang.";
+      $("alHarga").value = ""; $("alCatatan").value = ""; if (typeof muatPita === "function") await muatPita(); window.gambarAlarm(); }
+    catch (er) { pesan.textContent = "Gagal: " + er.message; } });
+  $("alDaftar").addEventListener("click", async e => { const b = e.target.closest("[data-al-hapus]"); if (!b) return;
+    try { await btPanggil("/alarm/hapus", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: b.dataset.alHapus }) }); if (typeof muatPita === "function") await muatPita(); window.gambarAlarm(); } catch (er) { alert("Gagal: " + er.message); } });
   // ---------- ASET: Ringkasan | Bot | Manual ----------
   const SUB = [["Aset", "Ringkasan"], ["Bot", "Bot"], ["Akun", "Manual"]];
   function pasangSubTab() { for (const [hal] of SUB) { const h = $("hal" + hal); if (!h || h.querySelector(":scope>.bz-sub")) continue;
@@ -6547,10 +6600,12 @@ sambung();
     const sel = (j, v, bs) => `<div><span>${j}</span><b class="${kl(v)}">${sm(fp(pct(v, bs)) || "—")}</b><small class="${kl(v)}">${sm(rp(v, 1))}</small></div>`;
     $("pnTiga").innerHTML = sel("PnL hari ini", hT, nilaiSumber ? nilaiSumber - hT : null) + sel("PnL 7 hari", h7, nilaiSumber ? nilaiSumber - h7 : null) + (() => { const semuaV = pakaiAkun ? Object.values(AK.pnl).reduce((x, y) => x + y, 0) : R.reduce((x, r) => x + r.h, 0), sejak = pakaiAkun ? AK.dari : (R.length ? tgl(Math.min(...R.map(r => r.t))) : null);
       return sel("PnL kumulatif" + (sejak ? " (sejak " + sejak.slice(5) + ")" : ""), semuaV, nilaiSumber ? nilaiSumber - semuaV : null); })();
-    // hari-hari dalam rentang
     const hari = []; for (let t = hari0(a); t < b; t += 864e5) hari.push(t);
     const per = hari.map(vH); let c = 0; const kumSeri = per.map(v => (c += v));
     const kPct = kumSeri.map(v => basis > 0 ? v / basis * 100 : null);
+    { const pk = pct(kum, basis); window.__pnKartu = { judul: "PnL " + (pnPer === "k" ? "kustom" : pnPer + " hari") + (pnSumber === "bot" ? " · Bot" : pnSumber === "manual" ? " · Manual" : pakaiAkun ? " · akun" : ""),
+      v: kum, pctTeks: pk == null ? (kum >= 0 ? "+" : "") + kum.toFixed(2) + " USDT" : (pk >= 0 ? "+" : "") + pk.toFixed(2) + "%", rpTeks: rp(kum, 1), usdtTeks: (kum >= 0 ? "+" : "") + kum.toFixed(2) + " USDT",
+      seri: kPct.map((v, i) => v == null ? kumSeri[i] : v), rentang: tgl(a) + "  →  " + tgl(Math.min(b, Date.now()) - 1), sumber: pakaiAkun ? "perubahan nilai akun Spot Binance" : "hasil trade tutup " + (pnSumber === "semua" ? "bot + manual" : pnSumber), samar: samar() }; }
     const BK = await btcHarian(), p0 = (BK.filter(x => x[0] <= hari[0]).pop() || BK[0] || [0, 0])[1];
     const bPct = hari.map(t => { const x = BK.filter(k => k[0] <= t).pop(); return p0 && x ? (x[1] / p0 - 1) * 100 : null; });
     const W = 340, H = 150, l = tgl(hari[0]).slice(5), r = tgl(hari[hari.length - 1]).slice(5);
@@ -6600,6 +6655,27 @@ sambung();
     if (md) { simpan("pnModeHari", md.dataset.pnMode); window.gambarPnl(); return; }
     if (hb && !hb.disabled) { const [y, m] = (pnBulan || tgl(Date.now()).slice(0, 7)).split("-").map(Number), d = new Date(y, m - 1 + +hb.dataset.pnBulan, 1); pnBulan = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); pnHari = null; window.gambarPnl(); return; }
     if (hh) { pnHari = hh.dataset.pnHari; window.gambarPnl(); } });
+  // ---- BAGIKAN KARTU PnL (gambar, seperti tombol share Binance) ----
+  async function bagiKartu() { const k = window.__pnKartu; if (!k) return;
+    const c = document.createElement("canvas"), W = 1080, H = 1350; c.width = W; c.height = H; const x = c.getContext("2d");
+    const gr = x.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, "#0B0E13"); gr.addColorStop(1, "#1A2029"); x.fillStyle = gr; x.fillRect(0, 0, W, H);
+    const naik = k.v >= 0, warna = naik ? "#2EBD85" : "#F6465D";
+    x.fillStyle = "#E6E8EB"; x.font = "700 64px system-ui, sans-serif"; x.fillText("AMONK", 80, 150); x.fillStyle = "#F0B90B"; x.fillText("MONITOR", 80 + x.measureText("AMONK ").width, 150);
+    x.fillStyle = "#9AA3AE"; x.font = "400 40px system-ui, sans-serif"; x.fillText(k.judul, 80, 260);
+    x.fillStyle = warna; x.font = "700 170px system-ui, sans-serif"; x.fillText(k.pctTeks, 80, 450);
+    x.font = "600 64px system-ui, sans-serif"; x.fillText(k.samar ? "" : k.rpTeks, 80, 560);
+    x.fillStyle = "#9AA3AE"; x.font = "400 40px system-ui, sans-serif"; x.fillText(k.samar ? "" : k.usdtTeks, 80, 630);
+    const S2 = (k.seri || []).filter(v => v != null); if (S2.length >= 2) { const lo = Math.min(0, ...S2), hi = Math.max(0, ...S2), rg = hi - lo || 1, X0 = 80, X1 = W - 80, Y0 = 720, Y1 = 1080;
+      x.strokeStyle = "#3A4250"; x.lineWidth = 2; const y0 = Y1 - (0 - lo) / rg * (Y1 - Y0); x.setLineDash([10, 10]); x.beginPath(); x.moveTo(X0, y0); x.lineTo(X1, y0); x.stroke(); x.setLineDash([]);
+      x.strokeStyle = warna; x.lineWidth = 8; x.lineJoin = "round"; x.beginPath(); S2.forEach((v, i) => { const px = X0 + i / (S2.length - 1) * (X1 - X0), py = Y1 - (v - lo) / rg * (Y1 - Y0); i ? x.lineTo(px, py) : x.moveTo(px, py); }); x.stroke(); }
+    x.fillStyle = "#9AA3AE"; x.font = "400 36px system-ui, sans-serif"; x.fillText(k.rentang, 80, 1180); x.fillText(k.sumber, 80, 1235);
+    x.fillStyle = "#5B6573"; x.font = "400 30px system-ui, sans-serif"; x.fillText("dibuat " + new Date().toLocaleString("id-ID"), 80, 1290);
+    const blob = await new Promise(r => c.toBlob(r, "image/png")), file = new File([blob], "amonk-pnl.png", { type: "image/png" });
+    try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: "PnL AMONK" }); return; } } catch (e) { if (e && e.name === "AbortError") return; }
+    const url = URL.createObjectURL(blob), lp = document.createElement("div"); lp.className = "pn-lapis";
+    lp.innerHTML = `<img src="${url}" alt="Kartu PnL"><p>Tekan lama gambar untuk menyimpan / membagikan. Ketuk di luar untuk menutup.</p>`;
+    lp.addEventListener("click", e => { if (e.target === lp) { lp.remove(); URL.revokeObjectURL(url); } }); document.body.appendChild(lp); }
+  $("pnBagi").addEventListener("click", bagiKartu);
   $("pnPeriode").addEventListener("click", e => { const t = e.target.closest("[data-v]"); if (!t) return; pnPer = t.dataset.v; simpan("pnPer", pnPer);
     $("pnPeriode").querySelectorAll("button").forEach(x => x.classList.toggle("aktif", x === t)); $("pnKustom").hidden = pnPer !== "k";
     if (pnPer === "k" && !$("pnDari").value) { $("pnDari").value = tgl(hari0() - 29 * 864e5); $("pnSampai").value = tgl(Date.now()); } window.gambarPnl(); });
@@ -6667,13 +6743,14 @@ sambung();
   $("bzCari").addEventListener("click", () => { pindahHal("Terminal"); setTimeout(() => { const c = document.querySelector("#halTerminal input[type=search], #halTerminal input[type=text], #cari"); if (c) c.focus(); }, 150); });
   document.addEventListener("click", e => { const m = e.target.closest("#bzMata"); if (m) { e.stopPropagation(); simpan("bzSamar", !samar()); window.gambarBeranda(); window.gambarAset(); } }, true);
   // dipanggil pindahHal (lihat kait di bawah)
-  window.bzMasuk = (h, dari) => { document.body.classList.toggle("bz-penuh", ["Beranda", "Aset", "Pnl", "Profil", "Setelan"].includes(h)); if (dari && dari !== h && !["Setelan", "Profil", "Pnl"].includes(dari)) riwayatHal.push(dari); if (riwayatHal.length > 20) riwayatHal.shift();
+  window.bzMasuk = (h, dari) => { document.body.classList.toggle("bz-penuh", ["Beranda", "Aset", "Pnl", "Profil", "Setelan", "Alarm"].includes(h)); if (dari && dari !== h && !["Setelan", "Profil", "Pnl"].includes(dari)) riwayatHal.push(dari); if (riwayatHal.length > 20) riwayatHal.shift();
     const tbA = $("tbAset"), tbB = $("tbBeranda");
     if (tbA) tbA.setAttribute("aria-selected", ["Aset", "Bot", "Akun"].includes(h) ? "true" : "false");
-    if (tbB) tbB.setAttribute("aria-selected", ["Beranda", "Pnl", "Profil", "Setelan"].includes(h) ? "true" : "false");
+    if (tbB) tbB.setAttribute("aria-selected", ["Beranda", "Pnl", "Profil", "Setelan", "Alarm"].includes(h) ? "true" : "false");
     if (["Beranda", "Aset", "Pnl"].includes(h)) { if (window.muatAkun && typeof akCfg === "function" && akCfg().url) window.muatAkun(); if (window.muatBotBilaAda) window.muatBotBilaAda(); }
     if (h === "Beranda") window.gambarBeranda(); if (h === "Aset") window.gambarAset(); if (h === "Pnl") window.gambarPnl(); if (h === "Profil") window.gambarProfil();
-    if (h === "Setelan") { pindahForm(); if (!stDetail) gambarSetelan(); } };
+    if (h === "Setelan") { pindahForm(); if (!stDetail) gambarSetelan(); }
+    if (h === "Alarm") { window.gambarAlarm(); if (typeof muatPita === "function") muatPita().then(() => window.gambarAlarm()); } };
   pasangSubTab(); pindahForm();
   pnPer = baca("pnPer", "7") || "7"; if (!["7", "30", "90", "k"].includes(pnPer)) pnPer = "7";
   $("pnPeriode").querySelectorAll("button").forEach(x => x.classList.toggle("aktif", x.dataset.v === pnPer)); $("pnKustom").hidden = pnPer !== "k";
