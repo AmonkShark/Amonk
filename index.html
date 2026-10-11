@@ -6474,7 +6474,7 @@ sambung();
     if (!AKP && window.akunPnl) window.akunPnl();
     $("bzNilai").innerHTML = `<span class="lb">Perkiraan total nilai (IDR) <button class="bz-ikon" type="button" id="bzMata" aria-label="Samarkan" style="padding:0">${samar() ? "🙈" : "👁"}</button></span>
       <span class="besar">${sm(tot ? rp(tot) : "—")}</span><span class="usdt">${sm(tot ? "≈ " + u2(tot) + " USDT" : "sambungkan Binance di Pengaturan")}</span>
-      <button class="bz-pnl" type="button" data-bz-ke="Pnl"><u>PnL hari ini</u> <b class="${kl(hTutup)}">${sm(rp(hTutup, 1) + " (" + u2(hTutup, 1) + " USDT)")}</b>${!akOk && br != null ? ` <span class="redup">· berjalan <b class="${kl(br)}">${sm(u2(br, 1))}</b></span>` : ""} ›</button>`;
+      <button class="bz-pnl" type="button" data-bz-ke="Pnl"><u>${akOk && AKP.gabungDari ? "PnL sejak " + AKP.gabungDari.slice(5) : "PnL hari ini"}</u> <b class="${kl(hTutup)}">${sm(rp(hTutup, 1) + " (" + u2(hTutup, 1) + " USDT)")}</b>${!akOk && br != null ? ` <span class="redup">· berjalan <b class="${kl(br)}">${sm(u2(br, 1))}</b></span>` : ""} ›</button>`;
     const s = S(), M = s && s.modal, K = s && s.manual && s.manual.modal, btc = typeof data !== "undefined" && data.BTC;
     const btc24 = btc && btc.harga && btc.open24 ? (btc.harga / btc.open24 - 1) * 100 : null;
     const nPB = s ? (s.posisi || []).length : 0, nPM = s && s.manual ? (s.manual.posisi || []).length : 0;
@@ -6569,8 +6569,13 @@ sambung();
       if (!j || !Array.isArray(j.hari)) return AKP;
       const BK = await btcHarian(), tutupBtc = d => { const x = BK.find(k => tglU(k[0]) === d); return x ? x[1] : null; };
       const NA = baca("snapAkun", {}) || {}, AR = baca("arusAkun", {}) || {};
-      for (const h of j.hari) { const d = tglU(h.t), c = tutupBtc(d); if (c && h.btc > 0) NA[d] = +(h.btc * c).toFixed(2); }
-      const arusHari = {}, arusNilai = async a => { const d = tglU(a.t), p = STAB.has(a.koin) ? 1 : a.koin === "BTC" ? tutupBtc(d) : await hargaKoinHari(a.koin, d); return p == null ? null : a.n * p; };
+      // 11-10: totalAssetOfBtc dari Binance TIDAK menghitung USDT (diuji: 2.080 USDT -> 0,0000024 BTC) -> nilai = Σ saldo koin × harga tutup hari itu.
+      const asetSemua = new Set(); for (const h of j.hari) for (const [a] of h.saldo || []) if (!STAB.has(a)) asetSemua.add(a);
+      for (const a of j.arus || []) if (!STAB.has(a.koin)) asetSemua.add(a.koin);
+      const petaHarga = {}; await Promise.all([...asetSemua].map(async a => { try { const r = await fetch(`https://data-api.binance.vision/api/v3/klines?symbol=${a}USDT&interval=1d&limit=45`); const k = await r.json(); if (Array.isArray(k)) { petaHarga[a] = {}; for (const x of k) petaHarga[a][tglU(+x[0])] = +x[4]; } } catch (e) {} }));
+      const hargaHari = (a, d) => STAB.has(a) ? 1 : petaHarga[a] && petaHarga[a][d] != null ? petaHarga[a][d] : null;
+      for (const h of j.hari) { const d = tglU(h.t); let v = 0; for (const [a, n] of h.saldo || []) { const p = hargaHari(a, d); if (p != null) v += n * p; } if (v > 0) NA[d] = +v.toFixed(2); }
+      const arusHari = {}, arusNilai = async a => { const d = tglU(a.t), p = hargaHari(a.koin, d) ?? (a.koin === "BTC" ? tutupBtc(d) : await hargaKoinHari(a.koin, d)); return p == null ? null : a.n * p; };
       const awal30 = tglU(Date.now() - 30 * 864e5);
       for (const a of j.arus || []) { const v = await arusNilai(a); if (v == null) continue; const d = tglU(a.t); arusHari[d] = (arusHari[d] || 0) + v; }
       for (const d of Object.keys(AR)) if (d >= awal30) delete AR[d];            // 30 hari terakhir: data Binance terbaru menggantikan
@@ -6583,7 +6588,8 @@ sambung();
       const last = hl[hl.length - 1], now = totalNilai(), dNow = tglU(Date.now()); let hariIni = null;
       if (last && now && dNow > last) { let ar = 0; for (const a of (j.arus || []).filter(a => a.t > Date.parse(last + "T23:59:59Z"))) { const v = await arusNilai(a); if (v != null) ar += v; }
         hariIni = +(now - NA[last] - ar).toFixed(2); pnl[dNow] = hariIni; }
-      AKP = { ok: hl.length >= 2, nilai: Object.assign({}, NA, now ? { [dNow]: now } : {}), pnl, hariIni, galat: j.galat || [], dari: hl[0], sampai: last }; AKPt = Date.now();
+      const kemarinU = tglU(Date.now() - 864e5), gab = last && last < kemarinU ? last : null;   // foto saldo kemarin belum terbit -> "hari ini" = sejak foto terakhir
+      AKP = { gabungDari: gab, ok: hl.length >= 2, nilai: Object.assign({}, NA, now ? { [dNow]: now } : {}), pnl, hariIni, galat: j.galat || [], dari: hl[0], sampai: last }; AKPt = Date.now();
       setTimeout(() => { if (halAktif === "Beranda") window.gambarBeranda(); if (halAktif === "Aset") window.gambarAset(); }, 0);
       return AKP; })();
     try { return await AKPjalan; } finally { AKPjalan = null; } };
@@ -6598,7 +6604,7 @@ sambung();
     const basis = nilaiSumber ? nilaiSumber - kum : null, pct = (v, bs) => bs > 0 ? (v / bs * 100) : null, fp = v => v == null ? "" : (v > 0 ? "+" : "") + v.toFixed(2) + "%";
     $("pnNilai").innerHTML = `<span class="lb">Nilai ${pnSumber === "bot" ? "saldo bot" : pnSumber === "manual" ? "saldo manual" : "aset total"} (IDR)</span><span class="besar">${sm(nilaiSumber ? rp(nilaiSumber) : "—")}</span><span class="usdt">${sm(nilaiSumber ? "≈ " + u2(nilaiSumber) + " USDT" : "")}</span>`;
     const sel = (j, v, bs) => `<div><span>${j}</span><b class="${kl(v)}">${sm(fp(pct(v, bs)) || "—")}</b><small class="${kl(v)}">${sm(rp(v, 1))}</small></div>`;
-    $("pnTiga").innerHTML = sel("PnL hari ini", hT, nilaiSumber ? nilaiSumber - hT : null) + sel("PnL 7 hari", h7, nilaiSumber ? nilaiSumber - h7 : null) + (() => { const semuaV = pakaiAkun ? Object.values(AK.pnl).reduce((x, y) => x + y, 0) : R.reduce((x, r) => x + r.h, 0), sejak = pakaiAkun ? AK.dari : (R.length ? tgl(Math.min(...R.map(r => r.t))) : null);
+    $("pnTiga").innerHTML = sel(pakaiAkun && AK.gabungDari ? "PnL sejak " + AK.gabungDari.slice(5) + " (UTC)" : "PnL hari ini", hT, nilaiSumber ? nilaiSumber - hT : null) + sel("PnL 7 hari", h7, nilaiSumber ? nilaiSumber - h7 : null) + (() => { const semuaV = pakaiAkun ? Object.values(AK.pnl).reduce((x, y) => x + y, 0) : R.reduce((x, r) => x + r.h, 0), sejak = pakaiAkun ? AK.dari : (R.length ? tgl(Math.min(...R.map(r => r.t))) : null);
       return sel("PnL kumulatif" + (sejak ? " (sejak " + sejak.slice(5) + ")" : ""), semuaV, nilaiSumber ? nilaiSumber - semuaV : null); })();
     const hari = []; for (let t = hari0(a); t < b; t += 864e5) hari.push(t);
     const per = hari.map(vH); let c = 0; const kumSeri = per.map(v => (c += v));
