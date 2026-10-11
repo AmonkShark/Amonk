@@ -4277,8 +4277,9 @@ function polaAkun(aset) {
 function risikoSerentak(baris, total, akun) {
   window.ALARM_TANPA_SL = null;
   if (!(total > 0)) return "";
-  const pos = baris.filter(b => !STABIL.has(b.aset) && (b.nilai || 0) > 5);
-  if (!pos.length) return "";
+  // 11-10 (user): BNB = koin pembayar biaya trading (bukan posisi) -> tidak dihitung "tanpa stop-loss" / risiko serentak
+  const pos = baris.filter(b => !STABIL.has(b.aset) && b.aset !== "BNB" && (b.nilai || 0) > 5);
+  if (!pos.length) { window.ALARM_TANPA_SL = null; return ""; }
   const order = (akun && akun.order) || [];
   const hasil = [];
   let nilaiTanpa = 0, memuat = 0;
@@ -6538,8 +6539,12 @@ sambung();
   $("alDaftar").addEventListener("click", async e => { const b = e.target.closest("[data-al-hapus]"); if (!b) return;
     try { await btPanggil("/alarm/hapus", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: b.dataset.alHapus }) }); if (typeof muatPita === "function") await muatPita(); window.gambarAlarm(); } catch (er) { alert("Gagal: " + er.message); } });
   // ---------- ASET: Ringkasan | Bot | Manual ----------
-  const SUB = [["Aset", "Ringkasan"], ["Bot", "Bot"], ["Akun", "Manual"]];
-  function pasangSubTab() { for (const [hal] of SUB) { const h = $("hal" + hal); if (!h || h.querySelector(":scope>.bz-sub")) continue;
+  const SUB = [["Aset", "Ringkasan"], ["Bot", "Bot"], ["Akun", "Manual"]], SUB2 = [["Jurnal", "Jurnal"], ["Riwayat", "Riwayat"]];
+  function pasangSubTab2() { for (const [hal] of SUB2) { const h = $("hal" + hal); if (!h || h.querySelector(":scope>.bz-sub")) continue;
+      const bar = document.createElement("div"); bar.className = "bz-sub"; bar.setAttribute("role", "tablist");
+      bar.innerHTML = SUB2.map(([k, n]) => `<button type="button" data-bz-ke="${k}" class="${k === hal ? "aktif" : ""}">${n}</button>`).join("");
+      h.insertBefore(bar, h.firstChild); } }
+  function pasangSubTab() { pasangSubTab2(); for (const [hal] of SUB) { const h = $("hal" + hal); if (!h || h.querySelector(":scope>.bz-sub")) continue;
       const bar = document.createElement("div"); bar.className = "bz-sub"; bar.setAttribute("role", "tablist");
       bar.innerHTML = SUB.map(([k, n]) => `<button type="button" data-bz-ke="${k}" class="${k === hal ? "aktif" : ""}">${n}</button>`).join("") + `<button type="button" class="kanan" data-bz-ke="Setelan:${hal === "Bot" ? "bot" : "akun"}">⚙ Pengaturan</button>`;
       h.insertBefore(bar, h.firstChild); } }
@@ -6556,6 +6561,11 @@ sambung();
       baris("🤖", "Bot", M ? `sisa ${sm(u2(Math.max(0, (M.kini || 0) - (+s.terpakai || 0))))} · hasil <span class="${kl(M.laba)}">${sm(u2(M.laba, 1))}</span>` : "bot belum terbaca", sm(M ? u2(M.kini) : "—"), sm(M ? rp(M.kini) : ""), "Bot") +
       baris("🧑", "Manual", K ? `sisa ${sm(u2(K.bebas))} · hasil <span class="${kl(K.laba)}">${sm(u2(K.laba, 1))}</span>` : "saldo belum dibagi", sm(K ? u2(K.kini) : "—"), sm(K ? rp(K.kini) : ""), "Akun") +
       (lain > 0.5 ? baris("💤", "Belum dijatah", "USDT/koin di luar saldo bot & manual (mis. BNB, setoran baru)", sm(u2(lain)), sm(rp(lain)), "Akun") : "");
+    // 11-10 (user): posisi yang masih jalan (PnL belum terealisasi, seperti "Unrealized PNL" Binance)
+    const fb = berjalan("bot"), fm = berjalan("manual"), nb = s ? (s.posisi || []).length : 0, nm = s && s.manual ? (s.manual.posisi || []).length : 0;
+    if (s) $("asDaftar").innerHTML += `<h4 style="border-top:1px solid var(--garis)">Posisi berjalan (belum terealisasi)</h4>` +
+      baris("🤖", "Bot", nb + " posisi" + (nb ? " · " + (fb >= 0 ? "untung" : "rugi") + " bila ditutup sekarang" : ""), `<span class="${kl(fb)}">${sm(u2(fb || 0, 1))}</span>`, sm(rp(fb || 0, 1)), "Bot") +
+      baris("🧑", "Manual", nm + " posisi" + (nm ? " · " + (fm >= 0 ? "untung" : "rugi") + " bila ditutup sekarang" : ""), `<span class="${kl(fm)}">${sm(u2(fm || 0, 1))}</span>`, sm(rp(fm || 0, 1)), "Akun");
   };
   // ---------- PnL ----------
   let pnSumber = "semua", pnPer = "7";
@@ -6603,8 +6613,9 @@ sambung();
       // 11-10: PENGAMAN FOTO SALDO RUSAK — snapshot Binance 2026-10-10 hanya berisi 4 koin (tanpa USDT ±4.900) -> nilai 625 vs 5.392 sehari
       // sebelumnya -> "PnL hari ini +4.782" palsu. Hari yang nilainya turun > 40% dari hari sebelumnya TANPA penarikan dana yang menjelaskannya
       // dianggap rusak & dibuang (juga dari simpanan perangkat). Hari sesudahnya dibandingkan dengan foto sah terakhir.
+      const dibuang = [];
       { const hs = Object.keys(NA).sort(); let sah = null;
-        for (const d of hs) { if (sah != null && NA[d] < NA[sah] * 0.6 && (AR[d] || 0) > -(NA[sah] - NA[d]) * 0.5) { delete NA[d]; continue; } sah = d; } }
+        for (const d of hs) { if (sah != null && NA[d] < NA[sah] * 0.6 && (AR[d] || 0) > -(NA[sah] - NA[d]) * 0.5) { delete NA[d]; dibuang.push(d); continue; } sah = d; } }
       for (const X of [NA, AR]) { const k = Object.keys(X).sort(); while (k.length > 400) delete X[k.shift()]; }
       simpan("snapAkun", NA); simpan("arusAkun", AR);
       const hl = Object.keys(NA).sort(), pnl = {};
@@ -6614,7 +6625,7 @@ sambung();
       if (last && now && dNow > last) { let ar = 0; for (const a of (j.arus || []).filter(a => a.t > Date.parse(last + "T23:59:59Z"))) { const v = await arusNilai(a); if (v != null) ar += v; }
         hariIni = +(now - NA[last] - ar).toFixed(2); pnl[dNow] = hariIni; }
       const kemarinU = tglU(Date.now() - 864e5), gab = last && last < kemarinU ? last : null;   // foto saldo kemarin belum terbit -> "hari ini" = sejak foto terakhir
-      AKP = { gabungDari: gab, ok: hl.length >= 2, nilai: Object.assign({}, NA, now ? { [dNow]: now } : {}), pnl, hariIni, galat: j.galat || [], dari: hl[0], sampai: last }; AKPt = Date.now();
+      AKP = { dibuang, gabungDari: gab, ok: hl.length >= 2, nilai: Object.assign({}, NA, now ? { [dNow]: now } : {}), pnl, hariIni, galat: j.galat || [], dari: hl[0], sampai: last }; AKPt = Date.now();
       setTimeout(() => { if (halAktif === "Beranda") window.gambarBeranda(); if (halAktif === "Aset") window.gambarAset(); }, 0);
       return AKP; })();
     try { return await AKPjalan; } finally { AKPjalan = null; } };
@@ -6629,7 +6640,7 @@ sambung();
     const basis = nilaiSumber ? nilaiSumber - kum : null, pct = (v, bs) => bs > 0 ? (v / bs * 100) : null, fp = v => v == null ? "" : (v > 0 ? "+" : "") + v.toFixed(2) + "%";
     $("pnNilai").innerHTML = `<span class="lb">Nilai ${pnSumber === "bot" ? "saldo bot" : pnSumber === "manual" ? "saldo manual" : "aset total"} (IDR)</span><span class="besar">${sm(nilaiSumber ? rp(nilaiSumber) : "—")}</span><span class="usdt">${sm(nilaiSumber ? "≈ " + u2(nilaiSumber) + " USDT" : "")}</span>`;
     const sel = (j, v, bs) => `<div><span>${j}</span><b class="${kl(v)}">${sm(fp(pct(v, bs)) || "—")}</b><small class="${kl(v)}">${sm(rp(v, 1))}</small></div>`;
-    $("pnTiga").innerHTML = sel(pakaiAkun && AK.gabungDari ? "PnL sejak " + AK.gabungDari.slice(5) + " (UTC)" : "PnL hari ini", hT, nilaiSumber ? nilaiSumber - hT : null) + sel("PnL 7 hari", h7, nilaiSumber ? nilaiSumber - h7 : null) + (() => { const semuaV = pakaiAkun ? Object.values(AK.pnl).reduce((x, y) => x + y, 0) : R.reduce((x, r) => x + r.h, 0), sejak = pakaiAkun ? AK.dari : (R.length ? tgl(Math.min(...R.map(r => r.t))) : null);
+    $("pnTiga").innerHTML = sel(pakaiAkun && AK.gabungDari ? "PnL sejak " + AK.gabungDari.slice(5) + " (UTC)" + (AK.dibuang && AK.dibuang.length ? " ⚠" : "") : "PnL hari ini", hT, nilaiSumber ? nilaiSumber - hT : null) + sel("PnL 7 hari", h7, nilaiSumber ? nilaiSumber - h7 : null) + (() => { const semuaV = pakaiAkun ? Object.values(AK.pnl).reduce((x, y) => x + y, 0) : R.reduce((x, r) => x + r.h, 0), sejak = pakaiAkun ? AK.dari : (R.length ? tgl(Math.min(...R.map(r => r.t))) : null);
       return sel("PnL kumulatif" + (sejak ? " (sejak " + sejak.slice(5) + ")" : ""), semuaV, nilaiSumber ? nilaiSumber - semuaV : null); })();
     const hari = []; for (let t = hari0(a); t < b; t += 864e5) hari.push(t);
     const per = hari.map(vH); let c = 0; const kumSeri = per.map(v => (c += v));
@@ -6644,7 +6655,7 @@ sambung();
     const NH = Object.assign({}, baca("nilaiHarian", {}) || {}), kunciN = t => pakaiAkun ? tglU(t + 12 * 3600e3) : tgl(t);
     if (pakaiAkun) Object.assign(NH, AK.nilai);
     const nv = hari.map(t => NH[kunciN(t)] != null ? NH[kunciN(t)] : null), nAda = nv.filter(v => v != null);
-    $("pnGrafNilai").innerHTML = `<h4>Nilai aset</h4><p class="ket">${pakaiAkun ? "foto saldo Spot harian dari Binance (23:59 UTC) · hari ini = saldo sekarang" : nAda.length >= 2 ? "dicatat di perangkat ini tiap app membaca saldo Binance" : "Grafik muncul sesudah app mencatat saldo ≥ 2 hari berbeda (dicatat di perangkat ini mulai hari ini)."}</p>` +
+    $("pnGrafNilai").innerHTML = `<h4>Nilai aset</h4><p class="ket">${pakaiAkun ? "foto saldo Spot harian dari Binance (23:59 UTC) · hari ini = saldo sekarang" + (AK.dibuang && AK.dibuang.length ? " · ⚠ foto " + AK.dibuang.map(d => d.slice(5)).join(", ") + " dilewati (data Binance tidak lengkap) — PnL hari itu digabung ke hari berikutnya" : "") : nAda.length >= 2 ? "dicatat di perangkat ini tiap app membaca saldo Binance" : "Grafik muncul sesudah app mencatat saldo ≥ 2 hari berbeda (dicatat di perangkat ini mulai hari ini)."}</p>` +
       (nAda.length >= 2 && !samar() ? `<svg viewBox="0 0 ${W} ${H}">${sumbu(W, H, Math.min(...nAda), Math.max(...nAda), v => Math.round(v).toLocaleString("en-US"), l, r)}${garis(nv, "#F0B90B", W, H, Math.min(...nAda), Math.max(...nAda))}</svg>` : "");
     // 2) PnL kumulatif % vs BTC
     const semua = kPct.concat(bPct).filter(v => v != null), lo = Math.min(0, ...semua), hi = Math.max(0, ...semua);
@@ -6782,6 +6793,7 @@ sambung();
     const tbA = $("tbAset"), tbB = $("tbBeranda");
     if (tbA) tbA.setAttribute("aria-selected", ["Aset", "Bot", "Akun"].includes(h) ? "true" : "false");
     if (tbB) tbB.setAttribute("aria-selected", ["Beranda", "Pnl", "Profil", "Setelan", "Alarm"].includes(h) ? "true" : "false");
+    for (const id of ["tbJurnal", "tbRiwayat"]) { const t = $(id); if (t) t.setAttribute("aria-selected", ["Jurnal", "Riwayat"].includes(h) && !t.hidden ? "true" : "false"); }
     if (["Beranda", "Aset", "Pnl"].includes(h)) { if (window.muatAkun && typeof akCfg === "function" && akCfg().url) window.muatAkun(); if (window.muatBotBilaAda) window.muatBotBilaAda(); }
     if (h === "Beranda") window.gambarBeranda(); if (h === "Aset") window.gambarAset(); if (h === "Pnl") window.gambarPnl(); if (h === "Profil") window.gambarProfil();
     if (h === "Setelan") { pindahForm(); if (!stDetail) gambarSetelan(); }
