@@ -1403,6 +1403,7 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
           <label>Cara masuk<select id="mbTipe"><option value="market">Market (sekarang)</option><option value="limit">Limit (pasang harga)</option></select></label>
           <label id="mbLbHarga" hidden>Harga limit<input id="mbHarga" type="number" step="any" inputmode="decimal"></label>
           <label>Stop loss (SL)<input id="mbSl" type="number" step="any" inputmode="decimal"></label>
+          <div class="mb-lebar mb-saran" id="mbSaranSl"></div>
           <label>Sisa posisi<select id="mbSisa"><option value="murni25">100% trailing 25% (seperti TB)</option><option value="trailing15">50% di TP1, sisa trailing 15%</option><option value="tp2">50% di TP1, sisa di TP2</option></select></label>
           <label id="mbLbTp1">TP1<span class="mb-baris"><input id="mbTp1" type="number" step="any" inputmode="decimal"><input id="mbTp1R" type="number" step="0.1" min="0.1" inputmode="decimal" title="TP1 dalam R (dihitung ulang dari harga isi sungguhan)"><span class="redup">R</span></span></label>
           <label id="mbLbTp2" hidden>TP2<input id="mbTp2" type="number" step="any" inputmode="decimal"></label>
@@ -6142,6 +6143,7 @@ sambung();
 .mb-baris input{flex:1;min-width:0}
 .mb-baris input#mbTp1R{flex:0 0 64px}
 .mb-lebar{grid-column:1/-1}
+.mb-saran{font-size:12px;color:var(--label);display:flex;flex-wrap:wrap;gap:6px;align-items:center}.mb-saran:empty{display:none}.mb-saran .btn.kecil{font-size:12px}
 .mb-ringkas{font-size:12.5px;line-height:1.6;margin:10px 0;padding:8px 10px;background:var(--bg2);border-radius:10px}
 .mb-tb{display:flex;gap:8px;flex-wrap:wrap}
 .mb-beli{background:var(--hijau)!important;color:#fff!important;border-color:var(--hijau)!important;font-weight:600;min-width:120px}
@@ -6176,6 +6178,7 @@ sambung();
     if (ganti) { $("mbSisa").value = A.sisa; if (A.r1) $("mbTp1R").value = A.r1; tp1Manual = false; }
     $("mbLbTp1").hidden = $("mbSisa").value === "murni25"; $("mbLbTp2").hidden = $("mbSisa").value !== "tp2"; $("mbLbHarga").hidden = $("mbTipe").value !== "limit"; }
   function hitung() {
+    try { saranSl(); } catch (e) {}
     const E = hargaEntry(), sl = angka("mbSl"), sisa = $("mbSisa").value, r1 = angka("mbTp1R");
     if (E && sl && E > sl && sisa !== "murni25" && !tp1Manual && r1) $("mbTp1").value = +(E + r1 * (E - sl)).toPrecision(6);
     if (E && sl && E > sl && sisa === "tp2" && !angka("mbTp2")) { const A = ATURAN[$("mbJenis").value] || {}; if (A.r2) $("mbTp2").value = +(E + A.r2 * (E - sl)).toPrecision(6); }
@@ -6263,6 +6266,22 @@ sambung();
   $("mbOto").addEventListener("click", () => { nilaiManual = false; hitung(); });
   $("mbRisiko").value = String(baca("mbRisiko", "") || ""); $("mbRisiko").addEventListener("change", () => { simpan("mbRisiko", $("mbRisiko").value); nilaiManual = false; hitung(); });
   $("mbKoin").addEventListener("focus", isiDaftar);
+  // 2026-10-12 (user: "ya tambahkan"): saran SL dari jarak ATR 4H. Dasar: SL jarak ATR mengalahkan SL struktural (uji 298.000 entry, 25-08)
+  // dan kotak Zona Kunci tidak menahan harga lebih baik dari kotak palsu (uji 12-10). Hanya saran; tidak mengisi SL sendiri.
+  const ATRC = {}; let saranT = null;
+  async function atr4h(k) { const c = ATRC[k]; if (c && Date.now() - c.t < 6e5) return c.a;
+    const j = await getJ(`/api/v3/klines?symbol=${k}USDT&interval=4h&limit=60`); if (!Array.isArray(j)) return null;
+    const K = j.filter(x => +x[6] < Date.now()); if (K.length < 20) return null; let a = 0;
+    for (let i = 1; i < K.length; i++) { const h = +K[i][2], l = +K[i][3], pc = +K[i - 1][4], tr = Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc)); a = i <= 14 ? a + tr / 14 : (a * 13 + tr) / 14; }
+    ATRC[k] = { a, t: Date.now() }; return a; }
+  function saranSl() { clearTimeout(saranT); saranT = setTimeout(async () => { const k = koin(), el = $("mbSaranSl"); if (!k) { el.innerHTML = ""; return; }
+    const E = hargaEntry(); let a = null; try { a = await atr4h(k); } catch (e) {} if (k !== koin()) return;
+    if (!E || !(a > 0)) { el.innerHTML = `<span class="redup">Saran SL (ATR 4H): ${!E ? "menunggu harga" + ($("mbTipe").value === "limit" ? " limit" : "") : "lilin 4H tidak terbaca"}</span>`; return; }
+    el.innerHTML = `<span>Saran SL dari ATR 4H (${fHarga(a)}):</span>` + [1.5, 2, 2.5].map(m => { const s = E - m * a; return s > 0 ? `<button type="button" class="btn kecil" data-sl="${+s.toPrecision(6)}">${m}× ATR · ${fHarga(s)} (${fPct((s / E - 1) * 100, 1)})</button>` : ""; }).join("") +
+      `<span class="redup">jarak ATR lebih baik dari SL tepat di bawah kotak/titik terendah (uji 298.000 entry); kotak tidak menahan harga lebih baik dari harga sembarang</span>`; }, 400); }
+  for (const id of ["mbKoin", "mbHarga"]) $(id).addEventListener("input", saranSl);
+  $("mbTipe").addEventListener("change", saranSl);
+  $("mbSaranSl").addEventListener("click", e => { const b = e.target.closest("[data-sl]"); if (!b) return; $("mbSl").value = b.dataset.sl; nilaiManual = false; hitung(); });
   $("mbIsiSinyal").addEventListener("click", isiDariSinyal);
   $("mbBeli").addEventListener("click", kirimBeli);
   $("mbDaftarPos").addEventListener("click", async e => { const tb = e.target.closest("[data-mb-tab]"); if (tb) { simpan("mbTab", tb.dataset.mbTab); window.gambarManualBot(); return; }
