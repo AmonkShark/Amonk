@@ -1117,15 +1117,71 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
 
   <div class="alarm" id="alarm" role="alert" hidden></div>
   <nav class="tab" role="tablist" aria-label="Halaman">
+    <button role="tab" id="tbBeranda" data-hal="Beranda" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Beranda</span></button>
     <button role="tab" id="tbTerminal" data-hal="Terminal" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v14H4z"/><path d="M8 15l3-4 3 3 3-5"/></svg><span>Terminal</span></button>
     <button role="tab" id="tbRiwayat" data-hal="Riwayat" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Riwayat</span></button>
     <button role="tab" id="tbJurnal" data-hal="Jurnal" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5z"/><path d="M8 10h8M8 14h8"/></svg><span>Jurnal</span></button>
+    <button role="tab" id="tbAset" data-hal="Aset" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M16 15h2"/><path d="M7 6V4h10v2"/></svg><span>Aset</span></button>
     <button role="tab" id="tbAkun" data-hal="Akun" aria-selected="false" title="Akun Manual: saldo, order, pengaturan & jurnal trading manual"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M15 15h3"/></svg><span>Manual</span></button>
     <button role="tab" id="tbBot" data-hal="Bot" aria-selected="false" title="Akun Bot: bot trading otomatis + kesehatan sistem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="14" height="11" rx="2"/><path d="M12 4v4M9 13h.01M15 13h.01M9 16h6"/></svg><span>Bot</span></button>
     <button role="tab" id="tbTim" data-hal="Tim" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M3 20c0-3 2.5-5 5-5s5 2 5 5M11 20c0-3 2.5-5 5-5s5 2 5 5"/></svg><span>Tim</span></button>
     <button role="tab" id="tbInfo" data-hal="Info" hidden aria-selected="false" style="display:none"><span>Info</span></button>
   </nav>
 
+<div class="hal" id="halBeranda" hidden>
+  <div class="bz">
+    <div class="bz-atas">
+      <button class="bz-av" id="bzAv" type="button" aria-label="Profil">A</button>
+      <button class="bz-cari" type="button" id="bzCari">🔍 <span>Cari koin di Terminal…</span></button>
+      <button class="bz-ikon" type="button" id="bzSetel" aria-label="Pengaturan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    </div>
+    <div class="bz-beranda">
+      <div class="bz">
+        <div class="bz-nilai" id="bzNilai"></div>
+        <div class="bz-cepat" id="bzCepat"></div>
+      </div>
+      <div class="bz-kartu" id="bzKartu"></div>
+    </div>
+  </div>
+</div>
+<div class="hal" id="halAset" hidden>
+  <div class="bz">
+    <div class="bz-nilai" id="asNilai"></div>
+    <div class="bz-graf"><h4>Alokasi</h4><div class="bz-alok" id="asAlok"></div><div class="bz-leg" id="asLeg" style="margin-top:8px"></div></div>
+    <div class="bz-daftar" id="asDaftar"></div>
+  </div>
+</div>
+<div class="hal" id="halPnl" hidden>
+  <div class="bz">
+    <div class="bz-kepala"><button class="bz-ikon" type="button" data-bz-kembali aria-label="Kembali">←</button><h2>PnL</h2>
+      <div class="bz-chip" id="pnSumber"><button type="button" data-v="semua" class="aktif">Semua</button><button type="button" data-v="bot">Bot</button><button type="button" data-v="manual">Manual</button></div></div>
+    <div class="bz-nilai" id="pnNilai"></div>
+    <div class="bz-tiga" id="pnTiga"></div>
+    <div class="bz-chip" id="pnPeriode"><button type="button" data-v="7" class="aktif">7H</button><button type="button" data-v="30">30H</button><button type="button" data-v="90">90H</button><button type="button" data-v="k">Kustom</button></div>
+    <div class="bz-kustom" id="pnKustom" hidden>dari <input type="date" id="pnDari"> sampai <input type="date" id="pnSampai"></div>
+    <div class="bz-graf" id="pnGrafNilai"></div>
+    <div class="bz-graf" id="pnGrafKum"></div>
+    <div class="bz-graf" id="pnGrafHari"></div>
+  </div>
+</div>
+<div class="hal" id="halProfil" hidden>
+  <div class="bz">
+    <div class="bz-kepala"><button class="bz-ikon" type="button" data-bz-kembali aria-label="Kembali">←</button><h2></h2>
+      <button class="bz-ikon" type="button" id="prSetel" aria-label="Pengaturan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8.66 5v10L12 22l-8.66-5V7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+    <div class="bz-profil"><button class="bz-av besar" id="prAv" type="button" aria-label="Ganti foto">A</button>
+      <div><b id="prNama">AMONK</b><small id="prSub"></small><div id="prLabel"></div></div></div>
+    <input type="file" id="prFoto" accept="image/*" hidden>
+    <div class="bz-daftar" id="prMenu"></div>
+  </div>
+</div>
+<div class="hal" id="halSetelan" hidden>
+  <div class="bz">
+    <div class="bz-kepala"><button class="bz-ikon" type="button" id="stKembali" aria-label="Kembali">←</button><h2 id="stJudul">Pengaturan</h2></div>
+    <div id="stDaftar"></div>
+    <div class="bz-detail" id="stDetailAkun" hidden></div>
+    <div class="bz-detail" id="stDetailBot" hidden></div>
+  </div>
+</div>
   <div class="hal" id="halTerminal">
 
   <!-- RINGKAS DI HP (2026-09-23, permintaan user "simpel elegan modern, info penting saja"): di mode
@@ -2839,13 +2895,14 @@ $("hpList").addEventListener("click", e => {
 // PENGATURAN TAMPILAN (2026-09-25, user: "lebih simpel, ada pengaturan menyembunyikan tab, HP hanya info penting").
 // Disimpan di perangkat (localStorage "tampilan"). Bawaan di HP = SIMPEL (tab Terminal, Riwayat, Akun; bilah status Bot, Laba, Posisi);
 // tombol ⚙ di header selalu ada untuk mengubah / mengembalikan tampilan lengkap.
-const TP_TAB = [["Terminal", "Terminal"], ["Riwayat", "Riwayat"], ["Jurnal", "Jurnal"], ["Akun", "Akun"], ["Bot", "Bot"]];   // 2026-10-11: Akun = Akun Manual, Bot = Akun Bot   // Info dibuang 2026-09-26 (penjelasan kini di tiap kartu ⓘ)
+const TP_TAB = [["Beranda", "Beranda"], ["Terminal", "Terminal"], ["Riwayat", "Riwayat"], ["Jurnal", "Jurnal"], ["Aset", "Aset"]];   // 2026-10-11 gaya Binance: Manual & Bot = sub-tab Aset   // 2026-10-11: Akun = Akun Manual, Bot = Akun Bot   // Info dibuang 2026-09-26 (penjelasan kini di tiap kartu ⓘ)
 const TP_PITA = [["pitaBot", "Status bot"], ["pitaHari", "Laba hari ini"], ["pitaPosisi", "Posisi"], ["pitaModal", "Modal bot"], ["pitaHarga", "Harga hidup"], ["pitaVps", "Perantara VPS"]];
 const TP_LENGKAP = { tab: { Terminal: true, Riwayat: true, Jurnal: true, Akun: true, Bot: true, Info: false }, pita: { pitaBot: true, pitaHari: true, pitaPosisi: true, pitaModal: true, pitaHarga: true, pitaVps: true }, pitaAda: true };
 const TP_SIMPEL = { tab: { Terminal: true, Riwayat: true, Jurnal: false, Akun: true, Bot: true, Info: false }, pita: { pitaBot: true, pitaHari: true, pitaPosisi: true, pitaModal: false, pitaHarga: false, pitaVps: false }, pitaAda: true };
 let TAMPIL = (() => { const s = baca("tampilan", null); if (s && s.tab && s.pita) return s;
   return JSON.parse(JSON.stringify(window.innerWidth <= 760 ? TP_SIMPEL : TP_LENGKAP)); })();
-if (TAMPIL.tab && TAMPIL.tab.Bot === undefined) TAMPIL.tab.Bot = true;   // tab Akun Bot baru 2026-10-11: tampil di pengaturan lama
+if (TAMPIL.tab && TAMPIL.tab.Bot === undefined) TAMPIL.tab.Bot = true;
+if (TAMPIL.tab) { if (TAMPIL.tab.Beranda === undefined) TAMPIL.tab.Beranda = true; if (TAMPIL.tab.Aset === undefined) TAMPIL.tab.Aset = true; }   // tab Akun Bot baru 2026-10-11: tampil di pengaturan lama
 function terapkanTampilan() {
   for (const [h, id] of TP_TAB) { const b = $("tb" + id); if (b) b.hidden = !TAMPIL.tab[h]; }
   document.body.classList.toggle("privasi", !!TAMPIL.privasi);
@@ -2853,7 +2910,7 @@ function terapkanTampilan() {
   for (const [id] of TP_PITA) { const e = $(id); if (e) e.hidden = !TAMPIL.pita[id]; }
   $("pita").hidden = !TAMPIL.pitaAda || TP_PITA.every(([id]) => !TAMPIL.pita[id]);
   const terlihat = TP_TAB.map(([h]) => h).filter(h => TAMPIL.tab[h]);
-  if (terlihat.length && !terlihat.includes(halAktif)) pindahHal(terlihat[0]);
+  if (terlihat.length && !terlihat.includes(halAktif) && !["Akun", "Bot", "Tim", "Pnl", "Profil", "Setelan"].includes(halAktif)) pindahHal(terlihat[0]);
 }
 function tampilanUbah(jenis, kunci, nilai) {
   if (jenis === "tab") { const sisa = TP_TAB.filter(([h]) => h !== kunci && TAMPIL.tab[h]).length; if (!nilai && !sisa) { bukaPengaturanTampilan(); return; } TAMPIL.tab[kunci] = nilai; }
@@ -3089,10 +3146,13 @@ function jnSegSinyal() {
   bs.forEach(x => x.setAttribute("aria-pressed", x.dataset.v === JN_S.sinyal ? "true" : "false"));
 }
 function pindahHal(h) {
+  if (!document.getElementById("hal" + h)) h = "Beranda";
   const beda = halAktif !== h;
   halAktif = h; simpan("hal", h);
   if (beda) { window.scrollTo(0, 0); if (document.scrollingElement) document.scrollingElement.scrollTop = 0; setTimeout(() => window.scrollTo(0, 0), 0); }   // permintaan user 2026-09-26: tab baru selalu mulai dari atas
-  for (const x of ["Terminal", "Riwayat", "Jurnal", "Akun", "Bot", "Tim", "Info"]) { $("hal" + x).hidden = x !== h; $("tb" + x).setAttribute("aria-selected", x === h ? "true" : "false"); }
+  const dari = halAktif === h ? null : (window.__halSebelum || null); window.__halSebelum = h;
+  for (const x of ["Beranda", "Terminal", "Riwayat", "Jurnal", "Aset", "Akun", "Bot", "Tim", "Info", "Pnl", "Profil", "Setelan"]) { const p = $("hal" + x); if (p) p.hidden = x !== h; const t = $("tb" + x); if (t) t.setAttribute("aria-selected", x === h ? "true" : "false"); }
+  if (window.bzMasuk) window.bzMasuk(h, dari);
   if (h === "Jurnal") { if (!JR) muatJurnal(); else gambarJurnal(); if (window.muatVsBot) window.muatVsBot(); }
   if (h === "Akun" && window.muatAkun) window.muatAkun();
   if ((h === "Akun" || h === "Bot") && window.muatBotBilaAda) window.muatBotBilaAda();   // Akun Manual juga butuh status bot (baris "Bot: isi", saring koin bot)
@@ -4268,6 +4328,7 @@ function gambarAkun(baris, akun) {
   const pnl = baris.reduce((a, b) => a + (b.pnl || 0), 0);
   if (total > 0) { simpan("akSnap", { t: Date.now(), total, baris: baris.map(b => ({ aset: b.aset, nilai: b.nilai })) }); setTimeout(trmAlok, 0); }
   if (total > 0) simpan("modalAkun", total);            // dipakai ukuran posisi di Terminal
+  if (total > 0) { window.__akTotal = total; setTimeout(() => { window.catatNilaiHarian && window.catatNilaiHarian(total); window.gambarBeranda && window.gambarBeranda(); window.gambarAset && window.gambarAset(); }, 0); }
   // RUPIAH DI BAWAH USDT (2026-09-22, permintaan user): total saldo & PnL, USDT di atas, Rp di bawah.
   const rpN = v => KURS.idr && v != null ? "≈ Rp " + Math.round(v * KURS.idr).toLocaleString("id-ID") : "";
   const kaya = baris.filter(b => b.nilai > 0).sort((x, y) => y.nilai - x.nilai);
@@ -5096,7 +5157,7 @@ $("btForm").addEventListener("submit", async ev => {
 // BILAH STATUS (2026-09-23): diperbarui dari status bot yang SAMA (satu panggilan /status tiap 60 dtk,
 // hanya operasi BACA KV). Di tab Akun muatBot() yang memanggil; di tab lain muatPita().
 function gambarPita(s) {
-  setTimeout(periksaAlarm, 0); setTimeout(() => window.gambarSisaManual && window.gambarSisaManual(), 0);
+  setTimeout(periksaAlarm, 0); setTimeout(() => { if (window.gambarBeranda && halAktif === "Beranda") window.gambarBeranda(); if (window.gambarAset && halAktif === "Aset") window.gambarAset(); }, 0); setTimeout(() => window.gambarSisaManual && window.gambarSisaManual(), 0);
   const set = (id, teks, kls, lampu) => { const el = $(id); if (!el) return; const b = el.querySelector("b"); b.textContent = teks; b.className = kls || "";
     const l = el.querySelector(".lampu"); if (l && lampu !== undefined) l.className = "lampu " + lampu; };
   if (!s) { set("pitaBot", "tak terbaca", "turun", "off"); return; }
@@ -6254,5 +6315,280 @@ sambung();
 <style>#pita .rp-pita{display:inline!important;text-transform:none!important;letter-spacing:0!important;font:400 .78em var(--f-ui);color:var(--label);white-space:nowrap;margin:0!important}#pita #pitaManual b,#pita #pitaModal b{white-space:nowrap}</style>
 <style>/* 2026-10-11 (user: "sesuaikan ukurannya di hp"): HP = baris 1 Bot · Bot hari ini · Posisi, baris 2 Manual utuh (tidak saling tumpuk) */
 @media (max-width:640px){#pita{flex-wrap:wrap!important;overflow:visible!important;gap:6px 10px!important;justify-content:space-between}#pita .pita-i{flex:0 1 auto!important;min-width:0;justify-content:flex-start}#pita .pita-i b{white-space:nowrap!important;font-size:11.5px}#pita .pita-i>span{white-space:nowrap;font-size:10.5px}#pita #pitaManual{order:10;flex:1 1 100%!important;padding-top:5px;border-top:1px solid var(--garis);text-align:left}#pita #pitaManual b{white-space:normal!important}#pita .rp-pita{font-size:.85em}}</style>
+<!-- ===== GAYA BINANCE (2026-10-11, user: "buat amonk terminal seperti di foto sebagai referensi") =====
+     Beranda (selalu muncul saat app dibuka) · Aset = Ringkasan | Bot | Manual · PnL (7H/30H/90H/Kustom) · Profil (foto) · Pengaturan berkelompok.
+     Halaman lama (Terminal, Riwayat, Jurnal, Akun=Manual, Bot, Tim) TIDAK diubah isinya; hanya dipindah susunannya. -->
+<style>
+.bz{display:flex;flex-direction:column;gap:14px}
+.bz-atas{display:flex;align-items:center;gap:12px}
+.bz-av{width:42px;height:42px;border-radius:50%;flex:0 0 42px;display:grid;place-items:center;font:600 17px var(--f-ui);color:#fff;background:#3A4250 center/cover no-repeat;border:2px solid var(--garis);cursor:pointer;padding:0}
+.bz-av.besar{width:84px;height:84px;flex-basis:84px;font-size:32px}
+.bz-ikon{background:none;border:0;color:var(--teks);cursor:pointer;padding:6px;border-radius:10px;display:grid;place-items:center}
+.bz-ikon svg{width:22px;height:22px}
+.bz-ikon:hover{background:var(--bg2)}
+.bz-cari{flex:1;min-width:0;display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:12px;background:var(--bg2);color:var(--label);font:13px var(--f-ui);border:0;cursor:pointer;text-align:left}
+.bz-nilai{display:flex;flex-direction:column;gap:4px}
+.bz-nilai .lb{font:13px var(--f-ui);color:var(--label);display:flex;align-items:center;gap:6px}
+.bz-nilai .besar{font:700 clamp(28px,8vw,40px) var(--f-num);color:var(--teks);letter-spacing:-.01em;line-height:1.1}
+.bz-nilai .usdt{font:13px var(--f-num);color:var(--label)}
+.bz-pnl{display:inline-flex;align-items:center;gap:6px;font:13px var(--f-ui);color:var(--label);background:none;border:0;padding:2px 0;cursor:pointer;text-align:left}
+.bz-pnl u{text-decoration:underline dotted;text-underline-offset:3px}
+.bz-pnl b{font-family:var(--f-num)}
+.bz-cepat{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.bz-cepat button{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;color:var(--teks);font:12px var(--f-ui);cursor:pointer;padding:0}
+.bz-cepat button i{width:48px;height:48px;border-radius:14px;background:var(--bg2);display:grid;place-items:center;font-style:normal;font-size:20px}
+.bz-kartu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.bz-k{background:var(--bg1);border:1px solid var(--garis);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:6px;cursor:pointer;min-width:0;text-align:left;color:var(--teks);font:inherit}
+.bz-k .jd{font:13px var(--f-ui);color:var(--label)}
+.bz-k .ang{font:600 20px var(--f-num)}
+.bz-k .sub{font:12px var(--f-num)}
+.bz-sub{display:flex;gap:18px;border-bottom:1px solid var(--garis);margin:0 0 12px;overflow-x:auto;scrollbar-width:none}
+.bz-sub button{background:none;border:0;border-bottom:2px solid transparent;color:var(--label);font:600 15px var(--f-ui);padding:8px 2px;cursor:pointer;white-space:nowrap}
+.bz-sub button.aktif{color:var(--teks);border-bottom-color:var(--kuning,#F0B90B)}
+.bz-sub .kanan{margin-left:auto;font-weight:400;font-size:13px}
+.bz-alok{height:8px;border-radius:6px;overflow:hidden;display:flex;background:var(--bg2)}
+.bz-alok i{display:block;height:100%}
+.bz-leg{display:flex;flex-wrap:wrap;gap:6px 14px;font:12px var(--f-ui);color:var(--label)}
+.bz-leg span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;background:var(--w)}
+.bz-daftar{background:var(--bg1);border:1px solid var(--garis);border-radius:16px;overflow:hidden}
+.bz-daftar h4{margin:0;padding:12px 14px;font:600 14px var(--f-ui);color:var(--label);border-bottom:1px solid var(--garis)}
+.bz-baris{display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--garis);background:none;border-left:0;border-right:0;border-top:0;width:100%;color:var(--teks);font:inherit;text-align:left;cursor:pointer}
+.bz-baris:last-child{border-bottom:0}
+.bz-baris .ik{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--bg2);flex:0 0 34px;font-size:16px}
+.bz-baris .tg{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.bz-baris .tg b{font:600 15px var(--f-ui)}
+.bz-baris .tg small{font:12px var(--f-ui);color:var(--label)}
+.bz-baris .kn{text-align:right;display:flex;flex-direction:column;gap:2px;font-family:var(--f-num)}
+.bz-baris .kn b{font-size:15px}
+.bz-baris .kn small{font-size:12px;color:var(--label)}
+.bz-baris .chev{color:var(--label);font-size:18px}
+.bz-kepala{display:flex;align-items:center;gap:8px}
+.bz-kepala h2{margin:0;font:600 18px var(--f-ui);flex:1}
+.bz-chip{display:flex;gap:6px;flex-wrap:wrap}
+.bz-chip button{background:none;border:0;border-radius:8px;padding:6px 12px;color:var(--label);font:13px var(--f-ui);cursor:pointer}
+.bz-chip button.aktif{background:var(--bg2);color:var(--teks);font-weight:600}
+.bz-tiga{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.bz-tiga>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.bz-tiga span{font:12px var(--f-ui);color:var(--label);text-decoration:underline dotted;text-underline-offset:3px}
+.bz-tiga b{font:600 15px var(--f-num)}
+.bz-tiga small{font:12px var(--f-num)}
+.bz-graf{background:var(--bg1);border:1px solid var(--garis);border-radius:16px;padding:12px 14px}
+.bz-graf h4{margin:0 0 2px;font:600 15px var(--f-ui)}
+.bz-graf .ket{font:12px var(--f-ui);color:var(--label);margin:0 0 8px}
+.bz-graf svg{width:100%;height:auto;display:block}
+.bz-kustom{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font:12px var(--f-ui);color:var(--label)}
+.bz-kustom input{font:13px var(--f-num);color:var(--teks);background:var(--bg2);border:1px solid var(--garis);border-radius:8px;padding:5px 8px}
+.bz-grup{font:13px var(--f-ui);color:var(--label);margin:10px 2px 4px}
+.bz-detail[hidden]{display:none!important}
+.bz-detail .ak-set{display:grid!important}
+.bz-profil{display:flex;align-items:center;gap:16px}
+.bz-profil b{font:700 22px var(--f-ui);display:block}
+.bz-profil small{font:13px var(--f-num);color:var(--label)}
+.bz-label{display:inline-block;font:12px var(--f-ui);padding:2px 8px;border-radius:6px;background:var(--bg2);margin:6px 6px 0 0}
+.bz-label.hijau{color:var(--hijau)}
+#halAkun>.ak-bar,#halBot>.ak-bar[data-bt="bar"],#btGigi{display:none!important}
+.tab #tbAkun,.tab #tbBot{display:none!important}
+@media (max-width:760px){body.bz-penuh .wrap>header,body.bz-penuh #pita{display:none!important}}
+@media (min-width:900px){
+  .bz-beranda{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start}
+  .bz-cepat{grid-template-columns:repeat(5,minmax(0,90px))}
+  .bz-kartu{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+</style>
+<script>
+(() => {
+  const $ = id => document.getElementById(id), esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const S = () => (typeof BT_S !== "undefined" && BT_S) || null;
+  const kurs = () => (typeof KURS !== "undefined" && KURS.idr) || 0;
+  const rp = (v, tanda) => { const k = kurs(); if (!k || v == null || !isFinite(v)) return "—"; const a = Math.abs(v) * k; return (v < 0 ? "−" : tanda && v > 0 ? "+" : "") + "Rp " + Math.round(a).toLocaleString("id-ID"); };
+  const u2 = (v, tanda) => (v == null || !isFinite(v)) ? "—" : (tanda && v > 0 ? "+" : "") + (+v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const kl = v => v > 0 ? "naik" : v < 0 ? "turun" : "";
+  const samar = () => !!baca("bzSamar", false);
+  const sm = t => samar() ? "••••••" : t;
+  const hari0 = (t = Date.now()) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  const tgl = t => { const d = new Date(t); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+  const hargaK = sym => { const k = String(sym || "").replace(/USDT$/, ""); return (typeof data !== "undefined" && data[k] && data[k].harga) || null; };
+  // ---------- angka dasar ----------
+  function totalNilai() { if (window.__akTotal > 0) return window.__akTotal; const s = baca("akSnap", null); return s && s.total > 0 ? s.total : null; }
+  function riwayat(sumber) { const s = S(); if (!s) return [];
+    const b = (s.riwayat || []).map(r => ({ t: +r.keluarT || 0, h: +r.hasil || 0, src: "bot" })), m = ((s.manual && s.manual.riwayat) || []).map(r => ({ t: +r.keluarT || 0, h: +r.hasil || 0, src: "manual" }));
+    return sumber === "bot" ? b : sumber === "manual" ? m : b.concat(m); }
+  function berjalan(sumber) { const s = S(); if (!s) return null; let n = 0, ada = false;
+    const P = (sumber === "manual" ? [] : (s.posisi || [])).concat(sumber === "bot" ? [] : ((s.manual && s.manual.posisi) || []));
+    for (const p of P) { const px = hargaK(p.sym); if (!px) continue; ada = true; n += (p.qtySisa || 0) * px + (p.jualUsdt || 0) - (p.beliUsdt || 0); }
+    return ada ? n : 0; }
+  const jumlah = (R, dari, sampai = Infinity) => R.filter(r => r.t >= dari && r.t < sampai).reduce((a, r) => a + r.h, 0);
+  // catatan nilai aset harian (perangkat ini) untuk grafik "Nilai aset"
+  window.catatNilaiHarian = total => { if (!(total > 0)) return; const h = baca("nilaiHarian", {}) || {}; h[tgl(Date.now())] = +total.toFixed(2);
+    const k = Object.keys(h).sort(); while (k.length > 400) delete h[k.shift()]; simpan("nilaiHarian", h); };
+  // ---------- foto & nama profil ----------
+  function pasangAvatar(el) { const f = baca("amonkFoto", ""), n = baca("amonkNama", "AMONK") || "AMONK";
+    if (f) { el.style.backgroundImage = `url("${f}")`; el.textContent = ""; } else { el.style.backgroundImage = ""; el.textContent = n.trim().charAt(0).toUpperCase() || "A"; } }
+  // ---------- BERANDA ----------
+  window.gambarBeranda = () => { if (!$("halBeranda")) return; pasangAvatar($("bzAv"));
+    const tot = totalNilai(), R = riwayat("semua"), hTutup = jumlah(R, hari0()), br = berjalan("semua");
+    $("bzNilai").innerHTML = `<span class="lb">Perkiraan total nilai (IDR) <button class="bz-ikon" type="button" id="bzMata" aria-label="Samarkan" style="padding:0">${samar() ? "🙈" : "👁"}</button></span>
+      <span class="besar">${sm(tot ? rp(tot) : "—")}</span><span class="usdt">${sm(tot ? "≈ " + u2(tot) + " USDT" : "sambungkan Binance di Pengaturan")}</span>
+      <button class="bz-pnl" type="button" data-bz-ke="Pnl"><u>PnL hari ini</u> <b class="${kl(hTutup)}">${sm(rp(hTutup, 1) + " (" + u2(hTutup, 1) + " USDT)")}</b>${br != null ? ` <span class="redup">· berjalan <b class="${kl(br)}">${sm(u2(br, 1))}</b></span>` : ""} ›</button>`;
+    const s = S(), M = s && s.modal, K = s && s.manual && s.manual.modal, btc = typeof data !== "undefined" && data.BTC;
+    const btc24 = btc && btc.harga && btc.open24 ? (btc.harga / btc.open24 - 1) * 100 : null;
+    const nPB = s ? (s.posisi || []).length : 0, nPM = s && s.manual ? (s.manual.posisi || []).length : 0;
+    $("bzKartu").innerHTML =
+      `<button class="bz-k" type="button" data-bz-ke="Terminal"><span class="jd">BTC</span><span class="ang">${btc && btc.harga ? btc.harga.toLocaleString("en-US", { maximumFractionDigits: 1 }) : "—"}</span><span class="sub ${kl(btc24)}">${btc24 == null ? "" : (btc24 >= 0 ? "▲ " : "▼ ") + Math.abs(btc24).toFixed(2) + "% 24j"}</span></button>` +
+      `<button class="bz-k" type="button" data-bz-ke="Aset"><span class="jd">Posisi terbuka</span><span class="ang">${nPB + nPM}</span><span class="sub redup">bot ${nPB} · manual ${nPM}</span></button>` +
+      `<button class="bz-k" type="button" data-bz-ke="Bot"><span class="jd">Saldo bot</span><span class="ang">${sm(M && M.kini ? u2(M.kini) : "—")}</span><span class="sub ${kl(M && M.laba)}">${sm(M ? "hasil " + u2(M.laba, 1) : "")}</span></button>` +
+      `<button class="bz-k" type="button" data-bz-ke="Akun"><span class="jd">Saldo manual</span><span class="ang">${sm(K ? u2(K.kini) : "belum dibagi")}</span><span class="sub redup">${sm(K ? "sisa " + u2(K.bebas) : "")}</span></button>`;
+    if (!$("bzCepat").childElementCount) $("bzCepat").innerHTML = [["🛒", "Beli manual", "beli"], ["🤖", "Bot", "Bot"], ["📈", "PnL", "Pnl"], ["📒", "Jurnal", "Jurnal"], ["👥", "Tim", "Tim"]]
+      .map(([i, n, k]) => `<button type="button" data-bz-ke="${k}"><i>${i}</i>${n}</button>`).join("");
+  };
+  // ---------- ASET: Ringkasan | Bot | Manual ----------
+  const SUB = [["Aset", "Ringkasan"], ["Bot", "Bot"], ["Akun", "Manual"]];
+  function pasangSubTab() { for (const [hal] of SUB) { const h = $("hal" + hal); if (!h || h.querySelector(":scope>.bz-sub")) continue;
+      const bar = document.createElement("div"); bar.className = "bz-sub"; bar.setAttribute("role", "tablist");
+      bar.innerHTML = SUB.map(([k, n]) => `<button type="button" data-bz-ke="${k}" class="${k === hal ? "aktif" : ""}">${n}</button>`).join("") + `<button type="button" class="kanan" data-bz-ke="Setelan:${hal === "Bot" ? "bot" : "akun"}">⚙ Pengaturan</button>`;
+      h.insertBefore(bar, h.firstChild); } }
+  window.gambarAset = () => { if (!$("halAset")) return;
+    const tot = totalNilai(), s = S(), M = s && s.modal, K = s && s.manual && s.manual.modal, R = riwayat("semua"), hT = jumlah(R, hari0());
+    $("asNilai").innerHTML = `<span class="lb">Perkiraan total nilai</span><span class="besar">${sm(tot ? rp(tot) : "—")}</span><span class="usdt">${sm(tot ? "≈ " + u2(tot) + " USDT" : "")}</span>
+      <button class="bz-pnl" type="button" data-bz-ke="Pnl"><u>PnL hari ini</u> <b class="${kl(hT)}">${sm(rp(hT, 1) + " (" + u2(hT, 1) + ")")}</b> ›</button>`;
+    const vb = M && M.kini || 0, vm = K && K.kini || 0, lain = tot ? Math.max(0, tot - vb - vm) : 0, sm0 = vb + vm + lain || 1;
+    const bag = [["Bot", vb, "#42A5F5"], ["Manual", vm, "#26A69A"], ["Lainnya (belum dijatah)", lain, "#8D9AA9"]].filter(x => x[1] > 0);
+    $("asAlok").innerHTML = bag.map(([, v, w]) => `<i style="width:${(v / sm0 * 100).toFixed(2)}%;background:${w}"></i>`).join("");
+    $("asLeg").innerHTML = bag.map(([n, v, w]) => `<span style="--w:${w}">${n} ${(v / sm0 * 100).toFixed(1)}%</span>`).join("");
+    const baris = (ik, nama, sub, kanan, kanan2, ke) => `<button class="bz-baris" type="button" data-bz-ke="${ke}"><span class="ik">${ik}</span><span class="tg"><b>${nama}</b><small>${sub}</small></span><span class="kn"><b>${kanan}</b><small>${kanan2}</small></span><span class="chev">›</span></button>`;
+    $("asDaftar").innerHTML = `<h4>Saldo</h4>` +
+      baris("🤖", "Bot", M ? `sisa ${sm(u2(Math.max(0, (M.kini || 0) - (+s.terpakai || 0))))} · hasil <span class="${kl(M.laba)}">${sm(u2(M.laba, 1))}</span>` : "bot belum terbaca", sm(M ? u2(M.kini) : "—"), sm(M ? rp(M.kini) : ""), "Bot") +
+      baris("🧑", "Manual", K ? `sisa ${sm(u2(K.bebas))} · hasil <span class="${kl(K.laba)}">${sm(u2(K.laba, 1))}</span>` : "saldo belum dibagi", sm(K ? u2(K.kini) : "—"), sm(K ? rp(K.kini) : ""), "Akun") +
+      (lain > 0.5 ? baris("💤", "Belum dijatah", "USDT/koin di luar saldo bot & manual (mis. BNB, setoran baru)", sm(u2(lain)), sm(rp(lain)), "Akun") : "");
+  };
+  // ---------- PnL ----------
+  let pnSumber = "semua", pnPer = "7";
+  function rentang() { const s = hari0(); if (pnPer !== "k") return [s - (+pnPer - 1) * 864e5, Date.now() + 1];
+    const a = $("pnDari").value ? new Date($("pnDari").value + "T00:00:00").getTime() : s - 6 * 864e5, b = $("pnSampai").value ? new Date($("pnSampai").value + "T00:00:00").getTime() + 864e5 : Date.now() + 1; return [Math.min(a, b - 864e5), b]; }
+  let btcK = null, btcT = 0;
+  async function btcHarian() { if (btcK && Date.now() - btcT < 30 * 60e3) return btcK;
+    try { const r = await fetch("https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=400"); const j = await r.json(); btcK = j.map(x => [+x[0], +x[4]]); btcT = Date.now(); } catch (e) {} return btcK || []; }
+  function garis(seri, warna, W, H, lo, hi, x0 = 34) { const rg = hi - lo || 1, n = seri.length;
+    return `<polyline fill="none" stroke="${warna}" stroke-width="2" points="${seri.map((v, i) => v == null ? "" : (x0 + i / Math.max(1, n - 1) * (W - x0 - 6)).toFixed(1) + "," + (8 + (hi - v) / rg * (H - 26)).toFixed(1)).filter(Boolean).join(" ")}"/>`; }
+  function sumbu(W, H, lo, hi, fmt, l, r) { const y = v => (8 + (hi - v) / ((hi - lo) || 1) * (H - 26)).toFixed(1);
+    return `<text x="0" y="${+y(hi) + 4}" font-size="10" fill="var(--label)">${fmt(hi)}</text><text x="0" y="${+y(lo) + 4}" font-size="10" fill="var(--label)">${fmt(lo)}</text>` +
+      (lo < 0 && hi > 0 ? `<line x1="34" x2="${W - 6}" y1="${y(0)}" y2="${y(0)}" stroke="var(--garis)" stroke-dasharray="3 3"/>` : "") +
+      `<text x="34" y="${H - 4}" font-size="10" fill="var(--label)">${l}</text><text x="${W - 6}" y="${H - 4}" font-size="10" fill="var(--label)" text-anchor="end">${r}</text>`; }
+  window.gambarPnl = async () => { if (!$("halPnl")) return;
+    const [a, b] = rentang(), R = riwayat(pnSumber), tot = totalNilai(), hT = jumlah(R, hari0()), h7 = jumlah(R, hari0() - 6 * 864e5), kum = jumlah(R, a, b);
+    const s = S(), M = s && s.modal, K = s && s.manual && s.manual.modal;
+    const nilaiSumber = pnSumber === "bot" ? (M && M.kini) : pnSumber === "manual" ? (K && K.kini) : tot;
+    const basis = nilaiSumber ? nilaiSumber - kum : null, pct = (v, bs) => bs > 0 ? (v / bs * 100) : null, fp = v => v == null ? "" : (v > 0 ? "+" : "") + v.toFixed(2) + "%";
+    $("pnNilai").innerHTML = `<span class="lb">Nilai ${pnSumber === "bot" ? "saldo bot" : pnSumber === "manual" ? "saldo manual" : "aset total"} (IDR)</span><span class="besar">${sm(nilaiSumber ? rp(nilaiSumber) : "—")}</span><span class="usdt">${sm(nilaiSumber ? "≈ " + u2(nilaiSumber) + " USDT" : "")}</span>`;
+    const sel = (j, v, bs) => `<div><span>${j}</span><b class="${kl(v)}">${sm(fp(pct(v, bs)) || "—")}</b><small class="${kl(v)}">${sm(rp(v, 1))}</small></div>`;
+    $("pnTiga").innerHTML = sel("PnL hari ini", hT, nilaiSumber ? nilaiSumber - hT : null) + sel("PnL 7 hari", h7, nilaiSumber ? nilaiSumber - h7 : null) + sel(pnPer === "k" ? "PnL kustom" : "PnL " + pnPer + " hari", kum, basis);
+    // hari-hari dalam rentang
+    const hari = []; for (let t = hari0(a); t < b; t += 864e5) hari.push(t);
+    const per = hari.map(t => jumlah(R, t, t + 864e5)); let c = 0; const kumSeri = per.map(v => (c += v));
+    const kPct = kumSeri.map(v => basis > 0 ? v / basis * 100 : null);
+    const BK = await btcHarian(), p0 = (BK.filter(x => x[0] <= hari[0]).pop() || BK[0] || [0, 0])[1];
+    const bPct = hari.map(t => { const x = BK.filter(k => k[0] <= t).pop(); return p0 && x ? (x[1] / p0 - 1) * 100 : null; });
+    const W = 340, H = 150, l = tgl(hari[0]).slice(5), r = tgl(hari[hari.length - 1]).slice(5);
+    // 1) nilai aset (catatan perangkat)
+    const NH = baca("nilaiHarian", {}) || {}, nv = hari.map(t => NH[tgl(t)] != null ? NH[tgl(t)] : null), nAda = nv.filter(v => v != null);
+    $("pnGrafNilai").innerHTML = `<h4>Nilai aset</h4><p class="ket">${nAda.length >= 2 ? "dicatat di perangkat ini tiap app membaca saldo Binance" : "Grafik muncul sesudah app mencatat saldo ≥ 2 hari berbeda (dicatat di perangkat ini mulai hari ini)."}</p>` +
+      (nAda.length >= 2 && !samar() ? `<svg viewBox="0 0 ${W} ${H}">${sumbu(W, H, Math.min(...nAda), Math.max(...nAda), v => Math.round(v).toLocaleString("en-US"), l, r)}${garis(nv, "#F0B90B", W, H, Math.min(...nAda), Math.max(...nAda))}</svg>` : "");
+    // 2) PnL kumulatif % vs BTC
+    const semua = kPct.concat(bPct).filter(v => v != null), lo = Math.min(0, ...semua), hi = Math.max(0, ...semua);
+    $("pnGrafKum").innerHTML = `<h4>PnL kumulatif</h4><p class="ket"><b class="${kl(kum)}">${sm(fp(pct(kum, basis)) || "—")}</b> PnL (trade tutup) · <b style="color:#42A5F5">${fp(bPct.filter(v => v != null).pop())}</b> tren BTC</p>` +
+      (samar() ? "" : `<svg viewBox="0 0 ${W} ${H}">${sumbu(W, H, lo, hi, v => v.toFixed(1) + "%", l, r)}${garis(bPct, "#42A5F5", W, H, lo, hi)}${garis(kPct, "#F0B90B", W, H, lo, hi)}</svg>`);
+    // 3) PnL harian (batang)
+    const mx = Math.max(1, ...per.map(Math.abs)), n = per.length, bw = Math.max(2, (W - 40) / n - 2), y0 = (H - 18) / 2 + 4;
+    const nT = R.filter(x => x.t >= a && x.t < b), w = nT.filter(x => x.h > 0).length;
+    $("pnGrafHari").innerHTML = `<h4>PnL harian</h4><p class="ket">${nT.length} trade tutup · menang ${w} · kalah ${nT.length - w}${pnSumber === "semua" ? " · bot + manual" : ""} · posisi berjalan tidak dihitung</p>` +
+      (samar() ? "" : `<svg viewBox="0 0 ${W} ${H}"><line x1="34" x2="${W - 6}" y1="${y0}" y2="${y0}" stroke="var(--garis)"/>` +
+        per.map((v, i) => { const h = Math.abs(v) / mx * (H / 2 - 16), x = 34 + i * ((W - 40) / n); return v ? `<rect x="${x.toFixed(1)}" y="${(v > 0 ? y0 - h : y0).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(1, h).toFixed(1)}" fill="${v > 0 ? "var(--hijau)" : "var(--merah)"}"><title>${tgl(hari[i])}: ${u2(v, 1)} USDT</title></rect>` : ""; }).join("") +
+        `<text x="0" y="14" font-size="10" fill="var(--label)">+${mx.toFixed(0)}</text><text x="0" y="${H - 20}" font-size="10" fill="var(--label)">−${mx.toFixed(0)}</text><text x="34" y="${H - 4}" font-size="10" fill="var(--label)">${l}</text><text x="${W - 6}" y="${H - 4}" font-size="10" fill="var(--label)" text-anchor="end">${r}</text></svg>`);
+  };
+  $("pnPeriode").addEventListener("click", e => { const t = e.target.closest("[data-v]"); if (!t) return; pnPer = t.dataset.v; simpan("pnPer", pnPer);
+    $("pnPeriode").querySelectorAll("button").forEach(x => x.classList.toggle("aktif", x === t)); $("pnKustom").hidden = pnPer !== "k";
+    if (pnPer === "k" && !$("pnDari").value) { $("pnDari").value = tgl(hari0() - 29 * 864e5); $("pnSampai").value = tgl(Date.now()); } window.gambarPnl(); });
+  $("pnSumber").addEventListener("click", e => { const t = e.target.closest("[data-v]"); if (!t) return; pnSumber = t.dataset.v; $("pnSumber").querySelectorAll("button").forEach(x => x.classList.toggle("aktif", x === t)); window.gambarPnl(); });
+  ["pnDari", "pnSampai"].forEach(id => $(id).addEventListener("change", () => window.gambarPnl()));
+  // ---------- PROFIL ----------
+  window.gambarProfil = () => { pasangAvatar($("prAv")); $("prNama").textContent = baca("amonkNama", "AMONK") || "AMONK";
+    const s = S(); $("prSub").textContent = s ? `Bot ${s.aktif ? "AKTIF" : "kering"} · ${s.jaringan === "asli" ? "akun asli" : "testnet"} · ${s.versi || ""}` : "bot belum terbaca";
+    let pin = false, face = false; try { pin = !!localStorage.getItem("amonkPin"); face = !!localStorage.getItem("amonkFaceId"); } catch (e) {}
+    $("prLabel").innerHTML = `<span class="bz-label ${pin ? "hijau" : ""}">${pin ? "PIN aktif" : "tanpa PIN"}</span><span class="bz-label ${face ? "hijau" : ""}">${face ? "Face ID" : "Face ID mati"}</span>`;
+    const b = (ik, n, sub, ke) => `<button class="bz-baris" type="button" data-bz-ke="${ke}"><span class="ik">${ik}</span><span class="tg"><b>${n}</b><small>${sub}</small></span><span class="chev">›</span></button>`;
+    $("prMenu").innerHTML = b("📷", "Ganti foto profil", "foto disimpan di perangkat ini", "foto") + b("✏️", "Ganti nama", "nama tampilan di app", "nama") +
+      b("⚙️", "Pengaturan", "umum · keamanan · akun & manual · bot", "Setelan") + b("🩺", "Kesehatan sistem", "bot, laptop, rutin, Telegram", "Bot") + b("👥", "Tim", "Tim riset & Tim Trading", "Tim"); };
+  $("prAv").addEventListener("click", () => $("prFoto").click());
+  $("prFoto").addEventListener("change", () => { const f = $("prFoto").files[0]; if (!f) return; const img = new Image(), rd = new FileReader();
+    rd.onload = () => { img.onload = () => { const c = document.createElement("canvas"), z = 160, sk = Math.max(z / img.width, z / img.height); c.width = c.height = z;
+      const g = c.getContext("2d"); g.drawImage(img, (z - img.width * sk) / 2, (z - img.height * sk) / 2, img.width * sk, img.height * sk);
+      try { simpan("amonkFoto", c.toDataURL("image/jpeg", 0.85)); } catch (e) { alert("Foto terlalu besar untuk disimpan"); } window.gambarProfil(); window.gambarBeranda(); }; img.src = rd.result; }; rd.readAsDataURL(f); $("prFoto").value = ""; });
+  // ---------- PENGATURAN (berkelompok) ----------
+  let stDetail = null;
+  function gambarSetelan() { const tema = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    let pin = false, face = false; try { pin = !!localStorage.getItem("amonkPin"); face = !!localStorage.getItem("amonkFaceId"); } catch (e) {}
+    const r = (n, nilai, aksi) => `<button class="bz-baris" type="button" data-st="${aksi}"><span class="tg"><b>${n}</b></span><span class="kn"><small>${nilai || ""}</small></span><span class="chev">›</span></button>`;
+    $("stDaftar").innerHTML =
+      `<div class="bz-grup">Umum</div><div class="bz-daftar">${r("Tampilan tab & bagian", "", "tampilan")}${r("Mode tema", "ganti terang / gelap", "tema")}${r("Samarkan angka", TAMPIL.privasi ? "nyala" : "mati", "privasi")}${r("Rupiah di samping USDT", TAMPIL.rp === false ? "mati" : "nyala", "rp")}</div>` +
+      `<div class="bz-grup">Keamanan</div><div class="bz-daftar">${r("Ganti PIN", pin ? "aktif" : "belum", "pin")}${r("Face ID", face ? "aktif" : "mati", face ? "faceMati" : "faceNyala")}</div>` +
+      `<div class="bz-grup">Akun & trading manual</div><div class="bz-daftar">${r("Koneksi Binance · saldo manual · risiko · batas · tampilan", "", "akun")}</div>` +
+      `<div class="bz-grup">Bot</div><div class="bz-daftar">${r("Koneksi bot · modal · posisi · jeda otomatis · koin & pola", "", "bot")}</div>` +
+      `<div class="bz-grup">Lainnya</div><div class="bz-daftar">${r("Muat ulang aplikasi", "", "muat")}</div>`; }
+  function bukaDetail(jenis) { stDetail = jenis; $("stDaftar").hidden = !!jenis; $("stDetailAkun").hidden = jenis !== "akun"; $("stDetailBot").hidden = jenis !== "bot";
+    $("stJudul").textContent = jenis === "akun" ? "Akun & trading manual" : jenis === "bot" ? "Bot" : "Pengaturan";
+    if (jenis === "akun" && typeof pasangToggleAk === "function") pasangToggleAk(true);
+    if (jenis === "bot" && typeof pasangToggleBt === "function") pasangToggleBt(true);
+    if (!jenis) gambarSetelan(); window.scrollTo(0, 0); }
+  function pindahForm() { const fa = $("akForm"), fb = $("btForm"), kb = $("btKunci");
+    if (fa && fa.parentElement !== $("stDetailAkun")) { $("stDetailAkun").appendChild(fa); }
+    if (kb && kb.parentElement !== $("stDetailBot")) $("stDetailBot").appendChild(kb);
+    if (fb && fb.parentElement !== $("stDetailBot")) $("stDetailBot").appendChild(fb); }
+  $("stDaftar").addEventListener("click", e => { const b = e.target.closest("[data-st]"); if (!b) return; const a = b.dataset.st;
+    if (a === "tampilan") { typeof bukaPengaturanTampilan === "function" && bukaPengaturanTampilan(); }
+    else if (a === "tema") { $("tema") && $("tema").click(); setTimeout(gambarSetelan, 50); }
+    else if (a === "privasi") { tampilanUbah("opsi", "privasi", !TAMPIL.privasi); gambarSetelan(); }
+    else if (a === "rp") { tampilanUbah("opsi", "rp", TAMPIL.rp === false); gambarSetelan(); }
+    else if (a === "pin") window.gantiPinAmonk && window.gantiPinAmonk();
+    else if (a === "faceNyala") Promise.resolve(window.aktifkanFaceId && window.aktifkanFaceId()).then(gambarSetelan);
+    else if (a === "faceMati") { window.matikanFaceId && window.matikanFaceId(); gambarSetelan(); }
+    else if (a === "akun" || a === "bot") bukaDetail(a);
+    else if (a === "muat") location.reload(); });
+  $("stKembali").addEventListener("click", () => { if (stDetail) bukaDetail(null); else kembali(); });
+  // ---------- navigasi ----------
+  let riwayatHal = [];
+  function ke(t) { if (!t) return;
+    if (t === "beli") { pindahHal("Akun"); setTimeout(() => { const k = $("mbKartu"); if (k) k.scrollIntoView({ block: "start" }); }, 120); return; }
+    if (t.startsWith("Setelan")) { pindahHal("Setelan"); bukaDetail(t.split(":")[1] || null); return; }
+    if (t === "foto") { $("prFoto").click(); return; }
+    if (t === "nama") { const n = prompt("Nama tampilan:", baca("amonkNama", "AMONK") || "AMONK"); if (n != null && n.trim()) { simpan("amonkNama", n.trim().slice(0, 24)); window.gambarProfil(); window.gambarBeranda(); } return; }
+    pindahHal(t); }
+  function kembali() { const h = riwayatHal.pop(); pindahHal(h && h !== halAktif ? h : "Beranda"); }
+  window.bzKe = ke;
+  document.addEventListener("click", e => { const t = e.target.closest("[data-bz-ke]"); if (t) { e.preventDefault(); ke(t.dataset.bzKe); return; }
+    if (e.target.closest("[data-bz-kembali]")) kembali(); });
+  $("bzAv").addEventListener("click", () => ke("Profil"));
+  $("bzSetel").addEventListener("click", () => ke("Setelan"));
+  $("prSetel").addEventListener("click", () => ke("Setelan"));
+  $("bzCari").addEventListener("click", () => { pindahHal("Terminal"); setTimeout(() => { const c = document.querySelector("#halTerminal input[type=search], #halTerminal input[type=text], #cari"); if (c) c.focus(); }, 150); });
+  document.addEventListener("click", e => { const m = e.target.closest("#bzMata"); if (m) { e.stopPropagation(); simpan("bzSamar", !samar()); window.gambarBeranda(); window.gambarAset(); } }, true);
+  // dipanggil pindahHal (lihat kait di bawah)
+  window.bzMasuk = (h, dari) => { document.body.classList.toggle("bz-penuh", ["Beranda", "Aset", "Pnl", "Profil", "Setelan"].includes(h)); if (dari && dari !== h && !["Setelan", "Profil", "Pnl"].includes(dari)) riwayatHal.push(dari); if (riwayatHal.length > 20) riwayatHal.shift();
+    const tbA = $("tbAset"), tbB = $("tbBeranda");
+    if (tbA) tbA.setAttribute("aria-selected", ["Aset", "Bot", "Akun"].includes(h) ? "true" : "false");
+    if (tbB) tbB.setAttribute("aria-selected", ["Beranda", "Pnl", "Profil", "Setelan"].includes(h) ? "true" : "false");
+    if (["Beranda", "Aset", "Pnl"].includes(h)) { if (window.muatAkun && typeof akCfg === "function" && akCfg().url) window.muatAkun(); if (window.muatBotBilaAda) window.muatBotBilaAda(); }
+    if (h === "Beranda") window.gambarBeranda(); if (h === "Aset") window.gambarAset(); if (h === "Pnl") window.gambarPnl(); if (h === "Profil") window.gambarProfil();
+    if (h === "Setelan") { pindahForm(); if (!stDetail) gambarSetelan(); } };
+  pasangSubTab(); pindahForm();
+  pnPer = baca("pnPer", "7") || "7"; if (!["7", "30", "90", "k"].includes(pnPer)) pnPer = "7";
+  $("pnPeriode").querySelectorAll("button").forEach(x => x.classList.toggle("aktif", x.dataset.v === pnPer)); $("pnKustom").hidden = pnPer !== "k";
+  if (pnPer === "k") { $("pnDari").value = tgl(hari0() - 29 * 864e5); $("pnSampai").value = tgl(Date.now()); }
+  setInterval(() => { if (document.hidden) return; if (halAktif === "Beranda") window.gambarBeranda(); else if (halAktif === "Aset") window.gambarAset(); }, 15000);
+  setInterval(() => { if (!document.hidden && ["Beranda", "Aset"].includes(halAktif) && window.muatAkun && typeof akCfg === "function" && akCfg().url) window.muatAkun(); }, 60e3);
+  // SELALU mulai dari Beranda saat aplikasi dibuka (user: "setiap membuka aplikasi ketika sudah tutup selalu muncul menu awal")
+  setTimeout(() => { const h = decodeURIComponent(location.hash.slice(1)); if (!h) pindahHal("Beranda"); }, 80);
+})();
+</script>
+
 </body>
 </html>
