@@ -322,6 +322,7 @@ function peristiwa(d, A, opsi = {}) {
       batal: batDi(q, i), // garis batal di bar valid (ditambahkan 2026-09-17 untuk uji TP/SL buku)
       awal: q.kr[0],      // titik ayunan pertama kerangka {hi,p,b} (ditambahkan 2026-09-17 untuk uji titik awal)
       titikAwal: q.titikAwal, // titik awal bermakna per pola (lihat bentuk())
+      geo: q.uaB != null ? { uaB: q.uaB, uaP: q.uaP, ubB: q.ubB, ubP: q.ubP, laB: q.laB, laP: q.laP, lbB: q.lbB, lbP: q.lbP } : null, // 2026-10-11 uji bentuk FW (tambahan, tidak mengubah keluaran lain)
       R24: j < n && A[i] > 0 ? (d.c[j] - d.c[i]) / A[i] : NaN });
   }
   if (opsi.setupAkhir) {
