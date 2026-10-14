@@ -1,7 +1,7 @@
 {
- "dibuat": "2026-10-13T23:41:29.594Z",
+ "dibuat": "2026-10-14T11:49:40.927Z",
  "sumber": "judul pengumuman CMS Binance (katalog 49 & 161)",
- "jumlahPengumuman": 2090,
+ "jumlahPengumuman": 2091,
  "aktif": {
   "BICO": {
    "sejak": "2026-10-09"
@@ -48,9 +48,6 @@
   "DODO": {
    "sejak": "2026-05-22"
   },
-  "EPIC": {
-   "sejak": "2026-05-22"
-  },
   "HEI": {
    "sejak": "2026-05-22"
   },
@@ -61,9 +58,6 @@
    "sejak": "2026-05-22"
   },
   "NOM": {
-   "sejak": "2026-04-30"
-  },
-  "QUICK": {
    "sejak": "2026-04-30"
   },
   "RESOLV": {
@@ -137,6 +131,8 @@
   }
  },
  "delist": {
+  "EPIC": "2026-10-14",
+  "QUICK": "2026-10-14",
   "USDP": "2026-09-10",
   "ICX": "2026-08-20",
   "SCRT": "2026-08-20",
