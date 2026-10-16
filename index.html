@@ -1000,6 +1000,7 @@ body.tim-buka .ao3-label,body:has(#timModal:not([hidden])) .ao3-label{display:no
 @media(hover:hover){:is(#rwList,#jrList)>.jr-tr:hover{background:var(--bg2)!important}}
 :is(#rwList,#jrList)>.jr-tr::before,:is(#rwList,#jrList)>.jr-tr::after{display:none!important}
 @media(max-width:600px){:is(#rwList,#jrList){padding:2px 8px}:is(#rwList,#jrList)>.jr-tr>.lv{grid-column:1/-1!important}:is(#rwList,#jrList)>.jr-tr>.ha{grid-row:1!important;max-width:130px}}
+.tt-pos-kartu{display:flex;flex-direction:column;gap:8px;margin:10px 0}.tt-kartu{cursor:pointer}.tt-kartu:focus-visible{outline:2px solid var(--aksen,#f0b429);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -3299,7 +3300,17 @@ function gambarTT(T, buka) {
   const P = D.peran || {}, r = x => x == null ? "—" : (x > 0 ? "+" : "") + x.toFixed(2) + "R", f = x => x == null ? "—" : (+x).toPrecision(5);
   const ag = TT_PERAN.map(([k, nm, w, ik]) => { const p = P[k] || { status: "diam", aksi: "belum ada putaran" }; return `<div class="tt-ag ${p.status}" data-tt="${k}" role="button" tabindex="0">${ttAvatar(w, ik, p.status === "bekerja")}<div class="nm">${nm}</div><div class="st"><i></i>${p.status === "bekerja" ? "bekerja" : p.status === "selesai" ? "selesai" : "diam"} · ${lalu(p.t)}</div><div class="ak">${esc(p.aksi || "")}</div></div>`; }).join("");
   const pos = [...(D.jalan || []), ...(D.menunggu || [])];
-  const tabel = pos.length ? `<div class="tt-pos"><div class="tt-pos-gulir"><table><thead><tr><th>Koin</th><th>Status</th><th>Entry</th><th>SL</th><th>TP1</th><th>Sisa</th><th>Yakin</th></tr></thead><tbody>${pos.map((p, i) => `<tr data-ttp="${i}"><td><b>${esc(p.koin)}</b></td><td>${p.st === "menunggu" ? "limit" : p.kenaTp1 ? "TP1 ✓" : "jalan"}</td><td>${f(p.st === "menunggu" ? p.limit : p.isi)}</td><td>${f(p.sl)}</td><td>${f(p.tp1)}</td><td>${p.sisa === "tp2" ? "TP2 " + f(p.tp2) : p.sisa === "trailing15" ? "trailing 15%" : "—"}</td><td>${p.yakin || "—"}</td></tr>`).join("")}</tbody></table></div></div>` : '<div class="tt-catat">Belum ada posisi atau limit terbuka.</div>';
+  // 2026-10-16 (user: "tampilan koin tim trading yang sedang jalan sama dengan tampilan coin di bot"): kartu seperti tab Bot — untung/rugi (kertas 1000 USDT), R,
+  // isi/limit, harga kini, stop, ukuran + jalur SL–entry–TP dengan titik harga kini. Ketuk kartu = rincian (alasan chart & berita) seperti sebelumnya.
+  const ttKl = v => v == null ? "" : v >= 0 ? "naik" : "turun", ttF2 = v => (v >= 0 ? "+" : "") + v.toFixed(2);
+  const tabel = pos.length ? `<div class="tt-pos-kartu">${pos.map((p, i) => { const px = hargaKini(String(p.koin).replace(/USDT$/, "")), jalan = p.st !== "menunggu", e = +(jalan ? p.isi : p.limit), sl = +p.sl;
+      const R = jalan && px && e > sl ? (px - e) / (e - sl) : null, usd = jalan && px && e > 0 ? 1000 * (px / e - 1) : null, jarak = !jalan && px && e ? (e / px - 1) * 100 : null;
+      const tahap = !jalan ? "limit beli menunggu" + (jarak != null ? " · " + fPct(jarak, 1) + " dari harga" : "") : p.kenaTp1 ? "TP1 ✓ · " + (p.sisa === "trailing15" ? "trailing 15%" : "menuju TP2") : "menunggu TP1";
+      const ujung = +p.tp2 > e ? +p.tp2 : +p.tp1;
+      return `<div class="bn-baris tt-kartu" data-ttp="${i}" role="button" tabindex="0"><div class="bn-kiri"><div class="bn-sym">${esc(String(p.koin).replace(/USDT$/, ""))}<small>/USDT</small> <span class="jn-label sinyal">TIM</span>${p.yakin ? ` <span class="jn-label">yakin ${esc(p.yakin)}</span>` : ""}</div><div class="bn-sub">${tahap}</div></div>` +
+        `<div class="bn-kanan">${R == null ? `<span class="chip jalan">${jalan ? "Jalan" : "Limit"}</span>` : `<b class="${ttKl(usd)} bn-uang">${ttF2(usd)}</b><span class="${ttKl(R)}">${ttF2(R)} R</span>`}</div>` +
+        `<div class="bn-4"><div><i>${jalan ? "Isi" : "Limit"}</i>${fHarga(e)}</div><div><i>Kini</i>${px ? fHarga(px) : "—"}</div><div><i>Stop</i>${fHarga(sl)}</div><div><i>Ukuran</i><span class="bn-uang">1000 USDT</span></div></div>` +
+        jalurPosisi({ sl, isi: e, tp1: +p.tp2 > e ? +p.tp1 : null, tp2: ujung }, px, +p.tp2 > e ? "TP2" : "TP1") + `</div>`; }).join("")}</div><div class="tt-catat">Kertas: 1000 USDT per trade (bukan uang asli). Untung/rugi = harga kini dibanding isi; sesudah TP1 separuh sudah terjual, angka ini perkiraan.</div>` : '<div class="tt-catat">Belum ada posisi atau limit terbuka.</div>';
   const pu = D.putaran;
   $("ttInfo").innerHTML = `<div class="tt-kepala"><b>🤝 Tim Trading <small>kertas · chart + berita · bukan bot</small></b><small>${pu ? "putaran terakhir " + new Date(pu.tanggal).toLocaleString("id-ID", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) + " · " + pu.diambil + " diambil · " + pu.lewat + " dilewati" : "belum ada putaran"}</small></div>
 <div class="tt-baris">${ag}</div>
